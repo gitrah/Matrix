@@ -10,7 +10,7 @@ object GradientDescent {
   	  	      2m  i=1
   */
   def Σ(f : ((Double,Double)) => Double, data : List[(Double,Double)]) : Double = {
-    (0.0 /: (for(i <- 1 to data.length) yield f(data(i-1))))(_+_)
+    (0.0 /: data.map(f))(_+_)
   }
   
   def hypothesis(θ0 : Double, θ1 : Double, x : Double) = θ0 + θ1 *x
