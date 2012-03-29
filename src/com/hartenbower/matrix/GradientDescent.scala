@@ -1,4 +1,5 @@
 package com.hartenbower.matrix
+import scala.io.Source
 
 object GradientDescent {
   /**
@@ -34,12 +35,54 @@ object GradientDescent {
 	   ctr += 1
 	   θ = θ0θ1(θ._1,θ._2,α,data)
 	   println("iter " + ctr + " θ " + θ + " diff " + diffSquared(θ,oldθ))
-	}while(diffSquared(θ,oldθ) > σ )
+	}while(diffSquared(θ,oldθ) > σ*σ )
 	θ
   }
+  
+  implicit def arrayToTuple(args : Array[Double]) : Product = {
+    args match {
+      case Array(x) => Tuple1[Double](x)
+      case Array(x,y) => Tuple2[Double,Double](x,y)
+      case Array(x,y,z) => Tuple3[Double,Double,Double](x,y,z)
+      case Array(w,x,y,z) => Tuple4[Double,Double,Double,Double](w,x,y,z)
+      case Array(v,w,x,y,z) => Tuple5[Double,Double,Double,Double,Double](v,w,x,y,z)
+      case Array(u,v,w,x,y,z) => Tuple6[Double,Double,Double,Double,Double,Double](u,v,w,x,y,z)
+    }
+  }
+  
+  def  parseTupleFile(path : String) : List[Product] = {
+    var l = List[Product]()
+    for(line <- Source.fromFile(path).getLines()) { 
+    	l = l :+ arrayToTuple(line.split(",").map(_.toDouble))
+    }
+    l
+  }
+  
+  def normalEquation(features : List[List[Double]], values : List[Double]) : Matrix = {
+    require(features.length == values.length)
+    /*       T -1  T
+     * θ = (X X)  X y
+     */
+    val designMatrix = new Matrix(features).prependColumn(
+    		List.fill[Double](features.length)(1.))
+    val dmTxp = designMatrix.transpose()
+    // without determinant check, just return
+    //     (xTxp * x).inverse * xTxp * Matrix.columnMatrix(values)
+    val prod = dmTxp * designMatrix
+    require(prod.determinant != 0.)
+    prod.inverse()* dmTxp * Matrix.columnMatrix(values)
+  }
+  
 }
-
 /*
+
+val features : List[List[Double]]= List(
+    List(2104, 5, 1, 45.),
+    List(1416, 3, 2, 40),
+    List(1534, 3, 2, 30),
+    List(852, 2, 1, 36) )
+val values = List(460., 232, 315, 178)
+
 val data : List[(Double,Double)]= List( 
 		(800.,180.),
 		(1000,170),
