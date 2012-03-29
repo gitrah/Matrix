@@ -59,7 +59,7 @@ object GradientDescent {
   }
   
   def normalEquation(features : List[List[Double]], values : List[Double]) : Matrix = {
-    require(features.length == values.length)
+    require(features.length == values.length, "counts of feature examples and value examples must agree" )
     /*       T -1  T
      * θ = (X X)  X y
      */

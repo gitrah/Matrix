@@ -118,7 +118,7 @@ class Matrix(els: List[List[Double]]) {
     require(col.length == nRows)
     val i = col.iterator
     new Matrix(
-    	for(row <- elements) yield i.next :: row
+        elements map (i.next :: _)
     )
   }
 
@@ -126,10 +126,9 @@ class Matrix(els: List[List[Double]]) {
     require(col.length == nRows)
     val i = col.iterator
     new Matrix(
-    	for(row <- elements) yield row :+ i.next 
+        elements.map ( _ :+ i.next)
     )
   }
-
   
   override def toString(): String = {
     val rowStrings =
