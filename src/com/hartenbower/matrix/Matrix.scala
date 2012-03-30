@@ -85,7 +85,7 @@ class Matrix(val elements: List[List[Double]]) {
     new Matrix(elements ++ other.elements)
   }
   def bottomConcatenate(other: Matrix): Matrix = +/(other)
-
+  
   def -(other: Matrix): Matrix = {
     require((other.nRows == nRows) &&
       (other.nCols == nCols))
@@ -97,9 +97,7 @@ class Matrix(val elements: List[List[Double]]) {
 
   private def dotVectors(a: List[Double],
     b: List[Double]): Double = {
-    val multipliedElements =
-      (a, b).zipped.map(_ * _)
-    (0.0 /: multipliedElements)(_ + _)
+    (0.0 /: (a, b).zipped.map(_ * _))(_ + _)
   }
 
   def *(other: Matrix): Matrix = {
@@ -112,18 +110,30 @@ class Matrix(val elements: List[List[Double]]) {
       }).toList)
   }
 
-  def +(s: Double): Matrix = {
-    new Matrix(for (row <- elements) yield (row.map(_ + s)))
+  def elementOp( s: Double, f: (Double,Double) => Double) : Matrix = new Matrix( elements map (_ map(f(_ , s))))
+ 
+  def +(s: Double): Matrix = elementOp(s, _ + _)
+  def -(s: Double): Matrix = elementOp(s, _ - _)
+  def *(s: Double): Matrix = elementOp(s, _ * _)
+  def /(s: Double): Matrix = elementOp(s, _ / _)
+  
+  def ^(exp: Double) : Matrix = elementOp(exp, (x,y) => Math.pow(x,y))
+
+  /**
+   * other versions of +, *, / 
+   * left in for eventual profiling 
+   */
+  def plus(s: Double): Matrix = {
+    new Matrix( elements map (_ map(_ + s)))
   }
-  def -(s: Double): Matrix = {
-    new Matrix(for (row <- elements) yield (row.map(_ - s)))
-  }
-  def *(s: Double): Matrix = {
+  def mult(s: Double): Matrix = {
     new Matrix(for (row <- elements) yield (row.map(_ * s)))
   }
-  def /(s: Double): Matrix = {
+  def div(s: Double): Matrix = {
     new Matrix(for (row <- elements) yield (row.map(_ / s)))
   }
+  
+
 
   def prependColumn(col: List[Double]): Matrix = {
     require(col.length == nRows)
@@ -216,6 +226,6 @@ class Matrix(val elements: List[List[Double]]) {
  * 
 val m = new Matrix(List(List(1.,2,3),List(1,4,8),List(3,9,.5)))
 
-val a = new Matrix(List(List(1,2),List(3,4),List(5.,6))
+val a = new Matrix(List(List(1,2),List(3,4),List(5.,6)))
 */
 
