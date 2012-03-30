@@ -1,4 +1,5 @@
 package com.hartenbower.matrix
+import scala.util.Random
 
 object Matrix {
   def apply(nCols: Int, els: Double*): Matrix = {
@@ -21,11 +22,11 @@ object Matrix {
     new Matrix(
       (for (i <- 1 to dim) yield {
         (for (j <- 1 to dim)
-          yield if (i == j) d else 0.).toList
-      }).toList)
+          yield if (i == j) d else 0.).par.toList
+      }).par.toList)
   }
 
-  // could also define one as transpose of other... 
+  /* could also define one as transpose of other... */ 
   def rowMatrix(l : List[Double]) : Matrix = {
     new Matrix(List(l))
   }
@@ -33,17 +34,16 @@ object Matrix {
   def columnMatrix(l : List[Double]) : Matrix = {
     new Matrix(for( i <- l) yield List(i))
   }
- 
+  
+  def randn(nRows : Int, nCols : Int) : Matrix = {
+    val rnd = new Random(System.currentTimeMillis)
+    new Matrix(  
+    	(for(row <- 1 to nRows) yield (for( col <- 1 to nCols) yield rnd.nextDouble()).par.toList).par.toList 
+    )
+  }
 }
 
-//import Matrix._
-
-class Matrix(els: List[List[Double]]) {
-  /**
-   * elements of the matrix, stored as a list of
-   * its rows
-   */
-  val elements: List[List[Double]] = els
+class Matrix(val elements: List[List[Double]]) {
 
   def nRows: Int = elements.length
   def nCols: Int = if (elements.isEmpty) 0
@@ -53,27 +53,67 @@ class Matrix(els: List[List[Double]]) {
    * all rows of the matrix must have the same
    * number of columns
    */
-  require(elements.forall(_.length == nCols))
+  require(elements.forall(_.length == nCols), "data not of matrix form (column count varies across rows)")
 
   def apply(row : Int, col : Int) : Double = {
-    require(col <= nCols && row <= nRows)
+    require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1,"+nRows+"],[1,"+nCols+"]")
     elements(row-1)(col-1)
   }
 
   private def addRows(a: List[Double],
-    b: List[Double]): List[Double] =
-    List.map2(a, b)(_ + _)
+    b: List[Double]): List[Double] = // (xs, ys).zipped.map(f)
+    (a, b).zipped.map(_ + _).par.toList
 
   private def subRows(a: List[Double],
     b: List[Double]): List[Double] =
-    List.map2(a, b)(_ - _)
+    (a, b).zipped.map(_ - _).par.toList
 
   def +(other: Matrix): Matrix = {
     require((other.nRows == nRows) &&
       (other.nCols == nCols))
     new Matrix(
-      List.map2(elements, other.elements)(addRows(_, _)))
+      (elements, other.elements).zipped.map(addRows(_, _)).par.toList)
   }
+
+  def ++(other: Matrix): Matrix = {
+    require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
+    new Matrix((elements, other.elements).zipped.map( _ ++ _))
+  }
+  def rightConcatenate(other: Matrix): Matrix = ++(other)
+  
+  def +/(other: Matrix): Matrix = {
+    require(other.nCols == nCols, "can only bottom-concatenate matrices of equal column count")
+    new Matrix(elements ++ other.elements)
+  }
+  def bottomConcatenate(other: Matrix): Matrix = +/(other)
+  
+  def -(other: Matrix): Matrix = {
+    require((other.nRows == nRows) &&
+      (other.nCols == nCols))
+    new Matrix((elements, other.elements).zipped.map(subRows(_, _)).par.toList)
+  }
+
+  def transpose(): Matrix =
+    new Matrix(elements.transpose.par.toList)
+
+  private def dotVectors(a: List[Double],
+    b: List[Double]): Double = {
+    val multipliedElements =
+      (a, b).zipped.map(_ * _).par
+    (0.0 /: multipliedElements)(_ + _)
+  }
+
+  def *(other: Matrix): Matrix = {
+    require(nCols == other.nRows)
+    val t = other.transpose()
+    new Matrix(
+      (for (row <- elements) yield {
+        for (otherCol <- t.elements)
+          yield dotVectors(row, otherCol)
+      }).par.toList
+    )
+  }
+
   def +(s : Double) : Matrix = {
     new Matrix(for(row <- elements) yield(row.map(_+s)))
   }
@@ -86,34 +126,7 @@ class Matrix(els: List[List[Double]]) {
   def /(s : Double) : Matrix = {
     new Matrix(for(row <- elements) yield(row.map(_/s)))
   }
-
-  def -(other: Matrix): Matrix = {
-    require((other.nRows == nRows) &&
-      (other.nCols == nCols))
-    new Matrix(
-      List.map2(elements, other.elements)(subRows(_, _)))
-  }
-
-  def transpose(): Matrix =
-    new Matrix(List.transpose(elements))
-
-  private def dotVectors(a: List[Double],
-    b: List[Double]): Double = {
-    val multipliedElements =
-      List.map2(a, b)(_ * _)
-    (0.0 /: multipliedElements)(_ + _)
-  }
-
-  def *(other: Matrix): Matrix = {
-    require(nCols == other.nRows)
-    val t = other.transpose()
-    new Matrix(
-      for (row <- elements) yield {
-        for (otherCol <- t.elements)
-          yield dotVectors(row, otherCol)
-      })
-  }
-  
+    
   def prependColumn(col : List[Double]) : Matrix = {
     require(col.length == nRows)
     val i = col.iterator
@@ -149,8 +162,8 @@ class Matrix(els: List[List[Double]]) {
     new Matrix(
 	(for(y <- 0 to nRows-1 if row-1 != y) yield {
 		(for(x <- 0 to nCols -1 if col-1 != x && row-1 != y) 
-		   yield elements(y)(x)).toList
-	}).toList)
+		   yield elements(y)(x)).par.toList
+	}).par.toList)
   }
   
   def minor(row : Int, col: Int) : Double = {
@@ -158,8 +171,8 @@ class Matrix(els: List[List[Double]]) {
     new Matrix(
     	(for(y <- 0 to nRows-1 if row-1 != y) yield {
     		(for(x <- 0 to nCols -1 if col-1 != x && row-1 != y) 
-    		   yield elements(y)(x)).toList
-    	}).toList
+    		   yield elements(y)(x)).par.toList
+    	}).par.toList
     ).determinant
   }
 
@@ -172,7 +185,7 @@ class Matrix(els: List[List[Double]]) {
          elements(0)(0) * elements(1)(1) - elements(0)(1)* elements(1)(0)
       case _ =>
 	      // cofactor expansion
-	      (0.0  /: (for(i <- 1 to nRows) yield apply(i,1) * cofactor(i,1))) (_+_)
+	      (0.0  /: (for(i <- 1 to nRows) yield apply(i,1) * cofactor(i,1)).par) (_+_)
     }
   }
   
@@ -183,8 +196,8 @@ class Matrix(els: List[List[Double]]) {
   def cofactorM() : Matrix = {
     new Matrix(
         (for(row <- 1 to nRows) yield {
-        	(for(col <- 1 to nCols) yield cofactor(row,col)).toList
-        }).toList)
+        	(for(col <- 1 to nCols) yield cofactor(row,col)).par.toList
+        }).par.toList)
   }
   
   def inverse() : Matrix = {
@@ -203,10 +216,12 @@ class Matrix(els: List[List[Double]]) {
   
 
 }
+
+
 /*
  * 
 val m = new Matrix(List(List(1.,2,3),List(1,4,8),List(3,9,.5)))
 
-val a = new Matrix(List(List(1,2),List(3,4)))
+val a = new Matrix(List(List(1,2),List(3,4),List(5.,6))
 */
 
