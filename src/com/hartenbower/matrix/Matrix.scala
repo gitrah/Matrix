@@ -3,12 +3,12 @@ import scala.util.Random
 
 object Matrix {
   def apply(nCols: Int, els: Double*): Matrix = {
-    def splitRowsWorker(inList: List[Double],working: List[List[Double]]): List[List[Double]] = {
+    def splitRowsWorker(inList: List[Double], working: List[List[Double]]): List[List[Double]] = {
       if (inList.isEmpty)
         working
       else {
         val (a, b) = inList.splitAt(nCols)
-        splitRowsWorker(b, working :+ a )
+        splitRowsWorker(b, working :+ a)
       }
     }
     def splitRows(inList: List[Double]) =
@@ -22,24 +22,23 @@ object Matrix {
     new Matrix(
       (for (i <- 1 to dim) yield {
         (for (j <- 1 to dim)
-          yield if (i == j) d else 0.).par.toList
-      }).par.toList)
+          yield if (i == j) d else 0.).toList
+      }).toList)
   }
 
-  /* could also define one as transpose of other... */ 
-  def rowMatrix(l : List[Double]) : Matrix = {
+  /* could also define one as transpose of other... */
+  def rowMatrix(l: List[Double]): Matrix = {
     new Matrix(List(l))
   }
-  
-  def columnMatrix(l : List[Double]) : Matrix = {
-    new Matrix(for( i <- l) yield List(i))
+
+  def columnMatrix(l: List[Double]): Matrix = {
+    new Matrix(for (i <- l) yield List(i))
   }
-  
-  def randn(nRows : Int, nCols : Int) : Matrix = {
+
+  def randn(nRows: Int, nCols: Int): Matrix = {
     val rnd = new Random(System.currentTimeMillis)
-    new Matrix(  
-    	(for(row <- 1 to nRows) yield (for( col <- 1 to nCols) yield rnd.nextDouble()).par.toList).par.toList 
-    )
+    new Matrix(
+      (for (row <- 1 to nRows) yield (for (col <- 1 to nCols) yield rnd.nextDouble()).toList).toList)
   }
 }
 
@@ -48,58 +47,58 @@ class Matrix(val elements: List[List[Double]]) {
   def nRows: Int = elements.length
   def nCols: Int = if (elements.isEmpty) 0
   else elements.head.length
-  
+
   /**
    * all rows of the matrix must have the same
    * number of columns
    */
   require(elements.forall(_.length == nCols), "data not of matrix form (column count varies across rows)")
 
-  def apply(row : Int, col : Int) : Double = {
-    require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1,"+nRows+"],[1,"+nCols+"]")
-    elements(row-1)(col-1)
+  def apply(row: Int, col: Int): Double = {
+    require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
+    elements(row - 1)(col - 1)
   }
 
   private def addRows(a: List[Double],
     b: List[Double]): List[Double] = // (xs, ys).zipped.map(f)
-    (a, b).zipped.map(_ + _).par.toList
+    (a, b).zipped.map(_ + _).toList
 
   private def subRows(a: List[Double],
     b: List[Double]): List[Double] =
-    (a, b).zipped.map(_ - _).par.toList
+    (a, b).zipped.map(_ - _).toList
 
   def +(other: Matrix): Matrix = {
     require((other.nRows == nRows) &&
       (other.nCols == nCols))
     new Matrix(
-      (elements, other.elements).zipped.map(addRows(_, _)).par.toList)
+      (elements, other.elements).zipped.map(addRows(_, _)).toList)
   }
 
   def ++(other: Matrix): Matrix = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
-    new Matrix((elements, other.elements).zipped.map( _ ++ _))
+    new Matrix((elements, other.elements).zipped.map(_ ++ _))
   }
   def rightConcatenate(other: Matrix): Matrix = ++(other)
-  
+
   def +/(other: Matrix): Matrix = {
     require(other.nCols == nCols, "can only bottom-concatenate matrices of equal column count")
     new Matrix(elements ++ other.elements)
   }
   def bottomConcatenate(other: Matrix): Matrix = +/(other)
-  
+
   def -(other: Matrix): Matrix = {
     require((other.nRows == nRows) &&
       (other.nCols == nCols))
-    new Matrix((elements, other.elements).zipped.map(subRows(_, _)).par.toList)
+    new Matrix((elements, other.elements).zipped.map(subRows(_, _)).toList)
   }
 
   def transpose(): Matrix =
-    new Matrix(elements.transpose.par.toList)
+    new Matrix(elements.transpose.toList)
 
   private def dotVectors(a: List[Double],
     b: List[Double]): Double = {
     val multipliedElements =
-      (a, b).zipped.map(_ * _).par
+      (a, b).zipped.map(_ * _)
     (0.0 /: multipliedElements)(_ + _)
   }
 
@@ -110,39 +109,36 @@ class Matrix(val elements: List[List[Double]]) {
       (for (row <- elements) yield {
         for (otherCol <- t.elements)
           yield dotVectors(row, otherCol)
-      }).par.toList
-    )
+      }).toList)
   }
 
-  def +(s : Double) : Matrix = {
-    new Matrix(for(row <- elements) yield(row.map(_+s)))
+  def +(s: Double): Matrix = {
+    new Matrix(for (row <- elements) yield (row.map(_ + s)))
   }
-  def -(s : Double) : Matrix = {
-    new Matrix(for(row <- elements) yield(row.map(_-s)))
+  def -(s: Double): Matrix = {
+    new Matrix(for (row <- elements) yield (row.map(_ - s)))
   }
-  def *(s : Double) : Matrix = {
-    new Matrix(for(row <- elements) yield(row.map(_*s)))
+  def *(s: Double): Matrix = {
+    new Matrix(for (row <- elements) yield (row.map(_ * s)))
   }
-  def /(s : Double) : Matrix = {
-    new Matrix(for(row <- elements) yield(row.map(_/s)))
+  def /(s: Double): Matrix = {
+    new Matrix(for (row <- elements) yield (row.map(_ / s)))
   }
-    
-  def prependColumn(col : List[Double]) : Matrix = {
+
+  def prependColumn(col: List[Double]): Matrix = {
     require(col.length == nRows)
     val i = col.iterator
     new Matrix(
-        elements map (i.next :: _)
-    )
+      elements map (i.next :: _))
   }
 
-  def appendColumn(col : List[Double]) : Matrix = {
+  def appendColumn(col: List[Double]): Matrix = {
     require(col.length == nRows)
     val i = col.iterator
     new Matrix(
-        elements.map ( _ :+ i.next)
-    )
+      elements.map(_ :+ i.next))
   }
-  
+
   override def toString(): String = {
     val rowStrings =
       for (row <- elements)
@@ -150,62 +146,61 @@ class Matrix(val elements: List[List[Double]]) {
     rowStrings.mkString("", "\n", "\n")
   }
 
-  def sgn(row : Int, col : Int) : Int = {
+  def sgn(row: Int, col: Int): Int = {
     require(row <= nRows && col <= nCols)
     var l = -1
-    for( k <- 0 to row + col)
+    for (k <- 0 to row + col)
       l *= -1
     l
   }
-  
-  def minorM(row : Int, col: Int) : Matrix = {
+
+  def minorM(row: Int, col: Int): Matrix = {
     new Matrix(
-	(for(y <- 0 to nRows-1 if row-1 != y) yield {
-		(for(x <- 0 to nCols -1 if col-1 != x && row-1 != y) 
-		   yield elements(y)(x)).par.toList
-	}).par.toList)
-  }
-  
-  def minor(row : Int, col: Int) : Double = {
-    require(col <= nCols, row <= nRows)
-    new Matrix(
-    	(for(y <- 0 to nRows-1 if row-1 != y) yield {
-    		(for(x <- 0 to nCols -1 if col-1 != x && row-1 != y) 
-    		   yield elements(y)(x)).par.toList
-    	}).par.toList
-    ).determinant
+      (for (y <- 0 to nRows - 1 if row - 1 != y) yield {
+        (for (x <- 0 to nCols - 1 if col - 1 != x && row - 1 != y)
+          yield elements(y)(x)).toList
+      }).toList)
   }
 
-  def determinant : Double = {
+  def minor(row: Int, col: Int): Double = {
+    require(col <= nCols, row <= nRows)
+    new Matrix(
+      (for (y <- 0 to nRows - 1 if row - 1 != y) yield {
+        (for (x <- 0 to nCols - 1 if col - 1 != x && row - 1 != y)
+          yield elements(y)(x)).toList
+      }).toList).determinant
+  }
+
+  def determinant: Double = {
     require(nCols == nRows, "not square")
     nCols match {
       case 1 =>
-          elements(0)(0)
+        elements(0)(0)
       case 2 =>
-         elements(0)(0) * elements(1)(1) - elements(0)(1)* elements(1)(0)
+        elements(0)(0) * elements(1)(1) - elements(0)(1) * elements(1)(0)
       case _ =>
-	      // cofactor expansion
-	      (0.0  /: (for(i <- 1 to nRows) yield apply(i,1) * cofactor(i,1)).par) (_+_)
+        // cofactor expansion
+        (0.0 /: (for (i <- 1 to nRows) yield apply(i, 1) * cofactor(i, 1)))(_ + _)
     }
   }
-  
-  def cofactor(row : Int, col: Int) : Double = {
-	 minor(row,col) * sgn(row,col) 
+
+  def cofactor(row: Int, col: Int): Double = {
+    minor(row, col) * sgn(row, col)
   }
 
-  def cofactorM() : Matrix = {
+  def cofactorM(): Matrix = {
     new Matrix(
-        (for(row <- 1 to nRows) yield {
-        	(for(col <- 1 to nCols) yield cofactor(row,col)).par.toList
-        }).par.toList)
+      (for (row <- 1 to nRows) yield {
+        (for (col <- 1 to nCols) yield cofactor(row, col)).toList
+      }).toList)
   }
-  
-  def inverse() : Matrix = {
+
+  def inverse(): Matrix = {
     val d = determinant
     require(d != 0, "not linearly independent")
     cofactorM.transpose / d
   }
-  
+
   implicit val dim = nCols
   implicit def scalarToMatrix(i: Int)(implicit dim: Int): Matrix = {
     Matrix.identityM(dim, i)
@@ -213,7 +208,6 @@ class Matrix(val elements: List[List[Double]]) {
   implicit def scalarToMatrix(s: Double)(implicit dim: Int): Matrix = {
     Matrix.identityM(dim, s)
   }
-  
 
 }
 
