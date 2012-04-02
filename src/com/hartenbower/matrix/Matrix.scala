@@ -132,30 +132,14 @@ class Matrix(val elements: List[List[Double]]) {
   def mult(s: Double) = new Matrix(for (row <- elements) yield (row.map(_ * s)))
   def div(s: Double) = new Matrix(for (row <- elements) yield (row.map(_ / s)))
   
-//  def prependColumn(col: List[Double]): Matrix = {
-//    require(col.length == nRows) 
-//    new Matrix(
-//        for(row <- elements; colElem <- col) yield colElem :: row)
-//  }
-//
-//  def appendColumn(col: List[Double]): Matrix = {
-//    require(col.length == nRows)
-//    new Matrix(
-//        for(row <- elements; colElem <- col) yield row :+ colElem)
-//  }
-
   def prependColumn(col: List[Double]): Matrix = {
     require(col.length == nRows, "new column doesn't fit matrix")
-    val i = col.iterator
-    new Matrix(
-      elements map (i.next :: _))
+    new Matrix((col, elements).zipped.map( _ :: _))
   }
 
   def appendColumn(col: List[Double]): Matrix = {
     require(col.length == nRows, "new column doesn't fit matrix")
-    val i = col.iterator
-    new Matrix(
-      elements.map(_ :+ i.next))
+    new Matrix((elements, col).zipped.map( _ :+ _))
   }
 
   
