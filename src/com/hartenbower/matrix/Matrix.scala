@@ -103,6 +103,10 @@ class Matrix(val elements: List[List[Double]]) {
     b: List[Double]): Double = {
     (0.0 /: (a, b).zipped.map(_ * _))(_ + _)
   }
+  
+  def dims() : (Int,Int) = {
+    Tuple2(nRows,nCols)
+  }
 
   def *(other: Matrix): Matrix = {
     require(nCols == other.nRows, "matrices incompatible for multiplication (column count of this != row count of other)")
@@ -113,17 +117,29 @@ class Matrix(val elements: List[List[Double]]) {
           yield dotVectors(row, otherCol)
       }))
   }
-
-  def elementOp( s: Double, f: (Double,Double) => Double) : Matrix = new Matrix( elements map (_ map(f(_ , s))))
+  
+  def elementScalarOp( s: Double, f: (Double,Double) => Double) : Matrix = new Matrix( elements map (_ map(f(_ , s))))
  
-  def +(s: Double) = elementOp(s, _ + _)
-  def -(s: Double) = elementOp(s, _ - _)
-  def *(s: Double) = elementOp(s, _ * _)
-  def /(s: Double) = elementOp(s, _ / _)
+  def +(s: Double) = elementScalarOp(s, _ + _)
+  def -(s: Double) = elementScalarOp(s, _ - _)
+  def *(s: Double) = elementScalarOp(s, _ * _)
+  def /(s: Double) = elementScalarOp(s, _ / _)
   
-  def ^(exp: Double)  = elementOp(exp, (x,y) => Math.pow(x,y))
-  def clean(σ: Double = .0001) = elementOp(σ, (x,y) => if( x*x < y*y) 0. else x)
-  
+  def ^(exp: Double)  = elementScalarOp(exp, (x,y) => Math.pow(x,y))
+  def clean(σ: Double = .0001) = elementScalarOp(σ, (x,y) => if( x*x < y*y) 0. else x)
+
+  // elementwise operations
+  def elementElementOp( other : Matrix, f : (Tuple2[Double,Double])=>Double ) : Matrix = {
+    new Matrix((elements,other.elements).zipped.map( (row, rowo) => row.zip(rowo).map( tup => f(tup))))
+  }
+   
+  def hadamardProduct(other : Matrix):Matrix = {
+    require(dims == other.dims) 
+    elementElementOp( other, a => a._1 * a._2)
+  }
+
+  def **(other: Matrix) = hadamardProduct(other)
+
   /**
    * other versions of +, *, / 
    * left in for eventual profiling 
