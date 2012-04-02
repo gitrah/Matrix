@@ -129,14 +129,15 @@ class Matrix(val elements: List[List[Double]]) {
   def clean(σ: Double = .0001) = elementScalarOp(σ, (x,y) => if( x*x < y*y) 0. else x)
 
   // elementwise operations
-  def elementElementOp( other : Matrix, f : (Tuple2[Double,Double])=>Double ) : Matrix = {
-    new Matrix((elements,other.elements).zipped.map( (row, rowo) => row.zip(rowo).map( tup => f(tup))))
-  }
-   
-  def hadamardProduct(other : Matrix):Matrix = {
-    require(dims == other.dims) 
-    elementElementOp( other, a => a._1 * a._2)
-  }
+//  def elementElementOp( other : Matrix, f : (Tuple2[Double,Double])=>Double ) : Matrix = {
+//    new Matrix((elements,other.elements).zipped.map( (row, rowo) => row.zip(rowo).map( f )))
+//  }
+//   
+  def elementElementOp( other : Matrix, f : (Double,Double) => Double ) : Matrix = {
+    new Matrix((elements,other.elements).zipped.map( (row, rowo) => (row,rowo).zipped.map( f)))
+  }   
+  
+  def hadamardProduct(other : Matrix) = elementElementOp(other, _ * _)
 
   def **(other: Matrix) = hadamardProduct(other)
 
