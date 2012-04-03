@@ -42,10 +42,12 @@ object Matrix {
   implicit def seqSeqToListList(ss : Seq[Seq[Double]]) : List[List[Double]]= {
     (ss map ( _.toList)).toList
   }
+  
+  implicit def tupleToList( t : Tuple2[Double,Double]) = List(t._1,t._2)
 
 }
 
-class Matrix(val elements: List[List[Double]]) {
+case class Matrix(val elements: List[List[Double]]) {
 
   def nRows: Int = elements.length
   def nCols: Int = if (elements.isEmpty) 0 else elements.head.length
@@ -57,6 +59,10 @@ class Matrix(val elements: List[List[Double]]) {
   require(elements.forall(_.length == nCols), "data not of matrix form (column count varies across rows)")
 
   //def this(ss : Seq[Seq[Double]]) = this((ss map ( _.toList)).toList) 
+  
+  def this( tups : Product*) = {
+    this((for(t <- tups) yield (t.productIterator.toList).asInstanceOf[List[Double]]).toList)
+  }
   
   def validIndicesQ(row:Int,col:Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
@@ -79,6 +85,13 @@ class Matrix(val elements: List[List[Double]]) {
       (elements, other.elements).zipped.map(addRows(_, _)).toList)
   }
 
+  /*
+   * structural ops
+   */
+  def dims() : (Int,Int) = {
+    Tuple2(nRows,nCols)
+  }
+
   def ++(other: Matrix): Matrix = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
     new Matrix((elements, other.elements).zipped.map(_ ++ _))
@@ -98,16 +111,35 @@ class Matrix(val elements: List[List[Double]]) {
 
   def transpose(): Matrix =
     new Matrix(elements.transpose)
+  
+  def prependColumn(col: List[Double]): Matrix = {
+    require(col.length == nRows, "new column doesn't fit matrix")
+    new Matrix((col, elements).zipped.map( _ :: _))
+  }
+
+  def appendColumn(col: List[Double]): Matrix = {
+    require(col.length == nRows, "new column doesn't fit matrix")
+    new Matrix((elements, col).zipped.map( _ :+ _))
+  }
+  
+  def appendRow(row : List[Double]) : Matrix = {
+    require(row.length == nCols, "new row doesn't fit matrix")
+    new Matrix( elements :+ row)
+  }
+  
+  def prependRow(row : List[Double]) : Matrix = {
+    require(row.length == nCols, "new row doesn't fit matrix")
+    new Matrix( row :: elements )
+  }
+  // ala Octave
+  def flipud = new Matrix(elements.reverse)
+
 
   private def dotVectors(a: List[Double],
     b: List[Double]): Double = {
     (0.0 /: (a, b).zipped.map(_ * _))(_ + _)
   }
   
-  def dims() : (Int,Int) = {
-    Tuple2(nRows,nCols)
-  }
-
   def *(other: Matrix): Matrix = {
     require(nCols == other.nRows, "matrices incompatible for multiplication (column count of this != row count of other)")
     val t = other.transpose()
@@ -149,18 +181,6 @@ class Matrix(val elements: List[List[Double]]) {
   def mult(s: Double) = new Matrix(for (row <- elements) yield (row.map(_ * s)))
   def div(s: Double) = new Matrix(for (row <- elements) yield (row.map(_ / s)))
   
-  def prependColumn(col: List[Double]): Matrix = {
-    require(col.length == nRows, "new column doesn't fit matrix")
-    new Matrix((col, elements).zipped.map( _ :: _))
-  }
-
-  def appendColumn(col: List[Double]): Matrix = {
-    require(col.length == nRows, "new column doesn't fit matrix")
-    new Matrix((elements, col).zipped.map( _ :+ _))
-  }
-  
-  // ala Octave
-  def flipud = new Matrix(elements.reverse)
   
   override def toString(): String = {
     val rowStrings =
