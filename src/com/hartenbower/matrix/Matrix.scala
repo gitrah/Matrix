@@ -158,7 +158,9 @@ class Matrix(val elements: List[List[Double]]) {
     require(col.length == nRows, "new column doesn't fit matrix")
     new Matrix((elements, col).zipped.map( _ :+ _))
   }
-
+  
+  // ala Octave
+  def flipud = new Matrix(elements.reverse)
   
   override def toString(): String = {
     val rowStrings =
