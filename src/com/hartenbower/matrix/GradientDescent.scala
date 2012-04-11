@@ -6,9 +6,9 @@ object GradientDescent {
    * linear regresson model
    * hypothesis hθ(x) = θ0 + θ1(x)
    * with squared error cost function J
-   * 1   m      (i)  (i) 2
+   *             1   m      (i)  (i) 2
    * J(θ0,θ1) = ---  Σ  (hθ(x) - y  )
-   * 2m  i=1
+   *             2m  i=1
    */
   def Σ(f: ((Double, Double)) => Double, data: List[(Double, Double)]): Double = {
     (0.0 /: data.map(f))(_ + _)
