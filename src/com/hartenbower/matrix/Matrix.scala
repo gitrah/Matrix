@@ -242,7 +242,7 @@ case class Matrix(val elements: List[List[Double]]) {
   def *(s: Double) = elementScalarOp(s, _ * _)
   def /(s: Double) = elementScalarOp(s, _ / _)
 
-  def ^(exp: Double) = elementScalarOp(exp, (x, y) => Math.pow(x, y))
+  def ^(exp: Double) = elementScalarOp(exp, (x, y) => scala.math.pow(x, y))
   def clean(σ: Double = .0001) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0. else x)
 
   // elementwise operations

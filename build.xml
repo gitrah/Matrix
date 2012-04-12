@@ -11,9 +11,9 @@
 	<property name="target" value="1.6" />
 	<property name="source" value="1.6" />
 	<path id="Scala Library [2.9.0.1].libraryclasspath">
-		<pathelement location="${ECLIPSE_HOME}/configuration/org.eclipse.osgi/bundles/787/1/.cp/lib/scala-library.jar" />
-		<pathelement location="${ECLIPSE_HOME}/configuration/org.eclipse.osgi/bundles/787/1/.cp/lib/scala-dbc.jar" />
-		<pathelement location="${ECLIPSE_HOME}/configuration/org.eclipse.osgi/bundles/787/1/.cp/lib/scala-swing.jar" />
+		<pathelement location="./tools/scala-library.jar" />
+		<pathelement location="./tools/scala-dbc.jar" />
+		<pathelement location="./tools/scala-swing.jar" />
 	</path>
 	<path id="Matrix.classpath">
 		<pathelement location="classes" />

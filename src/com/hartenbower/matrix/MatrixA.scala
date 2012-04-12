@@ -9,13 +9,28 @@ object MatrixA {
   }
 
   def dot(v1: Array[Double], range1: Tuple2[Int, Int], v2: Array[Double], range2: Tuple2[Int, Int]): Double = {
-    require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
-    require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")
+    //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
+    //require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")
     var l = range1._2 - range1._1
-    require(l == range2._2 - range2._1, "vectors of unequal length")
+    //require(l == range2._2 - range2._1, "vectors of unequal length")
     var sum = 0.
     while (l >= 0) {
       sum += v1(range1._1 + l) * v2(range2._1 + l)
+      l -= 1
+    }
+    sum
+  }
+
+  def dotlv(v1: Array[Double], range1: Tuple2[Int, Int], v2: Array[Double], range2: Tuple2[Int, Int]): Double = {
+    //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
+    //require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")
+    var l = range1._2 - range1._1
+    val s1 = range1._1
+    val s2 = range2._1
+    //require(l == range2._2 - range2._1, "vectors of unequal length")
+    var sum = 0.
+    while (l >= 0) {
+      sum += v1(s1 + l) * v2(s2 + l)
       l -= 1
     }
     sum
@@ -59,6 +74,8 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
   def validIndicesQ(row: Int, col: Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
   }
+  def validColQ(col : Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
+  def validRowQ(row : Int) = require(row > 0 && row <= nRows,"row " + row + " must be 1 to " + nRows)
 
   def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
   def enref(idx: Int): (Int, Int) = {
@@ -113,13 +130,13 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
 
   @inline
   def rowIndices(row: Int) = {
-    require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
+    validRowQ(row)
     val start = (row - 1) * nCols
     (start, start + nCols - 1)
   }
 
   def columnIndices(col: Int): Array[Int] = {
-    require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
+    validColQ(col)
     val c = new Array[Int](nRows)
     var i = 0
     while (i < nRows) {
@@ -128,9 +145,42 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
     }
     c
   }
+  
+  def copyOfRow(row : Int) = {
+    validRowQ(row)
+    val c = new Array[Double](nCols)
+    var l = nCols -1
+    while(l >= 0) {
+      c(l) = elements( (row -1) * nCols + l)
+      l-=1
+    }
+    c
+  }
+  
+  def copyOfCol(col : Int) = {
+    validColQ(col)
+    val c = new Array[Double](nRows)
+    var l = nRows -1
+    while(l >= 0) {
+      c(l) = elements( l * nCols + col-1)
+      l-=1
+    }
+    c
+  }
+  
+  def copyRange(src: Array[Double], targ: Array[Double], range: Tuple2[Int, Int], start: Int) {
+    require(range._1 > -1 && range._2 < src.length, "range " + range + " bad for source")
+    require(start + range._2 - range._1 < targ.length, "range (" + (range._2 - range._1) + ") + start (" + start + ") bad for target length " + targ.length)
+    var l = range._2 - range._1
+    while (l >= 0) {
+      targ(start + l) = src(range._1 + l)
+      l -= 1
+    }
+  }
+
 
   def rowCopy(out: Array[Double], row: Int, startIdx: Int) = {
-    Matrix.copyRange(elements, out, rowIndices(row), startIdx)
+    copyRange(elements, out, rowIndices(row), startIdx)
   }
 
   override def toString(): String = {
@@ -202,16 +252,16 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
       row += 1
     }
   }
-
+  
   def transposeNew(): MatrixA = {
-    val l = elements.length
-    val b = new Array[Double](elements.length)
+    val l = elements.length - 1
+    val b = new Array[Double](l+1)
     // first and last elems unchanged
     b(0) = elements(0)
-    b(l - 1) = elements(l - 1)
+    b(l) = elements(l)
     var i = 1
-    while (i < l - 1) {
-      b(i * nRows % (nRows * nCols - 1)) = elements(i)
+    while (i < l) {
+      b(i * nRows % l) = elements(i)
       i += 1
     }
     new MatrixA(b, nRows)
@@ -219,73 +269,43 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
 
   def transpose(m: java.util.Map[Int, Double] = null) = if (nCols == nRows) transposeSquare else transposeNS(m)
 
+  // about 37% faster than txNew
   def transposeSquare() {
-    val l = elements.length
-
-    var i = 1
-    var idx = i
+    val l = elements.length - 1
+    var idx = 1 // can skip first and last elements
     var temp = 0.
-    var mod = 0
-    var div = 1
     var imod = 0
     var idiv = 1
-    var counter = nCols - 1
-    var numToCache = 0
-    while (counter > 0) {
-      numToCache += counter
-      counter -= 1
-    }
-    var cache = new Array[Double](numToCache)
-
-    while (i < l - 1) {
-      idx = i * nRows % (nRows * nCols - 1)
-
-      div = idx / nCols
-      mod = idx % nCols
-      idiv = i / nCols
-      imod = i % nCols
-      if (div > 0 && mod >= 0 && mod < div) {
-        //println("cacheing element " + idx + " = " + elements(idx))
-        cache(div + mod - 1) = elements(idx)
-      }
-      elements(idx) = if (idiv > 0 && imod >= 0 && imod < idiv) {
-        //println("reusing cached element " + (idiv + imod - 1))
-        cache(idiv + imod - 1)
-      } else {
-        elements(i)
-      }
-
-      i += 1
-    }
-    if (nCols != nRows) {
-      val temp = nCols
-      nCols = nRows
-      nRows = temp
+    var oppIdx = 0
+    while (idx < l ) {
+      idiv = idx / nCols
+      imod = idx % nCols
+      
+      if( imod > idiv) { // stay on top triangle and skip diagonals
+    	  oppIdx = imod * nCols + idiv
+    	  temp = elements(idx)
+    	  elements(idx) = elements(oppIdx)
+    	  elements(oppIdx) = temp
+      } 
+      idx += 1
     }
   }
 
   def transposeNS(m: java.util.Map[Int, Double] = null) = {
-    val l = elements.length
-    val square = nCols == nRows
-    val size = if (nRows > nCols) nRows else nCols
-
+    val l = elements.length - 1
     var i = 1
     var idx = i
     val map: java.util.Map[Int, Double] = if (m == null) new java.util.HashMap else { m.clear; m }
+    var cachedElem : Any = null
 
-    while (i < l - 1) {
-      idx = i * nRows % (nRows * nCols - 1)
-
+    while (i < l ) {
+      idx = i * nRows % l
       if (idx > i) {
         // store original content
         map.put(idx, elements(idx))
       }
-      elements(idx) =
-        if (map.containsKey(i)) {
-          // retrieve cell's original content
-          map.get(i)
-        } else elements(i)
-
+      cachedElem = map.get(i) 
+      elements(idx) = if (cachedElem != null) cachedElem.asInstanceOf[Double] else elements(i)
       i += 1
     }
     if (nCols != nRows) {
@@ -327,7 +347,7 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
   def *(s: Double) = elementScalarOp(s, _ * _)
   def /(s: Double) = elementScalarOp(s, _ / _)
 
-  def ^(exp: Double) = elementScalarOp(exp, (x, y) => Math.pow(x, y))
+  def ^(exp: Double) = elementScalarOp(exp, (x, y) => scala.math.pow(x, y))
   def clean(σ: Double = .0001) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0. else x)
 
   def sgn(row: Int, col: Int): Int = {
@@ -421,8 +441,8 @@ case class MatrixA(val elements: Array[Double], var nCols: Int) {
   implicit def scalarToMatrix(i: Int)(implicit dim: Int): MatrixA = {
     MatrixA.diagonalM(dim, i)
   }
-  implicit def scalarToMatrix(s: Double)(implicit dim: Int): Matrix = {
-    Matrix.diagonalM(dim, s)
+  implicit def scalarToMatrix(s: Double)(implicit dim: Int): MatrixA = {
+    MatrixA.diagonalM(dim, s)
   }
 
 }
@@ -437,7 +457,9 @@ val m3 = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9),3)
 val m3b = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9,10,11,12),3)
 val m3c = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9,10,11,12),4)
 val m4 = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16),4)
+val m4b = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20),4)
 val m5 = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25),5)
+val m5b = new MatrixA(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30),5)
 
 def time( msg : String, count : Int, f : => Unit) {
   val l  = System.currentTimeMillis
@@ -446,7 +468,8 @@ def time( msg : String, count : Int, f : => Unit) {
 	f
 	idx -= 1
   } 
-  println(msg + " took " + (System.currentTimeMillis - l))
+  val delta = (System.currentTimeMillis - l)  
+  println(msg + " took " + delta + "ms or " + (count*1000./delta) + "evals/s")
 }
 
 
