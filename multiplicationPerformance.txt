@@ -1,10 +1,10 @@
 For 1000000 (1 million) 5x5 matrix multiplications on i7-2600K
 
-					millis		ops/sec
-  1.  Idiomatic version (Matrix) 	9090		 110000	
-  2.  Array[Float] version (MatrixF) 	 658            1519756
-  3.  Array[Double] version (MatrixD)    735		1360544
-  4.  MatrixP[Float] version    	3600		 277777	
-  5.  MatrixP[Double] version    	4099		 243961
-  6.  MatrixP[Int] version		5155		 193986	
+					millis		ops/sec		ratio
+  1.  Idiomatic version (Matrix) 	9090		 110000		 1.0
+  2.  Array[Float] version (MatrixF) 	 658            1519756		13.8
+  3.  Array[Double] version (MatrixD)    735		1360544		12.4
+  4.  MatrixP[Float] version    	3600		 277777		 2.53
+  5.  MatrixP[Double] version    	4099		 243961		 2.22
+  6.  MatrixP[Int] version		5155		 193986		 1.76
 
