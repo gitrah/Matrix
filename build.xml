@@ -12,8 +12,6 @@
 	<property name="source" value="1.6" />
 	<path id="Scala Library [2.9.0.1].libraryclasspath">
 		<pathelement location="./tools/scala-library.jar" />
-		<pathelement location="./tools/scala-dbc.jar" />
-		<pathelement location="./tools/scala-swing.jar" />
 	</path>
 	<path id="Matrix.classpath">
 		<pathelement location="classes" />

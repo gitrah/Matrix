@@ -138,6 +138,12 @@ object Matrix {
 
 }
 
+/**
+ * This is the most idiomatic implementation.  As so often happens,
+ * it is as slow as it is pretty; some operations are several hundred times slower
+ * than the corresponding Array-backed, non-for-comprehending implementation
+ * 
+ */
 case class Matrix(val elements: List[List[Double]]) {
 
   def nRows: Int = elements.length

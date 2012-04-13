@@ -10,13 +10,13 @@ object GradientDescent {
    * J(θ0,θ1) = ---  Σ  (hθ(x) - y  )
    *             2m  i=1
    */
-  def Σ(f: ((Double, Double)) => Double, data: List[(Double, Double)]): Double = {
+  def Σ(f: ((Double, Double)) => Double, data: Array[(Double, Double)]): Double = {
     (0.0 /: data.map(f))(_ + _)
   }
 
   def hypothesis(θ0: Double, θ1: Double, x: Double) = θ0 + θ1 * x
 
-  def θ0θ1(θ0: Double, θ1: Double, α: Double, data: List[(Double, Double)]): (Double, Double) = {
+  def θ0θ1(θ0: Double, θ1: Double, α: Double, data: Array[(Double, Double)]): (Double, Double) = {
     val m = data.length
     (θ0 - α / m * Σ((x) => θ0 + θ1 * x._1 - x._2, data),
       θ1 - α / m * Σ((x) => (θ0 + θ1 * x._1 - x._2) * x._1, data))
@@ -26,7 +26,7 @@ object GradientDescent {
     (b._1 - a._1) * (b._1 - a._1) + (b._2 - a._2) * (b._2 - a._2)
   }
 
-  def iterate(α: Double, data: List[(Double, Double)], σ: Double): (Double, Double) = {
+  def iterate(α: Double, data: Array[(Double, Double)], σ: Double): (Double, Double) = {
     var θ = (0., 0.)
     var oldθ = θ
     var ctr = 0
@@ -34,7 +34,7 @@ object GradientDescent {
       oldθ = θ
       ctr += 1
       θ = θ0θ1(θ._1, θ._2, α, data)
-      println("iter " + ctr + " θ " + θ + " diff " + diffSquared(θ, oldθ))
+     // println("iter " + ctr + " θ " + θ + " diff " + diffSquared(θ, oldθ))
     } while (diffSquared(θ, oldθ) > σ * σ)
     θ
   }
@@ -58,19 +58,19 @@ object GradientDescent {
     l
   }
 
-  def normalEquation(features: List[List[Double]], values: List[Double]): Matrix = {
-    require(features.length == values.length, "counts of feature examples and value examples must agree")
+  def normalEquation(features: Array[Double], nCols : Int, values: Array[Double]): MatrixD = {
+    require(features.length / nCols == values.length, "counts of feature examples and value examples must agree")
     /*       T -1  T
      * θ = (X X)  X y
      */
-    val designMatrix = new Matrix(features).prependColumn(
-      List.fill[Double](features.length)(1.))
-    val dmTxp = designMatrix.transpose()
+    val designMatrix = new MatrixD(features,nCols).prependColumnNew(
+      Array.fill[Double](values.length)(1.))
+    val dmTxp = designMatrix.transposeNew()
     // without determinant check, just return
     //     (xTxp * x).inverse * xTxp * Matrix.columnMatrix(values)
     val prod = dmTxp * designMatrix
-    require(prod.determinant != 0.)
-    prod.inverse() * dmTxp * Matrix.columnMatrix(values)
+    require(prod.determinant != 0., "features matrix is singular")
+    prod.inverse() * dmTxp * MatrixD.columnMatrix(values)
   }
 
 }
@@ -79,14 +79,14 @@ object GradientDescent {
 
 /*
 
-val features : List[List[Double]]= List(
-    List(2104, 5, 1, 45.),
-    List(1416, 3, 2, 40),
-    List(1534, 3, 2, 30),
-    List(852, 2, 1, 36) )
-val values = List(460., 232, 315, 178)
+val features = Array(
+    2104, 5, 1, 45.,
+    1416, 3, 2, 40,
+    1534, 3, 2, 30,
+    852, 2, 1, 36 )
+val values = Array(460., 232, 315, 178)
 
-val data : List[(Double,Double)]= List( 
+val data : Array[(Double,Double)]= Array( 
           (800.,180.),
           (1000,170),
           (1100,250),
@@ -126,5 +126,10 @@ val data : List[(Double,Double)]= List(
           (9.5, 8.2),
           (10, 8.5))
           
-          
+
+GradientDescent.iterate(.000000001, data, .00000001)
+
+time("iter", 100000,GradientDescent.iterate(.000000001, data, .00000001))
+
+
 */
