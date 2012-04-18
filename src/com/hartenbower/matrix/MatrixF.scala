@@ -1,6 +1,8 @@
 package com.hartenbower.matrix
 import scala.util.Random
 
+
+
 object MatrixF {
   def elapsed(msg: String, l: Long) = {
     val now = System.currentTimeMillis
@@ -65,6 +67,82 @@ object MatrixF {
     }
     new MatrixF(c, nCols)
   }
+  
+  def randSpace(nRows : Int, nCols: Int, nElements:Int):Array[Float] = {
+    val rnd = new Random(System.currentTimeMillis)
+    Array.fill(nRows*nCols*nElements,1)(rnd.nextFloat).flatten
+  }
+
+  def arrTest = {
+    val a1 = Array(5, 4, 3, 2, 1)
+    val a2 = a1
+    a2(3) = 9
+    println("a1 " + a1.mkString(","))
+
+    println("a2 " + a2.mkString(","))
+  }
+
+  def mult4by4(mat1: Array[Float], mat2: Array[Float], resMat: Array[Float]) = {
+    resMat(0) = mat1(0) * mat2(0) + mat1(4) * mat2(1) + mat1(8) * mat2(2) + mat1(12) * mat2(3)
+    resMat(4) = mat1(0) * mat2(4) + mat1(4) * mat2(5) + mat1(8) * mat2(6) + mat1(12) * mat2(7)
+    resMat(8) = mat1(0) * mat2(8) + mat1(4) * mat2(9) + mat1(8) * mat2(10) + mat1(12) * mat2(11)
+    resMat(12) = mat1(0) * mat2(12) + mat1(4) * mat2(13) + mat1(8) * mat2(14) + mat1(12) * mat2(15)
+    resMat(1) = mat1(1) * mat2(0) + mat1(5) * mat2(1) + mat1(9) * mat2(2) + mat1(13) * mat2(3)
+    resMat(5) = mat1(1) * mat2(4) + mat1(5) * mat2(5) + mat1(9) * mat2(6) + mat1(13) * mat2(7)
+    resMat(9) = mat1(1) * mat2(8) + mat1(5) * mat2(9) + mat1(9) * mat2(10) + mat1(13) * mat2(11)
+    resMat(13) = mat1(1) * mat2(12) + mat1(5) * mat2(13) + mat1(9) * mat2(14) + mat1(13) * mat2(15)
+    resMat(2) = mat1(2) * mat2(0) + mat1(6) * mat2(1) + mat1(10) * mat2(2) + mat1(14) * mat2(3)
+    resMat(6) = mat1(2) * mat2(4) + mat1(6) * mat2(5) + mat1(10) * mat2(6) + mat1(14) * mat2(7)
+    resMat(10) = mat1(2) * mat2(8) + mat1(6) * mat2(9) + mat1(10) * mat2(10) + mat1(14) * mat2(11)
+    resMat(14) = mat1(2) * mat2(1) + mat1(6) * mat2(13) + mat1(10) * mat2(14) + mat1(14) * mat2(15)
+    resMat(3) = mat1(3) * mat2(0) + mat1(7) * mat2(1) + mat1(11) * mat2(2) + mat1(15) * mat2(3)
+    resMat(7) = mat1(3) * mat2(4) + mat1(7) * mat2(5) + mat1(11) * mat2(6) + mat1(15) * mat2(7)
+    resMat(11) = mat1(3) * mat2(8) + mat1(7) * mat2(9) + mat1(11) * mat2(10) + mat1(15) * mat2(11)
+    resMat(15) = mat1(3) * mat2(12) + mat1(7) * mat2(13) + mat1(11) * mat2(14) + mat1(15) * mat2(15)
+  }
+  
+  
+  def mult4by4Range(
+		  count: Int,
+		  mat1: Array[Float], offset1: Int,
+		  mat2: Array[Float], offset2: Int,
+		  resMat: Array[Float], offset3:Int) : Option[List[(Int, Int)]] = {
+    var ctr = count-1
+    while(ctr >= 0) {
+    	val base1 = offset1
+    	val base2 = ctr * 16 + offset2
+    	val base3 = ctr * 16 + offset3
+	    resMat(base3) = mat1(base1) * mat2(base2) + mat1(base1 +4) * mat2(base2 +1) + mat1(base1 +8) * mat2(base2 +2) + mat1(base1 +12) * mat2(base2 +3)
+	    resMat(base3 +4) = mat1(base1 ) * mat2(base2 +4) + mat1(base1 +4) * mat2(base2 +5) + mat1(base1 +8) * mat2(base2 +6) + mat1(base1 +12) * mat2(base2 +7)
+	    resMat(base3 +8) = mat1(base1) * mat2(base2 +8) + mat1(base1 +4) * mat2(base2 +9) + mat1(base1 +8) * mat2(base2 +10) + mat1(base1 +12) * mat2(base2 +11)
+	    resMat(base3 +12) = mat1(base1) * mat2(base2 +12) + mat1(base1 +4) * mat2(base2 +13) + mat1(base1 +8) * mat2(base2 +14) + mat1(base1 +12) * mat2(base2 +15)
+	    resMat(base3 +1) = mat1(base1 +1) * mat2(base2) + mat1(base1 +5) * mat2(base2 +1) + mat1(base1 +9) * mat2(base2 +2) + mat1(base1 +13) * mat2(base2 +3)
+	    resMat(base3 +5) = mat1(base1 +1) * mat2(base2 +4) + mat1(base1 +5) * mat2(base2 +5) + mat1(base1 +9) * mat2(base2 +6) + mat1(base1 +13) * mat2(base2 +7)
+	    resMat(base3 +9) = mat1(base1 +1) * mat2(base2 +8) + mat1(base1 +5) * mat2(base2 +9) + mat1(base1 +9) * mat2(base2 +10) + mat1(base1 +13) * mat2(base2 +11)
+	    resMat(base3 +13) = mat1(base1 +1) * mat2(base2 +12) + mat1(base1 +5) * mat2(base2 +13) + mat1(base1 +9) * mat2(base2 +14) + mat1(base1 +13) * mat2(base2 +15)
+	    resMat(base3 +2) = mat1(base1 +2) * mat2(base2) + mat1(base1 +6) * mat2(base2 +1) + mat1(base1 +10) * mat2(base2 +2) + mat1(base1 +14) * mat2(base2 +3)
+	    resMat(base3 +6) = mat1(base1 +2) * mat2(base2 +4) + mat1(base1 +6) * mat2(base2 +5) + mat1(base1 +10) * mat2(base2 +6) + mat1(base1 +14) * mat2(base2 +7)
+	    resMat(base3 +10) = mat1(base1 +2) * mat2(base2 +8) + mat1(base1 +6) * mat2(base2 +9) + mat1(base1 +10) * mat2(base2 +10) + mat1(base1 +14) * mat2(base2 +11)
+	    resMat(base3 +14) = mat1(base1 +2) * mat2(base2 +1) + mat1(base1 +6) * mat2(base2 +13) + mat1(base1 +10) * mat2(base2 +14) + mat1(base1 +14) * mat2(base2 +15)
+	    resMat(base3 +3) = mat1(base1 +3) * mat2(base2) + mat1(base1 +7) * mat2(base2 +1) + mat1(base1 +11) * mat2(base2 +2) + mat1(base1 +15) * mat2(base2 +3)
+	    resMat(base3 +7) = mat1(base1 +3) * mat2(base2 +4) + mat1(base1 +7) * mat2(base2 +5) + mat1(base1 +11) * mat2(base2 +6) + mat1(base1 +15) * mat2(base2 +7)
+	    resMat(base3 +11) = mat1(base1 +3) * mat2(base2 +8) + mat1(base1 +7) * mat2(base2 +9) + mat1(base1 +11) * mat2(base2 +10) + mat1(base1 +15) * mat2(base2 +11)
+	    resMat(base3 +15) = mat1(base1 +3) * mat2(base2 +12) + mat1(base1 +7) * mat2(base2 +13) + mat1(base1 +11) * mat2(base2 +14) + mat1(base1 +15) * mat2(base2 +15)
+	    ctr -= 1
+    }
+    None
+  }
+  
+  def mult4by4Worker(m : Array[Float], targ: Array[Float], res: Array[Float]) {
+    val scheduler = new Scheduler[Float](targ, 16)
+    scheduler.start
+    scheduler ! Init( ( idx : Tuple2[Int,Int]) => mult4by4Range(idx._2-idx._1, m, 0, targ, idx._1, res, idx._1 ))
+    // simulate an actor that waits for the search to complete
+    while(!scheduler.finished) {
+      Thread.sleep(50)
+    }
+  }
+  
 }
 
 /*
@@ -77,8 +155,8 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
   def validIndicesQ(row: Int, col: Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
   }
-  def validColQ(col : Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
-  def validRowQ(row : Int) = require(row > 0 && row <= nRows,"row " + row + " must be 1 to " + nRows)
+  def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
+  def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
   def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
   def enref(idx: Int): (Int, Int) = {
@@ -148,29 +226,29 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     }
     c
   }
-  
-  def copyOfRow(row : Int) = {
+
+  def copyOfRow(row: Int) = {
     validRowQ(row)
     val c = new Array[Float](nCols)
-    var l = nCols -1
-    while(l >= 0) {
-      c(l) = elements( (row -1) * nCols + l)
-      l-=1
+    var l = nCols - 1
+    while (l >= 0) {
+      c(l) = elements((row - 1) * nCols + l)
+      l -= 1
     }
     c
   }
-  
-  def copyOfCol(col : Int) = {
+
+  def copyOfCol(col: Int) = {
     validColQ(col)
     val c = new Array[Float](nRows)
-    var l = nRows -1
-    while(l >= 0) {
-      c(l) = elements( l * nCols + col-1)
-      l-=1
+    var l = nRows - 1
+    while (l >= 0) {
+      c(l) = elements(l * nCols + col - 1)
+      l -= 1
     }
     c
   }
-  
+
   def copyRange(src: Array[Float], targ: Array[Float], range: Tuple2[Int, Int], start: Int) {
     require(range._1 > -1 && range._2 < src.length, "range " + range + " bad for source")
     require(start + range._2 - range._1 < targ.length, "range (" + (range._2 - range._1) + ") + start (" + start + ") bad for target length " + targ.length)
@@ -180,7 +258,6 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
       l -= 1
     }
   }
-
 
   def rowCopy(out: Array[Float], row: Int, startIdx: Int) = {
     copyRange(elements, out, rowIndices(row), startIdx)
@@ -255,10 +332,10 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
       row += 1
     }
   }
-  
+
   def transposeNew(): MatrixF = {
     val l = elements.length - 1
-    val b = new Array[Float](l+1)
+    val b = new Array[Float](l + 1)
     // first and last elems unchanged
     b(0) = elements(0)
     b(l) = elements(l)
@@ -280,15 +357,15 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     var imod = 0
     var idiv = 1
     var oppIdx = 0
-    while (idx < l ) {
+    while (idx < l) {
       idiv = idx / nCols
       imod = idx % nCols
-      if( imod > idiv) { // stay on top triangle and skip diagonals
-    	  oppIdx = imod * nCols + idiv
-    	  temp = elements(idx)
-    	  elements(idx) = elements(oppIdx)
-    	  elements(oppIdx) = temp
-      } 
+      if (imod > idiv) { // stay on top triangle and skip diagonals
+        oppIdx = imod * nCols + idiv
+        temp = elements(idx)
+        elements(idx) = elements(oppIdx)
+        elements(oppIdx) = temp
+      }
       idx += 1
     }
   }
@@ -298,15 +375,15 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     var i = 1
     var idx = i
     val map: java.util.Map[Int, Float] = if (m == null) new java.util.HashMap else { m.clear; m }
-    var cachedElem : Any = null
+    var cachedElem: Any = null
 
-    while (i < l ) {
+    while (i < l) {
       idx = i * nRows % l
       if (idx > i) {
         // store original content
         map.put(idx, elements(idx))
       }
-      cachedElem = map.get(i) 
+      cachedElem = map.get(i)
       elements(idx) = if (cachedElem != null) cachedElem.asInstanceOf[Float] else elements(i)
       i += 1
     }
@@ -350,7 +427,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
   def /(s: Float) = elementScalarOp(s, _ / _)
 
   def ^(exp: Float) = elementScalarOp(exp, (x, y) => scala.math.pow(x, y).toFloat)
-      
+
   def clean(σ: Float = .0001f) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0.f else x)
 
   def sgn(row: Int, col: Int): Int = {
@@ -463,6 +540,20 @@ val m4 = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16),4)
 val m4b = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20),4)
 val m5 = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25),5)
 val m5b = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30),5)
+
+
+val i4 = MatrixF.diagonalM(4,1f)
+
+val res = Array.fill(200000, 16)(0f).flatten
+val res2 = Array.fill(200000, 16)(0f).flatten
+val m4 = MatrixF.randn(4,4)
+val targ =Array.fill(200000, 1)(m4.elements).flatten.flatten
+
+MatrixF.mult4by4Range(res.length/16,i4.elements,0,targ, 0, res, 0)
+MatrixF.mult4by4Worker(i4.elements, targ, res2)
+
+time("mulreg", 1000, MatrixF.mult4by4Range(res.length/16,i4.elements,0,targ, 0, res, 0))
+time("mulwork", 1000, MatrixF.mult4by4Worker(i4.elements, targ, res2))
 
 def time( msg : String, count : Int, f : => Unit) {
   val l  = System.currentTimeMillis

@@ -50,8 +50,8 @@ object GradientDescent {
     }
   }
 
-  def parseTupleFile(path: String): List[Product] = {
-    var l = List[Product]()
+  def parseTupleFile(path: String): Array[Product] = {
+    var l = Array[Product]()
     for (line <- Source.fromFile(path).getLines()) {
       l = l :+ arrayToTuple(line.split(",").map(_.toDouble))
     }
