@@ -61,5 +61,8 @@ test-project:
 In 'multwork,' the Actor-based implementation, the actor count is varied from 1 to 15 on a 6 core machine while 
 performing the same 2 million 4x4 matrix multiplications.  See also the graph 'matrixMultTimeVsActorCount.png'
 The cpu usage, from 6 actors up, hovered around 350% (of a possible 600% total)
-In 'threadwork,' the thread pool implementation, the thread count varies from 1 to 20.  
-See the graph 'millisPerActorThread.png'
+In 'threadwork,' the thread pool implementation, the thread count varies from 1 to 20.  Cpu usage maxed at about
+540%. See the graph 'millisPerActorThread.png'
+
+With the current implementations, actors spead things up 1.6 times, but threads spead things up by more like
+3.7 times.
