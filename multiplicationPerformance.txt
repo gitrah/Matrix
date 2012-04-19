@@ -1,10 +1,40 @@
 For 1000000 (1 million) 5x5 matrix multiplications on i7-2600K
 
-					millis		ops/sec		ratio
-  1.  Idiomatic version (Matrix) 	9090		 110000		 1.0
-  2.  Array[Float] version (MatrixF) 	 658            1519756		13.8
+					                   millis		ops/sec		ratio
+  1.  Idiomatic version (Matrix) 	    9090		 110000		 1.0
+  2.  Array[Float] version (MatrixF) 	 658        1519756		13.8
   3.  Array[Double] version (MatrixD)    735		1360544		12.4
-  4.  MatrixP[Float] version    	3600		 277777		 2.53
-  5.  MatrixP[Double] version    	4099		 243961		 2.22
-  6.  MatrixP[Int] version		5155		 193986		 1.76
+  4.  MatrixP[Float] version    	    3600		 277777		 2.53
+  5.  MatrixP[Double] version    	    4099		 243961		 2.22
+  6.  MatrixP[Int] version		        5155		 193986		 1.76
 
+On a 6 core AMD 1090T, got these results with ant test-project:
+
+test-project:
+     [echo] Matrix: /home/reid/workspace/Matrix/build.xml
+   [scalac] Compiling 1 source file to /home/reid/workspace/Matrix/test-classes
+    [junit] Testsuite: com.hartenbower.matrix.TestMatrixF
+    [junit] Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 84.298 sec
+    [junit] 
+    [junit] ------------- Standard Output ---------------
+    [junit] mulreg took 8186ms or 12.21597849987784evals/s
+    [junit] mulwork 1 took 10706ms or 9.340556697179151evals/s
+    [junit] mulwork 2 took 10397ms or 9.618159084351255evals/s
+    [junit] mulwork 3 took 6103ms or 16.385384237260364evals/s
+    [junit] mulwork 4 took 5417ms or 18.460402436773123evals/s
+    [junit] mulwork 5 took 5267ms or 18.98614011771407evals/s
+    [junit] mulwork 6 took 5295ms or 18.885741265344663evals/s
+    [junit] mulwork 7 took 5337ms or 18.73711823121604evals/s
+    [junit] mulwork 8 took 5248ms or 19.054878048780488evals/s
+    [junit] mulwork 9 took 5250ms or 19.047619047619047evals/s
+    [junit] mulwork 10 took 5242ms or 19.07668828691339evals/s
+    [junit] mulwork 11 took 5226ms or 19.135093761959432evals/s
+    [junit] mulwork 12 took 5250ms or 19.047619047619047evals/s
+    [junit] mulwork 13 took 5258ms or 19.01863826550019evals/s
+    [junit] mulwork 14 took 5224ms or 19.142419601837673evals/s
+    [junit] mulwork 15 took 5226ms or 19.135093761959432evals/s
+    [junit] ------------- ---------------- ---------------
+
+
+In 'multwork' the Actor-based implementation, the actor count is varied from 1 to 15 on a 6 core machine while 
+performing the same 2 million 4x4 matrix multiplications.  See also the graph 'matrixMultTimeVsActorCount.png'
