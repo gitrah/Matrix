@@ -145,6 +145,30 @@ object MatrixF {
     }
   }
   
+  def spanIndicies(total : Int, pieces : Int) : Array[Tuple2[Int,Int]] = {
+    val span = total / pieces
+    val arry = new Array[Tuple2[Int,Int]](total/span)
+    var offset = 0
+    var tupleIdx = 0
+    while(offset < pieces) {
+      arry(tupleIdx) = (offset * span, if (offset < pieces -1) (offset + 1) * span else total -1 )
+      offset+=1
+      tupleIdx +=1
+    }
+    arry
+  }
+
+  def mult4by4Threaded(m : Array[Float], targ: Array[Float], res: Array[Float], procs : Int = 1)(implicit threading : ThreadStrategy = SameThreadStrategy )  {
+    val l = targ.length / m.length
+    
+    spanIndicies(l, procs).map( (idx) =>
+      () => mult4by4Range(
+		  idx._2-idx._1,
+		  m, 0,
+		  targ, idx._1,
+		  res, idx._1)).map(threading.execute(_)).map(_())
+  }
+
   def fill(src: MatrixF, dest : Array[Float]) = {
     val l = src.elements.length
     require(dest.length % l == 0)

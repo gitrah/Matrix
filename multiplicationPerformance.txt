@@ -17,24 +17,49 @@ test-project:
     [junit] Tests run: 1, Failures: 0, Errors: 0, Time elapsed: 84.298 sec
     [junit] 
     [junit] ------------- Standard Output ---------------
-    [junit] mulreg took 8186ms or 12.21597849987784evals/s
-    [junit] mulwork 1 took 10706ms or 9.340556697179151evals/s
-    [junit] mulwork 2 took 10397ms or 9.618159084351255evals/s
-    [junit] mulwork 3 took 6103ms or 16.385384237260364evals/s
-    [junit] mulwork 4 took 5417ms or 18.460402436773123evals/s
-    [junit] mulwork 5 took 5267ms or 18.98614011771407evals/s
-    [junit] mulwork 6 took 5295ms or 18.885741265344663evals/s
-    [junit] mulwork 7 took 5337ms or 18.73711823121604evals/s
-    [junit] mulwork 8 took 5248ms or 19.054878048780488evals/s
-    [junit] mulwork 9 took 5250ms or 19.047619047619047evals/s
-    [junit] mulwork 10 took 5242ms or 19.07668828691339evals/s
-    [junit] mulwork 11 took 5226ms or 19.135093761959432evals/s
-    [junit] mulwork 12 took 5250ms or 19.047619047619047evals/s
-    [junit] mulwork 13 took 5258ms or 19.01863826550019evals/s
-    [junit] mulwork 14 took 5224ms or 19.142419601837673evals/s
-    [junit] mulwork 15 took 5226ms or 19.135093761959432evals/s
-    [junit] ------------- ---------------- ---------------
+    [junit] mulreg took 8287 ms or 12.067093037287318evals/s
+    [junit] mulwork 1 took 11054 ms or 9.04649900488511evals/s
+    [junit] mulwork 2 took 10430 ms or 9.587727708533079evals/s
+    [junit] mulwork 3 took 6615 ms or 15.11715797430083evals/s
+    [junit] mulwork 4 took 5191 ms or 19.264110961279137evals/s
+    [junit] mulwork 5 took 5264 ms or 18.996960486322187evals/s
+    [junit] mulwork 6 took 5340 ms or 18.726591760299627evals/s
+    [junit] mulwork 7 took 5252 ms or 19.04036557501904evals/s
+    [junit] mulwork 8 took 5319 ms or 18.80052641473961evals/s
+    [junit] mulwork 9 took 5288 ms or 18.910741301059evals/s
+    [junit] mulwork 10 took 5279 ms or 18.942981625307823evals/s
+    [junit] mulwork 11 took 5246 ms or 19.062142584826535evals/s
+    [junit] mulwork 12 took 5234 ms or 19.105846388995033evals/s
+    [junit] mulwork 13 took 5242 ms or 19.07668828691339evals/s
+    [junit] mulwork 14 took 5246 ms or 19.062142584826535evals/s
+    [junit] mulwork 15 took 5240 ms or 19.083969465648856evals/s
+    [junit] threadwork Same 1 took 8278 ms or 12.080212611741967evals/s
+    [junit] threadwork Same 6 took 8273 ms or 12.087513598452798evals/s
+    [junit] threadwork Same 11 took 8261 ms or 12.10507202517855evals/s
+    [junit] threadwork Pool 1 took 8428 ms or 11.865211200759374evals/s
+    [junit] threadwork Pool 2 took 5495 ms or 18.198362147406733evals/s
+    [junit] threadwork Pool 3 took 4701 ms or 21.272069772388853evals/s
+    [junit] threadwork Pool 4 took 4090 ms or 24.449877750611247evals/s
+    [junit] threadwork Pool 5 took 3755 ms or 26.63115845539281evals/s
+    [junit] threadwork Pool 6 took 3413 ms or 29.29973630237328evals/s
+    [junit] threadwork Pool 7 took 3481 ms or 28.727377190462512evals/s
+    [junit] threadwork Pool 8 took 3440 ms or 29.069767441860463evals/s
+    [junit] threadwork Pool 9 took 3104 ms or 32.21649484536083evals/s
+    [junit] threadwork Pool 10 took 3134 ms or 31.90810465858328evals/s
+    [junit] threadwork Pool 11 took 2896 ms or 34.530386740331494evals/s
+    [junit] threadwork Pool 12 took 2671 ms or 37.43916136278548evals/s
+    [junit] threadwork Pool 13 took 2795 ms or 35.77817531305904evals/s
+    [junit] threadwork Pool 14 took 2763 ms or 36.19254433586681evals/s
+    [junit] threadwork Pool 15 took 2557 ms or 39.108330074305826evals/s
+    [junit] threadwork Pool 16 took 2482 ms or 40.290088638195evals/s
+    [junit] threadwork Pool 17 took 2344 ms or 42.66211604095563evals/s
+    [junit] threadwork Pool 18 took 2262 ms or 44.20866489832007evals/s
+    [junit] threadwork Pool 19 took 2436 ms or 41.050903119868636evals/s
+    [junit] threadwork Pool 20 took 2355 ms or 42.46284501061571evals/s
 
 
-In 'multwork' the Actor-based implementation, the actor count is varied from 1 to 15 on a 6 core machine while 
+In 'multwork,' the Actor-based implementation, the actor count is varied from 1 to 15 on a 6 core machine while 
 performing the same 2 million 4x4 matrix multiplications.  See also the graph 'matrixMultTimeVsActorCount.png'
+The cpu usage, from 6 actors up, hovered around 350% (of a possible 600% total)
+In 'threadwork,' the thread pool implementation, the thread count varies from 1 to 20.  
+See the graph 'millisPerActorThread.png'

@@ -27,16 +27,23 @@ class TestMatrixF {
 	  val targ = new Array[Float](size * 16)
 	  MatrixF.fill(m4, targ)
 	
+	  var l = List[Tuple2[Int,Long]]()
 	  time("mulreg", 100, MatrixF.mult4by4Range(res.length / 16, i4.elements, 0, targ, 0, res, 0))
 	  (1 to 15).map( 
-	      (i) => time("mulwork " + i, 100, MatrixF.mult4by4Worker(i4.elements, targ, res2,i)))
+	      (i) => l = l :+ time("mulwork " + i, 100, MatrixF.mult4by4Worker(i4.elements, targ, res2,i)))
+	  (1 to (15, 5)).map( 
+	      (i) => l = l :+ time("threadwork Same " + i, 100, MatrixF.mult4by4Threaded(i4.elements, targ, res2,i)))
+	  (1 to 20).map( 
+	      (i) => l = l :+ time("threadwork Pool " + i, 100, MatrixF.mult4by4Threaded(i4.elements, targ, res2,i)(ThreadPoolStrategy)))
+	      
+	  println("\n" + l.mkString("\n"))
 	  ()
   }
 
   //MatrixF.mult4by4Range(res.length / 16, i4.elements, 0, targ, 0, res, 0)
   //MatrixF.mult4by4Worker(i4.elements, targ, res2)
 
-  def time(msg: String, count: Int, f: => Unit) {
+  def time(msg: String, count: Int, f: => Unit) : Tuple2[Int,Long]={
     val l = System.currentTimeMillis
     var idx = count
     while (idx > 0) {
@@ -44,7 +51,8 @@ class TestMatrixF {
       idx -= 1
     }
     val delta = (System.currentTimeMillis - l)
-    println(msg + " took " + delta + "ms or " + (count * 1000. / delta) + "evals/s")
+    println(msg + " took " + delta + " ms or " + (count * 1000. / delta) + "evals/s")
+    (count, delta)
   }
 
   def time(total: Long) = {
