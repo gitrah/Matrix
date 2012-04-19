@@ -1,7 +1,6 @@
 package com.hartenbower.matrix
+
 import scala.util.Random
-
-
 
 object MatrixF {
   def elapsed(msg: String, l: Long) = {
@@ -133,8 +132,11 @@ object MatrixF {
     None
   }
   
-  def mult4by4Worker(m : Array[Float], targ: Array[Float], res: Array[Float]) {
-    val scheduler = new Scheduler[Float](targ, 16)
+  def mult4by4Worker(m : Array[Float], targ: Array[Float], res: Array[Float], procs : Int = -1) {
+    val scheduler = procs match {
+      case -1 => new Scheduler[Float](targ, 16)
+      case x => new Scheduler[Float](targ, 16,x)
+    }
     scheduler.start
     scheduler ! Init( ( idx : Tuple2[Int,Int]) => mult4by4Range(idx._2-idx._1, m, 0, targ, idx._1, res, idx._1 ))
     // simulate an actor that waits for the search to complete
@@ -143,6 +145,15 @@ object MatrixF {
     }
   }
   
+  def fill(src: MatrixF, dest : Array[Float]) = {
+    val l = src.elements.length
+    require(dest.length % l == 0)
+    var offset = dest.length / l - 1
+    while(offset >= 0) {
+      src.elements.copyToArray(dest, offset* l)
+      offset -= 1
+    }
+  }
 }
 
 /*
@@ -527,68 +538,3 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
 
 }
 
-/*
-val ma = new MatrixF(Array(1.,2,3,1,4,8,3,9,.5),3)
-val m1 = new MatrixF( Array(1.,2.,3.,4.), 2)
-val m2 = new MatrixF( Array(3.,4,5,6),2)
-val m2b = new MatrixF(Array(1.,2,3,4,5,6), 3)
-val m2c = new MatrixF(Array(1.,2,3,4,5,6), 2)
-val m3 = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9),3)
-val m3b = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12),3)
-val m3c = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12),4)
-val m4 = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16),4)
-val m4b = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20),4)
-val m5 = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25),5)
-val m5b = new MatrixF(Array(1.,2.,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30),5)
-
-
-val i4 = MatrixF.diagonalM(4,1f)
-
-val res = Array.fill(200000, 16)(0f).flatten
-val res2 = Array.fill(200000, 16)(0f).flatten
-val m4 = MatrixF.randn(4,4)
-val targ =Array.fill(200000, 1)(m4.elements).flatten.flatten
-
-MatrixF.mult4by4Range(res.length/16,i4.elements,0,targ, 0, res, 0)
-MatrixF.mult4by4Worker(i4.elements, targ, res2)
-
-time("mulreg", 1000, MatrixF.mult4by4Range(res.length/16,i4.elements,0,targ, 0, res, 0))
-time("mulwork", 1000, MatrixF.mult4by4Worker(i4.elements, targ, res2))
-
-def time( msg : String, count : Int, f : => Unit) {
-  val l  = System.currentTimeMillis
-  var idx = count
-  while(idx > 0) {
-	f
-	idx -= 1
-  } 
-  val delta = (System.currentTimeMillis - l)  
-  println(msg + " took " + delta + "ms or " + (count*1000./delta) + "evals/s")
-}
-
-
-def time(total: Long) = {
-  val m3b = new MatrixF(Array(1., 2., 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 3)
-  val m3c = new MatrixF(Array(1., 2., 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 4)
-  var count = total
-  var l = System.currentTimeMillis
-  var res = 0.
-  while (count > 0) {
-    m3b.transpose()
-    count -= 1
-  }
-  var r = elapsed("MatrixF.transpose(" + total + ")", l)
-  l = r._1
-  var delta1 = r._2
-  count = total
-  val map = new java.util.HashMap[Int, Float]()
-  while (count > 0) {
-    m3b.transpose(map)
-    count -= 1
-  }
-  r = elapsed("Matrix.transpose(map)(" + total + ")", l)
-  l = r._1
-  var delta2 = r._2
-  println("ratio is " + (1.0 * delta1 / delta2))
-}
-*/

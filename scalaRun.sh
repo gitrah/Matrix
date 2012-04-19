@@ -1,5 +1,5 @@
 #!/bin/bash
-env JAVACMD=java JAVA_OPTS="-Xms512m -Xmx2048m -enableassertions" scala -deprecation -classpath \
+env JAVACMD=java JAVA_OPTS="-Xms2G -Xmx4G -enableassertions" scala -deprecation -classpath \
 ./:./classes:\
 $M2_REPO/log4j/log4j/1.2.14/log4j-1.2.14.jar:\
 $M2_REPO/javax/persistence/persistence-api/1.0/persistence-api-1.0.jar:\

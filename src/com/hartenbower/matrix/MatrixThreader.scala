@@ -48,7 +48,15 @@ class Mult4by4[_](val mat1: Array[Float], val mat2: Array[Float], val resMat: Ar
     }
   }
 
+/*
+ *  from "Scala In Depth by J D Suereth"
+ *	these implementations spend more time context switching than doing multiplications;  
+ *	the actor version (see Worker) shows more efficient granularity (where the work divided among  
+ *	threads is on the order of hundreds of thousands of matrix multiplications) but even then,
+ *  the scale factor is << 1 (  
+ */
 
+ 
 trait ThreadStrategy {
   def execute[A](func : Function0[A]) : Function0[A]
 }

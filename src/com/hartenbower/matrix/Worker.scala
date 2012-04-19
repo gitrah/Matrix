@@ -9,18 +9,16 @@ case object Stop
 case class Init[T](action: Tuple2[Int, Int] => Unit)
 object Scheduler {
   val DEBUG = false
-  val SingleThread = false
   val log = Logger.getLogger(classOf[Scheduler[_]])
 }
-import Scheduler.{ log, DEBUG, SingleThread}
+import Scheduler.{ log, DEBUG }
 
-class Scheduler[T](val queue: Array[T],val elementSize:Int) extends Actor {
+class Scheduler[T](val queue: Array[T],val elementSize:Int, val procs : Int = Runtime.getRuntime.availableProcessors) extends Actor {
   val total = queue.size / elementSize
   var workers: Set[Worker] = Set[Worker]()
   var lastIdx = 0
   var finished = false
   val factor = 2
-  val procs = if (SingleThread) 1 else Runtime.getRuntime.availableProcessors * factor
   val chunkSize = total / procs
 
   // tuple is index range into backing array
@@ -92,7 +90,7 @@ class Worker(name: String, action: Tuple2[Int, Int] => Unit) extends Actor {
   def act() {
     react {
       case NewChunk(s, chunk) =>
-        if (DEBUG) log.info(this + " received new chunk " + chunk)
+        if (DEBUG) log.info(this + " in " + Thread.currentThread.getName + " received new chunk " + chunk)
         val results = action(chunk)
         count += chunk._2 - chunk._1
         s ! FinishedChunk(this)
