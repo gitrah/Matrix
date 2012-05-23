@@ -1,94 +1,204 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<!-- WARNING: Eclipse auto-generated file.
+<!--
+     WARNING: Eclipse auto-generated file.
               Any modifications will be overwritten.
               To include a user specific buildfile here, simply create one in the same
               directory with the processing instruction <?eclipse.ant.import?>
-              as the first entry and export the buildfile again. -->
-<project basedir="." default="build" name="Matrix">
-	<property environment="env" />
-	<property name="ECLIPSE_HOME" value="../../../java-impl/ide/eclipses/indigo" />
-	<property name="debuglevel" value="source,lines,vars" />
-	<property name="target" value="1.6" />
-	<property name="source" value="1.6" />
-    <property name="src.dir" value="./src" />
-    <property name="test.src.dir" value="./test" />
-    <property name="test.out.dir" value="./test-classes" />
-    	
-    <path id="Scala Library [2.9.0.1].libraryclasspath">
+              as the first entry and export the buildfile again.
+-->
+<project
+    name="Matrix"
+    basedir="."
+    default="build" >
+
+    <property environment="env" />
+
+    <property
+        name="ECLIPSE_HOME"
+        value="../../../java-impl/ide/eclipses/indigo" />
+
+    <property
+        name="debuglevel"
+        value="source,lines,vars" />
+
+    <property
+        name="target"
+        value="1.6" />
+
+    <property
+        name="source"
+        value="1.6" />
+
+    <property
+        name="src.dir"
+        value="./src" />
+
+    <property
+        name="test.src.dir"
+        value="./test" />
+
+    <property
+        name="test.out.dir"
+        value="./test-classes" />
+
+    <path id="Scala Library [2.9.0.1].libraryclasspath" >
+
         <pathelement location="./tools/scala-library.jar" />
     </path>
-    <path id="JUnit.classpath">
+
+    <path id="JUnit.classpath" >
+
         <pathelement location="./tools/junit-4.8.1.jar" />
     </path>
-    <path id="Log4j.classpath">
+
+    <path id="Log4j.classpath" >
+
         <pathelement location="./tools/log4j-1.2.15.jar" />
     </path>
-    <path id="Matrix.classpath">
+
+    <path id="Matrix.classpath" >
+
         <pathelement location="classes" />
+
         <path refid="Scala Library [2.9.0.1].libraryclasspath" />
+
         <path refid="Log4j.classpath" />
     </path>
-    <path id="Matrix.testClasspath">
-        <pathelement location="test-classes" />
-        <path refid="JUnit.classpath" />
-        <path refid="Matrix.classpath" />
-   </path>
-    
-	<taskdef resource="scala/tools/ant/antlib.xml" classpath="tools/scala-compiler.jar:tools/scala-library.jar" />
 
-	<target name="init">
+    <path id="Matrix.testClasspath" >
+
+        <pathelement location="test-classes" />
+
+        <path refid="JUnit.classpath" />
+
+        <path refid="Matrix.classpath" />
+    </path>
+
+    <taskdef
+        classpath="tools/scala-compiler.jar:tools/scala-library.jar"
+        resource="scala/tools/ant/antlib.xml" />
+
+    <target name="init" >
+
         <mkdir dir="classes" />
+
         <mkdir dir="${test.out.dir}" />
-        		<copy includeemptydirs="false" todir="classes">
-			<fileset dir="${src.dir}">
-				<exclude name="**/*.java" />
-			</fileset>
-		</copy>
-	</target>
-	<target name="clean">
+
+        <copy
+            includeemptydirs="false"
+            todir="classes" >
+
+            <fileset dir="${src.dir}" >
+
+                <exclude name="**/*.java" />
+            </fileset>
+        </copy>
+    </target>
+
+    <target name="clean" >
+
         <delete dir="classes" />
+
         <delete dir="${test.out.dir}" />
     </target>
-	<target depends="clean" name="cleanall" />
-	<target depends="build-subprojects,build-project" name="build" />
-	<target name="build-subprojects" />
-	<target depends="init" name="build-project">
-		<echo message="${ant.project.name}: ${ant.file}" />
 
-		<scalac force="changed" deprecation="on" destdir="classes">
-			<src path="${src.dir}" />
-			<classpath refid="Matrix.classpath" />
-		</scalac>
-	</target>
-    <target depends="build-project" name="test-project">
+    <target
+        name="cleanall"
+        depends="clean" />
+
+    <target
+        name="build"
+        depends="build-subprojects,build-project" />
+
+    <target name="build-subprojects" />
+
+    <target
+        name="build-project"
+        depends="init" >
+
         <echo message="${ant.project.name}: ${ant.file}" />
 
-        <scalac force="changed" deprecation="on" destdir="${test.out.dir}">
+        <scalac
+            deprecation="on"
+            destdir="classes"
+            force="changed" >
+
+            <src path="${src.dir}" />
+
+            <classpath refid="Matrix.classpath" />
+        </scalac>
+        <delete>
+            <fileset dir="classes" includes="**/*.scala" />
+        </delete>        
+    </target>
+
+    <target
+        name="test-project"
+        depends="build-project" >
+
+        <echo message="${ant.project.name}: ${ant.file}" />
+
+        <scalac
+            deprecation="on"
+            destdir="${test.out.dir}"
+            force="changed" >
+
             <src path="${test.src.dir}" />
+
             <classpath refid="Matrix.testClasspath" />
         </scalac>
-        
-	   <junit maxmemory="4000m">
-	      <classpath refid="Matrix.testClasspath" />
-	      <formatter type="brief" usefile="false" />
-	      <batchtest>
-	        <fileset dir="${test.out.dir}" includes="**/TestMatrixF.class" />
-	      </batchtest>
-	    </junit>
-	        
+
+        <junit maxmemory="4000m" >
+
+            <classpath refid="Matrix.testClasspath" />
+
+            <formatter
+                type="brief"
+                usefile="false" />
+
+            <batchtest>
+
+                <fileset
+                    dir="${test.out.dir}"
+                    includes="**/TestMatrixF.class" />
+            </batchtest>
+        </junit>
     </target>
-		<target description="Build all projects which reference this project. Useful to propagate changes." name="build-refprojects" />
-	<target description="copy Eclipse compiler jars to ant lib directory" name="init-eclipse-compiler">
-		<copy todir="${ant.library.dir}">
-			<fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar" />
-		</copy>
-		<unzip dest="${ant.library.dir}">
-			<patternset includes="jdtCompilerAdapter.jar" />
-			<fileset dir="${ECLIPSE_HOME}/plugins" includes="org.eclipse.jdt.core_*.jar" />
-		</unzip>
-	</target>
-	<target description="compile project with Eclipse compiler" name="build-eclipse-compiler">
-		<property name="build.compiler" value="org.eclipse.jdt.core.JDTCompilerAdapter" />
-		<antcall target="build" />
-	</target>
+
+    <target
+        name="build-refprojects"
+        description="Build all projects which reference this project. Useful to propagate changes." />
+
+    <target
+        name="init-eclipse-compiler"
+        description="copy Eclipse compiler jars to ant lib directory" >
+
+        <copy todir="${ant.library.dir}" >
+
+            <fileset
+                dir="${ECLIPSE_HOME}/plugins"
+                includes="org.eclipse.jdt.core_*.jar" />
+        </copy>
+
+        <unzip dest="${ant.library.dir}" >
+
+            <patternset includes="jdtCompilerAdapter.jar" />
+
+            <fileset
+                dir="${ECLIPSE_HOME}/plugins"
+                includes="org.eclipse.jdt.core_*.jar" />
+        </unzip>
+    </target>
+
+    <target
+        name="build-eclipse-compiler"
+        description="compile project with Eclipse compiler" >
+
+        <property
+            name="build.compiler"
+            value="org.eclipse.jdt.core.JDTCompilerAdapter" />
+
+        <antcall target="build" />
+    </target>
+
 </project>

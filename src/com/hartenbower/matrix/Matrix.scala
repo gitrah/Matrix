@@ -1,4 +1,5 @@
 package com.hartenbower.matrix
+import Util._
 import scala.util.Random
 
 object Matrix {
@@ -76,12 +77,6 @@ object Matrix {
       l -= 1
     }
     sum
-  }
-
-  def elapsed(msg: String, l: Long) = {
-    val now = System.currentTimeMillis
-    println(msg + " took " + (now - l) + " millis")
-    (now, now - l)
   }
 
   // warning: invoking this method will make you sad

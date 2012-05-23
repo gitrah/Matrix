@@ -65,7 +65,7 @@ object GradientDescent {
      */
     val designMatrix = new MatrixD(features,nCols).prependColumnNew(
       Array.fill[Double](values.length)(1.))
-    val dmTxp = designMatrix.transposeNew()
+    val dmTxp = designMatrix.transposeN()
     // without determinant check, just return
     //     (xTxp * x).inverse * xTxp * Matrix.columnMatrix(values)
     val prod = dmTxp * designMatrix

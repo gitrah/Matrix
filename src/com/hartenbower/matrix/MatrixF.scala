@@ -3,11 +3,18 @@ package com.hartenbower.matrix
 import scala.util.Random
 
 object MatrixF {
-  def elapsed(msg: String, l: Long) = {
-    val now = System.currentTimeMillis
-    println(msg + " took " + (now - l) + " millis")
-    (now, now - l)
-  }
+  implicit def scalarToMatrix(d: Double)(implicit matDims :(Int, Int)): MatrixF = 
+    new MatrixF(Array.fill(matDims._1 * matDims._2)(d.asInstanceOf[Float]), matDims._2)
+  implicit def scalarToMatrix(i: Int)(implicit matDims :(Int, Int)): MatrixF = 
+    new MatrixF(Array.fill(matDims._1 * matDims._2)(i), matDims._2)
+  implicit def scalarToMatrix(f: Float)(implicit matDims :(Int, Int)): MatrixF = 
+    new MatrixF(Array.fill(matDims._1 * matDims._2)(f), matDims._2)
+
+  def zeros(nRows: Int, nCols: Int): MatrixF = scalarToMatrix(0f)(nCols,nRows)
+  def zeros(dims: (Int, Int)): MatrixF = zeros(dims._1, dims._2)
+  def ones(nRows: Int, nCols: Int): MatrixF = scalarToMatrix(1f)(nCols,nRows)
+  def ones(dims: (Int, Int)): MatrixF = ones(dims._1, dims._2)
+
 
   def dot(v1: Array[Float], range1: Tuple2[Int, Int], v2: Array[Float], range2: Tuple2[Int, Int]): Float = {
     //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
@@ -52,24 +59,26 @@ object MatrixF {
 
   /* could also define one as transpose of other... */
   def rowMatrix(a: Array[Float]) = new MatrixF(a, a.length)
+  def rowMatrix(s: Float, nCols : Int) : MatrixF = rowMatrix(Array.fill(nCols)(s))
 
   def columnMatrix(a: Array[Float]) = new MatrixF(a, 1)
+  def columnMatrix(s: Float, nRows : Int) : MatrixF = columnMatrix(Array.fill(nRows)(s))
 
-  def randn(nRows: Int, nCols: Int): MatrixF = {
+  def randn(nRows: Int, nCols: Int, epsilon : Float = .25f): MatrixF = {
     val rnd = new Random(System.currentTimeMillis)
     val l = nRows * nCols
     val c = new Array[Float](l)
     var i = 0
     while (i < l) {
-      c(i) = rnd.nextFloat
+      c(i) = (2 * rnd.nextFloat -1) * epsilon
       i += 1
     }
     new MatrixF(c, nCols)
   }
-  
-  def randSpace(nRows : Int, nCols: Int, nElements:Int):Array[Float] = {
+
+  def randSpace(nRows: Int, nCols: Int, nElements: Int): Array[Float] = {
     val rnd = new Random(System.currentTimeMillis)
-    Array.fill(nRows*nCols*nElements,1)(rnd.nextFloat).flatten
+    Array.fill(nRows * nCols * nElements, 1)(rnd.nextFloat).flatten
   }
 
   def arrTest = {
@@ -99,85 +108,135 @@ object MatrixF {
     resMat(11) = mat1(3) * mat2(8) + mat1(7) * mat2(9) + mat1(11) * mat2(10) + mat1(15) * mat2(11)
     resMat(15) = mat1(3) * mat2(12) + mat1(7) * mat2(13) + mat1(11) * mat2(14) + mat1(15) * mat2(15)
   }
-  
-  
+
   def mult4by4Range(
-		  count: Int,
-		  mat1: Array[Float], offset1: Int,
-		  mat2: Array[Float], offset2: Int,
-		  resMat: Array[Float], offset3:Int) : Option[List[(Int, Int)]] = {
-    var ctr = count-1
-    while(ctr >= 0) {
-    	val base1 = offset1
-    	val base2 = ctr * 16 + offset2
-    	val base3 = ctr * 16 + offset3
-	    resMat(base3) = mat1(base1) * mat2(base2) + mat1(base1 +4) * mat2(base2 +1) + mat1(base1 +8) * mat2(base2 +2) + mat1(base1 +12) * mat2(base2 +3)
-	    resMat(base3 +4) = mat1(base1 ) * mat2(base2 +4) + mat1(base1 +4) * mat2(base2 +5) + mat1(base1 +8) * mat2(base2 +6) + mat1(base1 +12) * mat2(base2 +7)
-	    resMat(base3 +8) = mat1(base1) * mat2(base2 +8) + mat1(base1 +4) * mat2(base2 +9) + mat1(base1 +8) * mat2(base2 +10) + mat1(base1 +12) * mat2(base2 +11)
-	    resMat(base3 +12) = mat1(base1) * mat2(base2 +12) + mat1(base1 +4) * mat2(base2 +13) + mat1(base1 +8) * mat2(base2 +14) + mat1(base1 +12) * mat2(base2 +15)
-	    resMat(base3 +1) = mat1(base1 +1) * mat2(base2) + mat1(base1 +5) * mat2(base2 +1) + mat1(base1 +9) * mat2(base2 +2) + mat1(base1 +13) * mat2(base2 +3)
-	    resMat(base3 +5) = mat1(base1 +1) * mat2(base2 +4) + mat1(base1 +5) * mat2(base2 +5) + mat1(base1 +9) * mat2(base2 +6) + mat1(base1 +13) * mat2(base2 +7)
-	    resMat(base3 +9) = mat1(base1 +1) * mat2(base2 +8) + mat1(base1 +5) * mat2(base2 +9) + mat1(base1 +9) * mat2(base2 +10) + mat1(base1 +13) * mat2(base2 +11)
-	    resMat(base3 +13) = mat1(base1 +1) * mat2(base2 +12) + mat1(base1 +5) * mat2(base2 +13) + mat1(base1 +9) * mat2(base2 +14) + mat1(base1 +13) * mat2(base2 +15)
-	    resMat(base3 +2) = mat1(base1 +2) * mat2(base2) + mat1(base1 +6) * mat2(base2 +1) + mat1(base1 +10) * mat2(base2 +2) + mat1(base1 +14) * mat2(base2 +3)
-	    resMat(base3 +6) = mat1(base1 +2) * mat2(base2 +4) + mat1(base1 +6) * mat2(base2 +5) + mat1(base1 +10) * mat2(base2 +6) + mat1(base1 +14) * mat2(base2 +7)
-	    resMat(base3 +10) = mat1(base1 +2) * mat2(base2 +8) + mat1(base1 +6) * mat2(base2 +9) + mat1(base1 +10) * mat2(base2 +10) + mat1(base1 +14) * mat2(base2 +11)
-	    resMat(base3 +14) = mat1(base1 +2) * mat2(base2 +1) + mat1(base1 +6) * mat2(base2 +13) + mat1(base1 +10) * mat2(base2 +14) + mat1(base1 +14) * mat2(base2 +15)
-	    resMat(base3 +3) = mat1(base1 +3) * mat2(base2) + mat1(base1 +7) * mat2(base2 +1) + mat1(base1 +11) * mat2(base2 +2) + mat1(base1 +15) * mat2(base2 +3)
-	    resMat(base3 +7) = mat1(base1 +3) * mat2(base2 +4) + mat1(base1 +7) * mat2(base2 +5) + mat1(base1 +11) * mat2(base2 +6) + mat1(base1 +15) * mat2(base2 +7)
-	    resMat(base3 +11) = mat1(base1 +3) * mat2(base2 +8) + mat1(base1 +7) * mat2(base2 +9) + mat1(base1 +11) * mat2(base2 +10) + mat1(base1 +15) * mat2(base2 +11)
-	    resMat(base3 +15) = mat1(base1 +3) * mat2(base2 +12) + mat1(base1 +7) * mat2(base2 +13) + mat1(base1 +11) * mat2(base2 +14) + mat1(base1 +15) * mat2(base2 +15)
-	    ctr -= 1
+    count: Int,
+    mat1: Array[Float], offset1: Int,
+    mat2: Array[Float], offset2: Int,
+    resMat: Array[Float], offset3: Int) {
+    var ctr = count - 1
+    val base1 = offset1
+    while (ctr >= 0) {
+      val base0 = ctr << 4
+      val base2 = base0 + offset2
+      val base3 = base0 + offset3
+      resMat(base3) = mat1(base1) * mat2(base2) + mat1(base1 + 4) * mat2(base2 + 1) + mat1(base1 + 8) * mat2(base2 + 2) + mat1(base1 + 12) * mat2(base2 + 3)
+      resMat(base3 + 4) = mat1(base1) * mat2(base2 + 4) + mat1(base1 + 4) * mat2(base2 + 5) + mat1(base1 + 8) * mat2(base2 + 6) + mat1(base1 + 12) * mat2(base2 + 7)
+      resMat(base3 + 8) = mat1(base1) * mat2(base2 + 8) + mat1(base1 + 4) * mat2(base2 + 9) + mat1(base1 + 8) * mat2(base2 + 10) + mat1(base1 + 12) * mat2(base2 + 11)
+      resMat(base3 + 12) = mat1(base1) * mat2(base2 + 12) + mat1(base1 + 4) * mat2(base2 + 13) + mat1(base1 + 8) * mat2(base2 + 14) + mat1(base1 + 12) * mat2(base2 + 15)
+      resMat(base3 + 1) = mat1(base1 + 1) * mat2(base2) + mat1(base1 + 5) * mat2(base2 + 1) + mat1(base1 + 9) * mat2(base2 + 2) + mat1(base1 + 13) * mat2(base2 + 3)
+      resMat(base3 + 5) = mat1(base1 + 1) * mat2(base2 + 4) + mat1(base1 + 5) * mat2(base2 + 5) + mat1(base1 + 9) * mat2(base2 + 6) + mat1(base1 + 13) * mat2(base2 + 7)
+      resMat(base3 + 9) = mat1(base1 + 1) * mat2(base2 + 8) + mat1(base1 + 5) * mat2(base2 + 9) + mat1(base1 + 9) * mat2(base2 + 10) + mat1(base1 + 13) * mat2(base2 + 11)
+      resMat(base3 + 13) = mat1(base1 + 1) * mat2(base2 + 12) + mat1(base1 + 5) * mat2(base2 + 13) + mat1(base1 + 9) * mat2(base2 + 14) + mat1(base1 + 13) * mat2(base2 + 15)
+      resMat(base3 + 2) = mat1(base1 + 2) * mat2(base2) + mat1(base1 + 6) * mat2(base2 + 1) + mat1(base1 + 10) * mat2(base2 + 2) + mat1(base1 + 14) * mat2(base2 + 3)
+      resMat(base3 + 6) = mat1(base1 + 2) * mat2(base2 + 4) + mat1(base1 + 6) * mat2(base2 + 5) + mat1(base1 + 10) * mat2(base2 + 6) + mat1(base1 + 14) * mat2(base2 + 7)
+      resMat(base3 + 10) = mat1(base1 + 2) * mat2(base2 + 8) + mat1(base1 + 6) * mat2(base2 + 9) + mat1(base1 + 10) * mat2(base2 + 10) + mat1(base1 + 14) * mat2(base2 + 11)
+      resMat(base3 + 14) = mat1(base1 + 2) * mat2(base2 + 1) + mat1(base1 + 6) * mat2(base2 + 13) + mat1(base1 + 10) * mat2(base2 + 14) + mat1(base1 + 14) * mat2(base2 + 15)
+      resMat(base3 + 3) = mat1(base1 + 3) * mat2(base2) + mat1(base1 + 7) * mat2(base2 + 1) + mat1(base1 + 11) * mat2(base2 + 2) + mat1(base1 + 15) * mat2(base2 + 3)
+      resMat(base3 + 7) = mat1(base1 + 3) * mat2(base2 + 4) + mat1(base1 + 7) * mat2(base2 + 5) + mat1(base1 + 11) * mat2(base2 + 6) + mat1(base1 + 15) * mat2(base2 + 7)
+      resMat(base3 + 11) = mat1(base1 + 3) * mat2(base2 + 8) + mat1(base1 + 7) * mat2(base2 + 9) + mat1(base1 + 11) * mat2(base2 + 10) + mat1(base1 + 15) * mat2(base2 + 11)
+      resMat(base3 + 15) = mat1(base1 + 3) * mat2(base2 + 12) + mat1(base1 + 7) * mat2(base2 + 13) + mat1(base1 + 11) * mat2(base2 + 14) + mat1(base1 + 15) * mat2(base2 + 15)
+      ctr -= 1
     }
-    None
   }
-  
-  def mult4by4Worker(m : Array[Float], targ: Array[Float], res: Array[Float], procs : Int = -1) {
+
+  def mult4by4VecRange(
+    count: Int,
+    mat: Array[Float], offset1: Int,
+    vec: Array[Float], offset2: Int,
+    resVec: Array[Float], offset3: Int) {
+    var ctr = count - 1
+    while (ctr >= 0) {
+      val base0 = ctr << 2
+      val base1 = offset1
+      val base2 = base0 + offset2
+      val base3 = base0 + offset3
+      resVec(base3) = mat(base1) * vec(base2) + mat(base1 + 4) * vec(base2 + 1) + mat(base1 + 8) * vec(base2 + 2) + mat(base1 + 12) * vec(base2 + 3)
+      resVec(base3 + 1) = mat(base1 + 1) * vec(base2) + mat(base1 + 5) * vec(base2 + 1) + mat(base1 + 9) * vec(base2 + 2) + mat(base1 + 13) * vec(base2 + 3)
+      resVec(base3 + 2) = mat(base1 + 2) * vec(base2) + mat(base1 + 6) * vec(base2 + 1) + mat(base1 + 10) * vec(base2 + 2) + mat(base1 + 14) * vec(base2 + 3)
+      resVec(base3 + 3) = mat(base1 + 3) * vec(base2) + mat(base1 + 7) * vec(base2 + 1) + mat(base1 + 11) * vec(base2 + 2) + mat(base1 + 15) * vec(base2 + 3)
+      ctr -= 1
+    }
+  }
+
+  def mult4by4Worker(m: Array[Float], targ: Array[Float], res: Array[Float], procs: Int = -1) {
+    // println("execing mult4by4Worker")
     val scheduler = procs match {
       case -1 => new Scheduler[Float](targ, 16)
-      case x => new Scheduler[Float](targ, 16,x)
+      case x => new Scheduler[Float](targ, 16, x)
     }
     scheduler.start
-    scheduler ! Init( ( idx : Tuple2[Int,Int]) => mult4by4Range(idx._2-idx._1, m, 0, targ, idx._1, res, idx._1 ))
+    scheduler ! Init((idx: Tuple2[Int, Int]) => mult4by4Range(idx._2 - idx._1, m, 0, targ, idx._1, res, idx._1))
     // simulate an actor that waits for the search to complete
-    while(!scheduler.finished) {
+    while (!scheduler.finished) {
       Thread.sleep(50)
     }
   }
-  
-  def spanIndicies(total : Int, pieces : Int) : Array[Tuple2[Int,Int]] = {
+
+  def spanIndicies(total: Int, pieces: Int): Array[Tuple2[Int, Int]] = {
     val span = total / pieces
-    val arry = new Array[Tuple2[Int,Int]](total/span)
+    val arry = new Array[Tuple2[Int, Int]](total / span)
     var offset = 0
     var tupleIdx = 0
-    while(offset < pieces) {
-      arry(tupleIdx) = (offset * span, if (offset < pieces -1) (offset + 1) * span else total -1 )
-      offset+=1
-      tupleIdx +=1
+    while (offset < pieces) {
+      arry(tupleIdx) = (offset * span, if (offset < pieces - 1) (offset + 1) * span else total)
+      offset += 1
+      tupleIdx += 1
     }
     arry
   }
 
-  def mult4by4Threaded(m : Array[Float], targ: Array[Float], res: Array[Float], procs : Int = 1)(implicit threading : ThreadStrategy = SameThreadStrategy )  {
+  def mult4by4Threaded(m: Array[Float], targ: Array[Float], res: Array[Float], procs: Int = 1)(implicit threading: ThreadStrategy = SameThreadStrategy) {
     val l = targ.length / m.length
-    
-    spanIndicies(l, procs).map( (idx) =>
+    //  println("execing mult4by4Threaded over " + spanIndicies(l, procs).mkString("\n"))
+
+    spanIndicies(l, procs).map((idx) =>
       () => mult4by4Range(
-		  idx._2-idx._1,
-		  m, 0,
-		  targ, idx._1,
-		  res, idx._1)).map(threading.execute(_)).map(_())
+        idx._2 - idx._1,
+        m, 0,
+        targ, idx._1,
+        res, idx._1)).map(threading.execute(_)).map(_())
   }
 
-  def fill(src: MatrixF, dest : Array[Float]) = {
+  def mult4by4VecThreaded(m: Array[Float], vec: Array[Float], res: Array[Float], procs: Int = 1)(implicit threading: ThreadStrategy = SameThreadStrategy) {
+    val l = vec.length / java.lang.Float.SIZE / 8
+
+    spanIndicies(l, procs).map((idx) =>
+      () => mult4by4VecRange(
+        idx._2 - idx._1,
+        m, 0,
+        vec, idx._1,
+        res, idx._1)).map(threading.execute(_)).map(_())
+  }
+
+  def fill(src: MatrixF, dest: Array[Float]) = {
     val l = src.elements.length
     require(dest.length % l == 0)
     var offset = dest.length / l - 1
-    while(offset >= 0) {
-      src.elements.copyToArray(dest, offset* l)
+    while (offset >= 0) {
+      src.elements.copyToArray(dest, offset * l)
       offset -= 1
     }
   }
+  
+  def mapFeature(x1: MatrixF, x2: MatrixF, degree: Int = 6): MatrixF = {
+    require(x1.dims() == x2.dims(), x1.dims() + "!=" + x2.dims())
+    require(x1.nCols == 1, "must be column vecs")
+
+    var res = MatrixF.ones(x1.nRows, 1)
+    var i = 1
+    var j = 1
+    while (i <= degree) {
+      while (j <= i) {
+        res = res ++ x1.elementOp(math.pow(_, i - j).asInstanceOf[Float]) ** x2.elementOp(math.pow(_, j).asInstanceOf[Float])
+        j += 1
+      }
+      i += 1
+    }
+    res
+  }
+  
+  
 }
 
 /*
@@ -202,9 +261,49 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     }
   }
 
+  override def equals(other: Any): Boolean =
+    other match {
+      case that: MatrixF =>
+        if((that canEqual this) &&
+          nCols == that.nCols &&
+          nRows == that.nRows && elements.length == that.elements.length) {
+          var idx = 0
+          while(idx < elements.length) {
+            if(elements(idx) != that.elements(idx)) {
+              false
+            }
+          }
+          true
+        } else false
+      case _ => false
+    }
+  def canEqual(other: Any): Boolean =
+    other.isInstanceOf[MatrixF]
+  
+  override def hashCode: Int =
+    41 * (
+      41 + nCols) + elements.hashCode()
+
+  override def clone = {
+    new MatrixF(elements.clone(), nCols)
+  }
+
+  def negate = {
+    var i = elements.length-1
+    while(i >= 0) {
+      elements(i) = -elements(i)
+      i -= 1
+    }
+    this
+  }
+
   def apply(row: Int, col: Int): Float = {
     validIndicesQ(row, col)
     elements(deref(row, col))
+  }
+
+  def addBiasCol() : MatrixF = {
+    MatrixF.ones(nRows,1) rightConcatenate this
   }
 
   private def matrixOp(o: MatrixF, f: (Float, Float) => Float): MatrixF = {
@@ -220,6 +319,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
 
   private def matrixOpNew(o: MatrixF, f: (Float, Float) => Float): MatrixF = {
     var l = elements.length
+    println("o: " + o)
     require(l == o.elements.length && nCols == o.nCols, "sizes don't match")
     val c = new Array[Float](l)
     l -= 1
@@ -282,6 +382,10 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
       l -= 1
     }
     c
+  }
+
+  def columnVector(col:Int) = {
+    new MatrixF(copyOfCol(col), 1)
   }
 
   def copyRange(src: Array[Float], targ: Array[Float], range: Tuple2[Int, Int], start: Int) {
@@ -369,23 +473,24 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
   }
 
   def transposeNew(): MatrixF = {
-    val l = elements.length - 1
-    val b = new Array[Float](l + 1)
+    val l : Long = elements.length - 1
+    val b = new Array[Float]( (l + 1).asInstanceOf[Int])
+    
     // first and last elems unchanged
     b(0) = elements(0)
-    b(l) = elements(l)
-    var i = 1
+    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
+    var i : Long = 1
     while (i < l) {
-      b(i * nRows % l) = elements(i)
+      b( (i * nRows % l).asInstanceOf[Int]) = elements(i.asInstanceOf[Int])
       i += 1
     }
     new MatrixF(b, nRows)
   }
 
-  def transpose(m: java.util.Map[Int, Float] = null) = if (nCols == nRows) transposeSquare else transposeNS(m)
+  def transpose(m: java.util.Map[Int, Float] = null): MatrixF = if (nCols == nRows) transposeSquare else transposeNS(m)
 
   // about 37% faster than txNew
-  def transposeSquare() {
+  def transposeSquare() : MatrixF = {
     val l = elements.length - 1
     var idx = 1 // can skip first and last elements
     var temp = 0.f
@@ -403,9 +508,10 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
       }
       idx += 1
     }
+    this
   }
 
-  def transposeNS(m: java.util.Map[Int, Float] = null) = {
+  def transposeNS(m: java.util.Map[Int, Float] = null) : MatrixF = {
     val l = elements.length - 1
     var i = 1
     var idx = i
@@ -427,10 +533,11 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
       nCols = nRows
       nRows = temp
     }
+    this
   }
 
   def *(o: MatrixF): MatrixF = {
-    require(nCols == o.nRows, "matrices of incompatible shape for mulitplication")
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
     val c = new Array[Float](nRows * o.nCols)
     val oT = o.transposeNew
     var row = 1
@@ -448,12 +555,24 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     new MatrixF(c, o.nCols)
   }
 
-  def elementScalarOp(s: Float, f: (Float, Float) => Float) = {
+  def elementOp(f: (Float) => Float) :MatrixF = {
+    val m = clone
     var l = elements.length - 1
     while (l >= 0) {
-      elements(l) = f(elements(l), s)
+      m.elements(l) = f(elements(l))
       l -= 1
     }
+    m
+  }
+  
+  def elementScalarOp(s: Float, f: (Float, Float) => Float) : MatrixF = {
+    val m = clone
+    var l = elements.length - 1
+    while (l >= 0) {
+      m.elements(l) = f(elements(l), s)
+      l -= 1
+    }
+    m
   }
 
   def +(s: Float) = elementScalarOp(s, _ + _)
@@ -552,12 +671,16 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     mT
   }
 
-  implicit val dim = nCols
-  implicit def scalarToMatrix(i: Int)(implicit dim: Int): MatrixF = {
-    MatrixF.diagonalM(dim, i)
+  implicit val matDims = (nRows,nCols)
+  import MatrixF.scalarToMatrix
+    
+  implicit def matrixToScalar(): Float = {
+    require(nCols == 1 && nRows == 1)
+    elements(0)
   }
-  implicit def scalarToMatrix(s: Float)(implicit dim: Int): MatrixF = {
-    MatrixF.diagonalM(dim, s)
+
+  def test() =  {
+    2 + this
   }
 
 }
