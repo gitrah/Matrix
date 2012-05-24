@@ -94,13 +94,13 @@ object LogisticRegression {
         while(i < thetas.length) {
 		    val thetaCopy = thetas(i).columnSubset( (2 to thetas(i).nCols).toList)
 		    val jdeldel = lambda/(2.*m) * Util.sum(thetaCopy.elementOp(math.pow(_,2)).elements)
-		    println(i + " jdeldel: " + jdeldel)
+		    //println(i + " jdeldel: " + jdeldel)
 		    jDel += jdeldel
 		    i += 1
         }
     }
     val jNoReg = costFunctionNoReg(a,yb,m) 
-    println("jNoReg " + jNoReg)
+    //println("jNoReg " + jNoReg)
     jNoReg + jDel
   }
   

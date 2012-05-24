@@ -31,7 +31,10 @@ class TestNeuralNet {
     val lambda =1 
     val jNoReg = costFunctionNoReg(a3, yb, m)
 
-    NeuralNet.forwardAndback(x,y,thetas,1)
-
+    NeuralNet.forwardAndBack(x,y,thetas,1)
+    val epsilon = .25
+    val delta = 1e-11
+    val alpha = 2
+    val tup = NeuralNet.descend(x, y, Array((25,400),(10,25)), 1000, epsilon, lambda, alpha,delta)
   }
 }

@@ -62,7 +62,7 @@ object MatrixD {
   def rowMatrix(a: Array[Double]) = new MatrixD(a, a.length)
 
   def columnMatrix(a: Array[Double]) = new MatrixD(a, 1)
-
+  def randn( dims : Tuple2[Int,Int], epsilon: Double ): MatrixD = randn(dims._1,dims._2,epsilon) 
   def randn(nRows: Int, nCols: Int, epsilon: Double = 1d): MatrixD = {
     val rnd = new Random(System.currentTimeMillis)
     val l = nRows * nCols
