@@ -18,6 +18,18 @@
         value="../../../java-impl/ide/eclipses/indigo" />
 
     <property
+        name="iajc.class"
+        value="org.aspectj.tools.ant.taskdefs.AjcTask" />
+
+    <path id="aspectj.jars" >
+
+        <fileset dir="tools" >
+
+            <include name="aspect*.jar" />
+        </fileset>
+    </path>
+
+    <property
         name="debuglevel"
         value="source,lines,vars" />
 
@@ -63,6 +75,9 @@
         <path refid="Scala Library [2.9.0.1].libraryclasspath" />
 
         <path refid="Log4j.classpath" />
+
+        <path refid="aspectj.jars" />
+        <path refid="JUnit.classpath" />
     </path>
 
     <path id="Matrix.testClasspath" >
@@ -78,9 +93,16 @@
         classpath="tools/scala-compiler.jar:tools/scala-library.jar"
         resource="scala/tools/ant/antlib.xml" />
 
+    <taskdef
+        name="iajc"
+        classname="${iajc.class}"
+        classpathref="Matrix.classpath" />
+
     <target name="init" >
 
         <mkdir dir="classes" />
+
+        <mkdir dir="build" />
 
         <mkdir dir="${test.out.dir}" />
 
@@ -98,6 +120,8 @@
     <target name="clean" >
 
         <delete dir="classes" />
+
+        <delete dir="build" />
 
         <delete dir="${test.out.dir}" />
     </target>
@@ -117,7 +141,20 @@
         depends="init" >
 
         <echo message="${ant.project.name}: ${ant.file}" />
-
+        
+      <javac srcdir="src"
+         destdir="classes"
+         debug="on"
+         deprecation="on"
+         optimize="off"
+         includes="**">
+         <classpath>
+            <path refid="Matrix.classpath"/>
+         </classpath>
+        <exclude name="**/aspects/**/*"/>
+        <!-- compilerarg value="-Xlint:unchecked"/ -->
+      </javac>
+        
         <scalac
             deprecation="on"
             destdir="classes"
@@ -127,11 +164,54 @@
 
             <classpath refid="Matrix.classpath" />
         </scalac>
+
         <delete>
-            <fileset dir="classes" includes="**/*.scala" />
-        </delete>        
+
+            <fileset
+                dir="classes"
+                includes="**/*.scala" />
+        </delete>
+
+        <jar jarfile="build/Matrix-unwoven.jar" >
+
+            <fileset dir="classes" >
+
+                <include name="**/*.class" />
+            </fileset>
+        </jar>
+
     </target>
 
+    <target
+        name="weave"
+        depends="build-project"> 
+        
+        
+        <iajc
+            classpathref="Matrix.classpath"
+            debug="true"
+            fork="true"
+            maxmem="2g"
+            outJar="build/Matrix.jar"
+            source="1.6"
+            sourceRootCopyFilter="**/CVS/*,**/*.java,**/*.scala,**/*.gif,**/*.xml"
+            verbose="true" >
+
+            <sourceroots>
+
+                <pathelement location="src/com/hartenbower/aspects/" />
+            </sourceroots>
+
+            <inpath>
+
+                <pathelement location="build/Matrix-unwoven.jar" />
+            </inpath>
+        </iajc>
+
+        <touch file="${basedir}/Matrix.tag" />
+        
+        
+    </target>    
     <target
         name="test-project"
         depends="build-project" >

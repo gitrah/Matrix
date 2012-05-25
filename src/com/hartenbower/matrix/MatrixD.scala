@@ -243,7 +243,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
   def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
   def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
-  def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
+  @inline def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
   def enref(idx: Int): (Int, Int) = {
     if (idx >= nCols) {
       (idx / nCols + 1, idx % nCols + 1)
@@ -609,7 +609,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     this
   }
 
-  def *(o: MatrixD): MatrixD = {
+  def slowMult(o: MatrixD): MatrixD = {
     require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
     val c = new Array[Double](nRows * o.nCols)
     val oT = o.transposeN
@@ -626,6 +626,28 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
       row += 1
     }
     new MatrixD(c, o.nCols)
+  }
+  
+  def *(o : MatrixD) : MatrixD = {
+    val rRows = nRows
+    val rCols = o.nCols
+    val res = MatrixD.zeros(rRows, rCols)
+    var i = 1
+    var j = 1
+    var k = 1
+    while(i <= rRows) {
+      j = 1
+      while(j <= rCols) {
+        k = 1
+        while(k <= nCols) {
+          res.elements( res.deref(i, j)) += elements( deref(i, k)) * o.elements(o.deref(k, j))
+          k += 1
+        }
+        j += 1 
+      }
+      i += 1
+    }
+    res
   }
 
   def elOp(f: (Double) => Double) = elementOp(f)

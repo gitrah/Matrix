@@ -1,3 +1,0 @@
-has Matrix class (adapted from a Jonathan Merritt blog http://jsmerritt.blogspot.com/2008/07/matrix-multiplication-in-scala.html)
-with operations like cofactor, minor, determinant, inverse, etc
-

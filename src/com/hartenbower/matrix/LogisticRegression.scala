@@ -69,11 +69,22 @@ object LogisticRegression {
   
   import MatrixD._
   
-  def sigmoidGradient( z : MatrixD ) = {
+  def sigmoidGradientSlow( z : MatrixD ) = {
     val a = z.elementOp(sigmoidD)
     a ** (1 - a)
   }
   
+  def sigmoidGradient(z : MatrixD ) = {
+    val res  = z.clone
+    var i = 0
+    var sig = 0d
+    while(i < z.elements.length) {
+      sig = sigmoidD(res.elements(i))
+      res.elements(i) = sig * (1 - sig)
+      i+=1
+    }
+    res
+  }
  
   def costFunction(
 		@desc("predictions") 
