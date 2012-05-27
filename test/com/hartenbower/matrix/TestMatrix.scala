@@ -1,5 +1,6 @@
 package com.hartenbower.matrix
 import Util._
+import Util.Timing._
 
 class TestMatrix {
   def timeMatrixDot(total: Long) = {

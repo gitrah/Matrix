@@ -1,6 +1,7 @@
 package com.hartenbower.matrix
 import org.junit.Test
 import Util._
+import Util.Timing._
 
 class TestMatrixF {
   val ma = new MatrixF(Array(1.f, 2, 3, 1, 4, 8, 3, 9, .5f), 3)
@@ -96,7 +97,7 @@ class TestMatrixF {
     var l = System.currentTimeMillis
     var res = 0.
     while (count > 0) {
-      m3b.transpose()
+      m3b.transposeN()
       count -= 1
     }
     var r = elapsed("MatrixF.transpose(" + total + ")", l)
@@ -105,7 +106,7 @@ class TestMatrixF {
     count = total
     val map = new java.util.HashMap[Int, Float]()
     while (count > 0) {
-      m3b.transpose(map)
+      m3b.transposeIp(map)
       count -= 1
     }
     r = elapsed("Matrix.transpose(map)(" + total + ")", l)

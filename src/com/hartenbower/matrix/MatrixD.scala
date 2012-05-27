@@ -1,8 +1,12 @@
 package com.hartenbower.matrix
 import scala.util.Random
-
+import java.util.concurrent._
+import Util._
 object MatrixD {
   val verbose = false
+  var txpsCreateCount = 0l
+  var txpsUseCount = 0l
+
   implicit def scalarOp(d: Double) = new ScalarOp(d)
 
   class ScalarOp(d: Double) {
@@ -62,7 +66,8 @@ object MatrixD {
   def rowMatrix(a: Array[Double]) = new MatrixD(a, a.length)
 
   def columnMatrix(a: Array[Double]) = new MatrixD(a, 1)
-  def randn( dims : Tuple2[Int,Int], epsilon: Double ): MatrixD = randn(dims._1,dims._2,epsilon) 
+  def randn(dims: Tuple2[Int, Int], epsilon: Double): MatrixD = randn(dims._1, dims._2, epsilon)
+  def randn(dims: Tuple2[Int, Int]): MatrixD = randn(dims._1, dims._2)
   def randn(nRows: Int, nCols: Int, epsilon: Double = 1d): MatrixD = {
     val rnd = new Random(System.currentTimeMillis)
     val l = nRows * nCols
@@ -218,7 +223,7 @@ object MatrixD {
     var j = 0
     while (i <= degree) {
       j = 0
-      while(j <= i) {
+      while (j <= i) {
         res = res ++ x1.elementOp(math.pow(_, i - j)) ** x2.elementOp(math.pow(_, j))
         j += 1
       }
@@ -226,22 +231,55 @@ object MatrixD {
     }
     res
   }
-  
+
 }
 
 import MatrixD.verbose
 /*
  * The array backed,  double precision version
  */
-case class MatrixD(val elements: Array[Double], var nCols: Int) {
+case class MatrixD(val elements: Array[Double], var nCols: Int, val txpM: MatrixD, transpose: Boolean) {
   if (nCols != 0) require(elements.length % nCols == 0)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
-  def validIndicesQ(row: Int, col: Int) {
+  val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
+
+  def this(els: Array[Double], cols: Int, transpose: Boolean = true) {
+    this(els, cols, null, transpose)
+  }
+
+  def same(o: MatrixD, maxError: Double = 0): Boolean = {
+    if (nCols == o.nCols) {
+      val l = elements.length
+      if (l == o.elements.length) {
+        var i = 0
+        var exceededError = false
+        while (!exceededError && i < l) {
+          if (math.abs(elements(i) - o.elements(i)) > maxError) {
+            exceededError = true
+          }
+          i += 1
+        }
+        !exceededError
+      } else 
+        false
+    } else 
+    	false
+  }
+
+  def sameSqrDiff(o: MatrixD, maxError: Double = 0): Boolean = {
+    if (nCols == o.nCols) {
+      val l = elements.length
+      l == o.elements.length && sumSquaredDiffs(o) / l <= maxError
+    } else 
+      false
+  }
+
+  @inline def validIndicesQ(row: Int, col: Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
   }
-  def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
-  def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
+  @inline def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
+  @inline def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
   @inline def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
   def enref(idx: Int): (Int, Int) = {
@@ -253,59 +291,85 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
   }
 
   override def clone = {
-    new MatrixD(elements.clone(), nCols)
+    new MatrixD(elements.clone(), nCols, txp.get, true)
   }
 
-  def negateIp = {
+  @inline def negateIp: MatrixD = {
     var i = elements.length - 1
     while (i >= 0) {
       elements(i) = -elements(i)
       i -= 1
     }
+    if (txp != null) txp.get.negateIp
     this
   }
-  
-  def negateN = {
-    val cl = clone
+
+  @inline def negateN = {
+    val cl = elements.clone
+    var txcl = if (txp != null) txp.get.elements else null
     var i = elements.length - 1
     while (i >= 0) {
-      cl.elements(i) = -elements(i)
+      cl(i) = -elements(i)
+      if (txcl != null) txcl(i) = -txp.get.elements(i)
       i -= 1
     }
-    cl
+    new MatrixD(cl, nCols, new MatrixD(txcl, nRows, false), txcl == null)
   }
-  
-  @inline def sum() = {var s = 0d; var i = 0; while (i < elements.length){ s += elements(i); i += 1 }; s }
-  
-  
 
-  def apply(row: Int, col: Int): Double = {
+  @inline def sum() = { var s = 0d; var i = 0; while (i < elements.length) { s += elements(i); i += 1 }; s }
+
+  def length = {
+    var s = 0d
+    var v = 0d
+    var i = elements.length - 1
+    while (i > -1) {
+      v = elements(i)
+      s += v * v
+      i += i
+    }
+    math.sqrt(s)
+  }
+
+  def unitV = {
+    var s = length
+    val el = elements.clone
+    var v = 0d
+    var i = elements.length - 1
+    while (i > -1) {
+      el(i) /= s
+    }
+    new MatrixD(el, nCols, txp != null)
+  }
+
+  @inline def apply(row: Int, col: Int): Double = {
     validIndicesQ(row, col)
     elements(deref(row, col))
   }
 
-  def addBiasCol() = MatrixD.ones(nRows, 1) rightConcatenate this
-  
-  def hasBiasCol() = nCols > 1 && !columnVector(1).elements.exists(_!=1)
+  def update(row: Int, col: Int, v: Double) { elements(deref(row, col)) = v }
 
-  def toBinaryCategoryMatrix() : MatrixD = {
+  def addBiasCol() = MatrixD.ones(nRows, 1).rightConcatenate(this, true)
+
+  def hasBiasCol() = nCols > 1 && !columnVector(1).elements.exists(_ != 1)
+
+  def toBinaryCategoryMatrix(): MatrixD = {
     val s = elements.toSet
     val max = s.max
     val newCols = s.size
     val bmat = MatrixD.zeros(nRows, newCols)
     var i = 0
     var off = 0
-    while(i < nRows ) {
-      off = apply(i+1,1).asInstanceOf[Int] -1
-     // println("changing " + (i * newCols + off ))
-      bmat.elements(i * newCols + off ) = 1
+    while (i < nRows) {
+      off = apply(i + 1, 1).asInstanceOf[Int] - 1
+      // println("changing " + (i * newCols + off ))
+      bmat.elements(i * newCols + off) = 1
       i += 1
     }
     bmat
   }
-  
-  def isBinaryCategoryMatrix = ! elements.exists( x => x != 0 && x != 1)
-  
+
+  def isBinaryCategoryMatrix = !elements.exists(x => x != 0 && x != 1)
+
   private def matrixOpIp(o: MatrixD, f: (Double, Double) => Double): MatrixD = {
     var l = elements.length
     require(l == o.elements.length && nCols == o.nCols, "sizes don't match")
@@ -350,7 +414,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     (start, start + nCols - 1)
   }
 
-  def columnIndices(col: Int): Array[Int] = {
+  @inline def columnIndices(col: Int): Array[Int] = {
     validColQ(col)
     val c = new Array[Int](nRows)
     var i = 0
@@ -383,43 +447,44 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     c
   }
 
-  def columnVector(col:Int) = {
-    new MatrixD(copyOfCol(col), 1)
+  def columnVector(col: Int) = {
+    new MatrixD(copyOfCol(col), 1, false)
   }
-  
-  def rowVector(row:Int) = {
-    new MatrixD(copyOfRow(row), nCols)
+
+  def rowVector(row: Int) = {
+    new MatrixD(copyOfRow(row), nCols, false)
   }
-  
+
   def rowVectorQ = nRows == 1
-  
+
   def columnVectorQ = nCols == 1
-  
-  def toRowVector = if(columnVectorQ) tN else this
-  
-  def toColumnVector = if(rowVectorQ) tN else this
-  
-  def columnSubset(indices : List[Int]) = {
+
+  def toRowVector = if (columnVectorQ) tN else this
+
+  def toColumnVector = if (rowVectorQ) tN else this
+
+  def columnSubset(indices: List[Int]) = {
+    // delay precomputing tx until matrix is complete
     var i = 0
-    var res : MatrixD = null
-    while(i < indices.size) {
+    var res: MatrixD = null
+    while (i < indices.size) {
       val cVec = columnVector(indices(i))
-      if(res == null) {
+      if (res == null) {
         res = cVec
       } else {
         res = res ++ cVec
       }
       i += 1
     }
-    res
+    new MatrixD(res.elements, res.nCols, true)
   }
 
-  def rowSubset(indices : List[Int]) = {
+  def rowSubset(indices: List[Int]) = {
     var i = 0
-    var res : MatrixD = null
-    while(i < indices.size) {
+    var res: MatrixD = null
+    while (i < indices.size) {
       val rVec = rowVector(indices(i))
-      if(res == null) {
+      if (res == null) {
         res = rVec
       } else {
         res = res +/ rVec
@@ -428,21 +493,21 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     }
     res
   }
-  
+
   def toRowMaxIndices() = {
     val l = new Array[Int](nRows)
-    var idx =0
+    var idx = 0
     var jdx = 0
     var rowMax = 0d
     var maxIdx = 0
     var currEl = 0d
-    while(idx < nRows) {
+    while (idx < nRows) {
       jdx = 0
       rowMax = elements(idx * nCols)
       maxIdx = 0
-      while(jdx < nCols) {
+      while (jdx < nCols) {
         currEl = elements(idx * nCols + jdx)
-        if(currEl > rowMax) {
+        if (currEl > rowMax) {
           rowMax = currEl
           maxIdx = jdx
         }
@@ -453,8 +518,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     }
     l
   }
-  
-  
+
   def copyRange(src: Array[Double], targ: Array[Double], range: Tuple2[Int, Int], start: Int) {
     require(range._1 > -1 && range._2 < src.length, "range " + range + " bad for source")
     require(start + range._2 - range._1 < targ.length, "range (" + (range._2 - range._1) + ") + start (" + start + ") bad for target length " + targ.length)
@@ -465,27 +529,27 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     }
   }
 
-  def rowCopy(out: Array[Double], row: Int, startIdx: Int) = {
+  @inline def rowCopy(out: Array[Double], row: Int, startIdx: Int) = {
     copyRange(elements, out, rowIndices(row), startIdx)
   }
 
   override def toString(): String = {
-    if(verbose || (nRows < 11 && nCols < 11)) {
-	    val rowA = new Array[Double](nCols)
-	    var row = nRows
-	    var l = List[String]()
-	    while (row > 0) {
-	      rowCopy(rowA, row, 0)
-	      l = l :+ rowA.mkString("[", ", ", "]")
-	      row -= 1
-	    }
-	    l.reverse.mkString("", "\n", "\n")
-    }else {
-      "MatrixD["+nRows +","+nCols+"]"
+    if (verbose || (nRows < 11 && nCols < 11)) {
+      val rowA = new Array[Double](nCols)
+      var row = nRows
+      var l = List[String]()
+      while (row > 0) {
+        rowCopy(rowA, row, 0)
+        l = l :+ rowA.mkString("[", ", ", "]")
+        row -= 1
+      }
+      l.reverse.mkString("", "\n", "\n")
+    } else {
+      "MatrixD[" + nRows + "," + nCols + "]"
     }
   }
 
-  def rightConcatenate(other: MatrixD): MatrixD = {
+  def rightConcatenate(other: MatrixD, transpose: Boolean = false): MatrixD = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
     val newCols = nCols + other.nCols
     val c = new Array[Double](nRows * newCols)
@@ -495,7 +559,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
       other.rowCopy(c, row, (row - 1) * newCols + nCols)
       row -= 1
     }
-    new MatrixD(c, newCols)
+    new MatrixD(c, newCols, transpose)
   }
 
   def ++(other: MatrixD) = rightConcatenate(other)
@@ -544,8 +608,23 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
   }
 
   def tN() = transposeN()
-  
   def transposeN(): MatrixD = {
+    MatrixD.txpsUseCount += 1
+    if (txp != null) {
+      // println(dims + " cached !!! txps")
+      txp.get
+    } else {
+      //  println(dims + " had no cached txps")
+      transposeDc
+    }
+  }
+
+  //  def transposeChunky() : MatrixD = {
+  //    
+  //  }
+
+  def transposeEl(): MatrixD = {
+    MatrixD.txpsCreateCount += 1
     val l: Long = elements.length - 1
     val b = new Array[Double]((l + 1).asInstanceOf[Int])
 
@@ -557,7 +636,54 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
       b((i * nRows % l).asInstanceOf[Int]) = elements(i.asInstanceOf[Int])
       i += 1
     }
-    new MatrixD(b, nRows)
+    val ret = new MatrixD(b, nRows, this, false)
+    //println("transposeEl b.length " + b.length + " cols " + nRows)
+    ret
+  }
+
+  def transposeChunky(): MatrixD = {
+    MatrixD.txpsCreateCount += 1
+    val l: Long = elements.length - 1
+    val b = new Array[Double]((l + 1).asInstanceOf[Int])
+    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
+    val spans = Concurrent.toSpans(l, Concurrent.threadCount)
+    //println("spans " + spans.mkString)
+    val futs = new Array[Future[Long]](spans.length)
+    var i = 0
+    while (i < spans.length) {
+      futs(i) = Concurrent.effort(Concurrent.transposeChunk(elements, l, b, nRows)(spans(i)))
+      i += 1
+    }
+    i = 0
+    while (i < spans.length) {
+      futs(i).get
+      i += 1
+    }
+    new MatrixD(b, nRows, this, false)
+  }
+
+  def transposeDc(): MatrixD = {
+    MatrixD.txpsCreateCount += 1
+    val l: Long = elements.length - 1
+    val b = new Array[Double]((l + 1).asInstanceOf[Int])
+    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
+    Concurrent.combine(Concurrent.distribute(l, Concurrent.transposeChunk(elements, l, b, nRows)))
+    new MatrixD(b, nRows, this, false)
+  }
+
+  def transposeSlow(): MatrixD = {
+    val res = MatrixD.zeros(nCols, nRows)
+    var i = 1
+    var j = 1
+    while (i < nRows) {
+      j = 1
+      while (j < nCols) {
+        res.elements(res.deref(j, i)) = elements(deref(i, j))
+        j += 1
+      }
+      i += 1
+    }
+    res
   }
 
   def transposeIp(m: java.util.Map[Int, Double] = null): MatrixD = if (nCols == nRows) transposeSquareIp else transposeNsIp(m)
@@ -609,7 +735,9 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     this
   }
 
-  def slowMult(o: MatrixD): MatrixD = {
+  @inline def *(o: MatrixD): MatrixD = multDc(o)
+
+  def multSequential(o: MatrixD): MatrixD = {
     require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
     val c = new Array[Double](nRows * o.nCols)
     val oT = o.transposeN
@@ -618,6 +746,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     var idx = 0
     while (row <= nRows) {
       rowT = 1
+      //println("row " + row + " idx " + idx)
       while (rowT <= oT.nRows) {
         c(idx) = MatrixD.dot(elements, rowIndices(row), oT.elements, oT.rowIndices(rowT))
         rowT += 1
@@ -627,23 +756,57 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
     }
     new MatrixD(c, o.nCols)
   }
-  
-  def *(o : MatrixD) : MatrixD = {
+
+  //  def multChunk(src1: Array[Double], cols1 : Int, src2: Array[Double], rows2 : Int, cols2 : Int,  trg: Array[Double])( range : Tuple2[Long,Long])() : Long = {
+
+  def multChunky(o: MatrixD): MatrixD = {
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
+    val oT = o.transposeN
+    val c = new Array[Double](nRows * o.nCols)
+    val spans = Concurrent.toSpans(nRows, Concurrent.threadCount, true)
+    //println("spans " +spans.mkString)
+    val futs = new Array[Future[Long]](spans.length)
+    var i = 0
+    while (i < spans.length) {
+      futs(i) = Concurrent.effort(Concurrent.multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c)(spans(i)))
+      i += 1
+    }
+    // getum
+    i = 0
+    while (i < spans.length) {
+      futs(i).get
+      i += 1
+    }
+    new MatrixD(c, o.nCols)
+
+  }
+
+  def multDc(o: MatrixD): MatrixD = {
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
+    val oT = o.transposeN
+    val c = new Array[Double](nRows * o.nCols)
+    Concurrent.combine(Concurrent.distribute(nRows, Concurrent.multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
+    new MatrixD(c, o.nCols)
+  }
+
+  def slowMult(o: MatrixD): MatrixD = {
     val rRows = nRows
     val rCols = o.nCols
     val res = MatrixD.zeros(rRows, rCols)
-    var i = 1
-    var j = 1
-    var k = 1
-    while(i <= rRows) {
-      j = 1
-      while(j <= rCols) {
-        k = 1
-        while(k <= nCols) {
-          res.elements( res.deref(i, j)) += elements( deref(i, k)) * o.elements(o.deref(k, j))
+    var i = 0
+    var j = 0
+    var k = 0
+    while (i < rRows) {
+      j = 0
+      while (j < rCols) {
+        k = 0
+        while (k < nCols) {
+          //res.elements( res.deref(i, j)) += elements( deref(i, k)) * o.elements(o.deref(k, j))
+          //println( (i * rCols + j) + " " + ( i * nCols + k) + " " +  (k * o.nCols + j))
+          res.elements(i * rCols + j) += elements(i * nCols + k) * o.elements(k * o.nCols + j)
           k += 1
         }
-        j += 1 
+        j += 1
       }
       i += 1
     }
@@ -652,23 +815,23 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
 
   def elOp(f: (Double) => Double) = elementOp(f)
   def elementOp(f: (Double) => Double): MatrixD = {
-    var m = clone
+    var el = elements.clone
     var l = elements.length - 1
     while (l >= 0) {
-      m.elements(l) = f(elements(l))
+      el(l) = f(elements(l))
       l -= 1
     }
-    m
+    new MatrixD(el, nCols, txp != null)
   }
 
   def elementScalarOp(s: Double, f: (Double, Double) => Double): MatrixD = {
-    val m = clone
+    val el = elements.clone
     var l = elements.length - 1
     while (l >= 0) {
-      m.elements(l) = f(elements(l), s)
+      el(l) = f(elements(l), s)
       l -= 1
     }
-    m
+    new MatrixD(el, nCols, txp != null)
   }
 
   def +(s: Double) = elementScalarOp(s, _ + _)
@@ -678,14 +841,14 @@ case class MatrixD(val elements: Array[Double], var nCols: Int) {
 
   def ^(exp: Double) = elementScalarOp(exp, (x, y) => scala.math.pow(x, y))
   def clean(σ: Double = .0001) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0. else x)
-  
-  def sumSquaredDiffs(other : MatrixD) : Double = {
+
+  def sumSquaredDiffs(other: MatrixD): Double = {
     require(dims() == other.dims(), "this " + dims + " dimly incompat w other: " + other.dims)
     var sum = 0d
     val l = elements.length
     var i = 0
     var delta = 0d
-    while(i < l) {
+    while (i < l) {
       delta = elements(i) - other.elements(i)
       sum += delta * delta
       i += 1

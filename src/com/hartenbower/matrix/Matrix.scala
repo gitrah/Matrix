@@ -92,7 +92,7 @@ object Matrix {
       res = Matrix.dotVectors(v1, v2)
       count -= 1
     }
-    var r = elapsed("Matrix.dotVectors(" + total + ")", l)
+    var r = Timing.elapsed("Matrix.dotVectors(" + total + ")", l)
     l = r._1
     var delta1 = r._2
     count = total
@@ -100,7 +100,7 @@ object Matrix {
       res = Matrix.dotVectorsW(v1, v2)
       count -= 1
     }
-    r = elapsed("Matrix.dotVectorsW(" + total + ")", l)
+    r = Timing.elapsed("Matrix.dotVectorsW(" + total + ")", l)
     l = r._1
     var delta2 = r._2
     println("ratio is " + (1.0 * delta1 / delta2))
@@ -109,7 +109,7 @@ object Matrix {
       res = Matrix.dotVectorsA(a1, a2)
       count -= 1
     }
-    r = elapsed("Matrix.dotVectorsA(" + total + ")", l)
+    r = Timing.elapsed("Matrix.dotVectorsA(" + total + ")", l)
     l = r._1
     var delta3 = r._2
     println("ratio is " + (1.0 * delta1 / delta3))

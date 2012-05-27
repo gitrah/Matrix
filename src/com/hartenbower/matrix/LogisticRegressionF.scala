@@ -3,59 +3,31 @@ package com.hartenbower.matrix
 import Util._
 
 
-object LogisticRegression {
-  def sigmoid[@specialized(Double, Float, Int) N](z: N)(implicit numeric: Numeric[N]): N = {
-    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
-    numeric match {
-      case i: Integral[N] =>
-        (math.round(g)).asInstanceOf[N]
-      case fr: Fractional[N] =>
-        g.asInstanceOf[N]
-    }
-  }
-
-  def sigmoidNs[N](z: N)(implicit numeric: Numeric[N]): N = {
-    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
-    numeric match {
-      case i: Integral[N] =>
-        numeric.fromInt((math.round(g)).asInstanceOf[Int])
-      case fr: Fractional[N] =>
-        if (numeric == Numeric.DoubleIsFractional)
-          g.asInstanceOf[N]
-        else
-          g.asInstanceOf[Float].asInstanceOf[N]
-    }
-  }
-  val Limit = 50000000
+object LogisticRegressionF {
 
   @inline def sigmoidF(z: Float) = 1.f / (1.f + math.exp(-z).asInstanceOf[Float])
-  @inline def sigmoidD(z: Double) = 1. / (1. + math.exp(-z))
-
-  def logF(z: Float) = math.log(z).asInstanceOf[Float]
-
-
 
   def from_ex3data1_txt() =  {
-    val m = Io.parseOctaveDataFile("ex3data1.txt")
-    val x: MatrixD = m.get("X").get.asInstanceOf[MatrixD]
-    val y: MatrixD = m.get("y").get.asInstanceOf[MatrixD]
-    val num_labels: Int =m.get("num_labels").get.asInstanceOf[Double].asInstanceOf[Int]
-    val input_layer_size: Int = m.get("input_layer_size").get.asInstanceOf[Double].asInstanceOf[Int]
+    val m = Io.parseOctaveDataFile("ex3data1.txt",false)
+    val x: MatrixF = m.get("X").get.asInstanceOf[MatrixF]
+    val y: MatrixF = m.get("y").get.asInstanceOf[MatrixF]
+    val num_labels: Int =m.get("num_labels").get.asInstanceOf[Float].asInstanceOf[Int]
+    val input_layer_size: Int = m.get("input_layer_size").get.asInstanceOf[Float].asInstanceOf[Int]
     (x,y,num_labels,input_layer_size)
   }
   
   
   def gradientApprox(
       @desc("partial funct with just theta as param") 
-      	costFn: MatrixD => Double, 
+      	costFn: MatrixF => Float, 
 		@desc("parameters, weights") 
-      theta : MatrixD, 
-      epsilon : Double) : MatrixD= {
+      theta : MatrixF, 
+      epsilon : Float) : MatrixF= {
     val n = math.max(theta.nRows,theta.nCols)
     var i = 0
     val tempThetaPlusEps = theta.clone
     val tempThetaMinusEps = theta.clone
-    val gradApprox = new Array[Double](n)
+    val gradApprox = new Array[Float](n)
     while(i < n) {
     	tempThetaPlusEps.elements(i) += epsilon
     	tempThetaMinusEps.elements(i) -= epsilon
@@ -64,23 +36,23 @@ object LogisticRegression {
     	tempThetaMinusEps.elements(i) += epsilon
     	i+= 1
     }
-    new MatrixD(gradApprox,1)
+    new MatrixF(gradApprox,1)
   }
   
-  import MatrixD._
+  import MatrixF._
   
-  def sigmoidGradientSlow( z : MatrixD ) = {
-    val a = z.elementOp(sigmoidD)
+  def sigmoidGradientSlow( z : MatrixF ) = {
+    val a = z.elementOp(sigmoidF)
     a ** (1 - a)
   }
   
-  def sigmoidGradient(z : MatrixD ) = {
+  def sigmoidGradient(z : MatrixF ) = {
     val res  = z.clone
     var i = 0
     var sig = 0d
     while(i < z.elements.length) {
-      sig = sigmoidD(res.elements(i))
-      res.elements(i) = sig * (1 - sig)
+      sig = sigmoidF(res.elements(i))
+      res.elements(i) = (sig * (1 - sig)).asInstanceOf[Float]
       i+=1
     }
     res
@@ -88,23 +60,23 @@ object LogisticRegression {
  
   def costFunction(
 		@desc("predictions") 
-			a : MatrixD, 
+			a : MatrixF, 
 		@desc("outputs, targets, actual values") 
-			y: MatrixD, 
+			y: MatrixF, 
 		@desc("regularization factor")
-	    	lambda : Double = 0	
+	    	lambda : Float = 0	
      )(	
         @desc("parameters, weights") 
-     		thetas : Array[MatrixD]
-    )	 : Double = {
+     		thetas : Array[MatrixF]
+    )	 : Float = {
     val m = y.dims._1
     val yb = if(y.isBinaryCategoryMatrix) y else y.toBinaryCategoryMatrix
-    var jDel = 0d
+    var jDel = 0f
     if(lambda != 0) {
         var i = 0
         while(i < thetas.length) {
 		    val thetaCopy = thetas(i).columnSubset( (2 to thetas(i).nCols).toList)
-		    val jdeldel = lambda/(2.*m) * Math.sum(thetaCopy.elementOp(math.pow(_,2)).elements)
+		    val jdeldel =   (lambda/(2.f*m) * Math.sumF(thetaCopy.elementOp(Math.powF(_,2)).elements))
 		    //println(i + " jdeldel: " + jdeldel)
 		    jDel += jdeldel
 		    i += 1
@@ -115,8 +87,8 @@ object LogisticRegression {
     jNoReg + jDel
   }
   
-  def costFunctionNoReg(hThetaT : MatrixD, yT: MatrixD, m : Int) : Double = {
-    (-1./m) * (yT ** hThetaT.elOp(math.log) + (1 - yT)**( (1 - hThetaT).elOp(math.log))).sum()
+  def costFunctionNoReg(hThetaT : MatrixF, yT: MatrixF, m : Int) : Float = {
+    ((-1.f/m) * (yT ** hThetaT.elOp(Math.logF) + (1 - yT)**( (1 - hThetaT).elOp(Math.logF))).sum()).asInstanceOf[Float]
   }
   /*
    *  tThetaX = theta' * X';
@@ -126,16 +98,16 @@ object LogisticRegression {
 
   def costGradFunction(
 		@desc("inputs") 
-			x : MatrixD, 
+			x : MatrixF, 
 		@desc("outputs, targets, actual values") 
-			y: MatrixD, 
+			y: MatrixF, 
 		@desc("parameters, weights") 
-			theta : MatrixD, 
+			theta : MatrixF, 
 	    @desc("regularization factor")
-	    	lambda : Double = 0) = {
+	    	lambda : Float = 0) = {
     val m = y.dims._1
     val tThetaX = theta.tN() * x.tN()
-    val hTheta = tThetaX.elOp(sigmoidD)
+    val hTheta = tThetaX.elOp(sigmoidF)
     val yT = y.tN()
     val j = costFunctionNoReg(hTheta.tN, yT, m)
     val grad = 1/m * ((hTheta - yT) * x)
@@ -143,33 +115,33 @@ object LogisticRegression {
     val thetaCopy = theta.clone()
     thetaCopy.elements(0)= 0
     val gradDel = lambda * thetaCopy.tN()/m
-    val jDel = lambda/(2*m) * Math.sum(thetaCopy.elementOp(math.pow(_,2)).elements)
+    val jDel = (lambda/(2*m) * Math.sumF(thetaCopy.elementOp(Math.powF(_,2)).elements)).asInstanceOf[Float]
     (j +jDel,(grad + gradDel).transposeIp())
   }
 
   def iterativeDescent(
 		@desc("inputs") 
-			x : MatrixD, 
+			x : MatrixF, 
 		@desc("outputs, targets, actual values") 
-			y: MatrixD, 
+			y: MatrixF, 
 	    @desc("learning rate")
-	    	alpha : Double,    
+	    	alpha : Float,    
 	    maxIters: Int,
 	    @desc("regularization factor")
-	    	lambda : Double = 0,
+	    	lambda : Float = 0,
 	    @desc("randomization magnitude")
-	    	epsilon : Double = .25, 
+	    	epsilon : Float = .25f, 
 	    @desc("max error")
-	    	delta : Double = .25,
+	    	delta : Float = .25f,
 	    gradCheckCount : Int) = {
     var i = 0
     var deltaCost = -delta
     val m = y.nRows
-    var theta = MatrixD.randn(x.nCols,1,epsilon)
-    var j : Double = 0
-    var lastJ : Double = 0
+    var theta = MatrixF.randn(x.nCols,1,epsilon)
+    var j : Float = 0
+    var lastJ : Float = 0
     var gradChecks = 0
-    var grad : MatrixD = MatrixD.zeros(theta.dims)
+    var grad : MatrixF = MatrixF.zeros(theta.dims)
     while (i < maxIters && -1*deltaCost >= delta) {
       val tup = costGradFunction(x, y, theta, lambda)
       j = tup._1

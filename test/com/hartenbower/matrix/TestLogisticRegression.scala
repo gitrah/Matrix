@@ -48,14 +48,14 @@ class TestLogisticRegression {
   }
 
   def tests() {
-    time("nonspec sigmoid", testSigmoidNs)
-    time("spec sigmoid", testSigmoid)
+    Util.Timing.time("nonspec sigmoid", testSigmoidNs)
+    Util.Timing.time("spec sigmoid", testSigmoid)
   }
 
   def testCostFn() {
     // import com.hartenbower.matrix._
 
-    val f = Util.parseOctaveDataFile("ex2data2m.txt")
+    val f = Io.parseOctaveDataFile("ex2data2m.txt")
     val x = f.get("X").get.asInstanceOf[MatrixD]
     val y = f.get("y").get.asInstanceOf[MatrixD]
     val x1 = x.columnVector(1)
@@ -72,7 +72,7 @@ class TestLogisticRegression {
   def testCostHandwriting() = {
     // import com.hartenbower.matrix._
 
-    val f = Util.parseOctaveDataFile("ex3data1.txt")
+    val f = Io.parseOctaveDataFile("ex3data1.txt")
     val x = f.get("X").get.asInstanceOf[MatrixD]
     val m = x.nRows
     val y = f.get("y").get.asInstanceOf[MatrixD]
@@ -98,7 +98,7 @@ class TestLogisticRegression {
     
     val pred  = NeuralNet.predict(Array(thetaRows), xm)._1.transposeIp().toRowMaxIndices
     
-    val acc = Util.accuracy(y.elements, pred)
+    val acc = Math.accuracy(y.elements, pred)
     
     //val test100 = Util.randperm(m).take(100)
     //val xsubset = xm.rowSubset(test100)

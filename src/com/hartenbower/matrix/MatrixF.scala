@@ -1,20 +1,25 @@
 package com.hartenbower.matrix
-
 import scala.util.Random
-
+import java.util.concurrent._
+import Util._
 object MatrixF {
-  implicit def scalarToMatrix(d: Double)(implicit matDims :(Int, Int)): MatrixF = 
-    new MatrixF(Array.fill(matDims._1 * matDims._2)(d.asInstanceOf[Float]), matDims._2)
-  implicit def scalarToMatrix(i: Int)(implicit matDims :(Int, Int)): MatrixF = 
-    new MatrixF(Array.fill(matDims._1 * matDims._2)(i), matDims._2)
-  implicit def scalarToMatrix(f: Float)(implicit matDims :(Int, Int)): MatrixF = 
-    new MatrixF(Array.fill(matDims._1 * matDims._2)(f), matDims._2)
+  val verbose = false
+  var txpsCreateCount = 0l
+  var txpsUseCount = 0l
 
-  def zeros(nRows: Int, nCols: Int): MatrixF = scalarToMatrix(0f)(nCols,nRows)
+  implicit def scalarOp(d: Float) = new ScalarOp(d)
+
+  class ScalarOp(d: Float) {
+    def +(matrix: MatrixF): MatrixF = matrix + d
+    def -(matrix: MatrixF): MatrixF = matrix.negateN + d
+    def /(matrix: MatrixF): MatrixF = matrix / d
+    def *(matrix: MatrixF): MatrixF = matrix * d
+  }
+
+  def zeros(nRows: Int, nCols: Int): MatrixF = new MatrixF(Array.fill(nRows * nCols)(0f), nCols)
   def zeros(dims: (Int, Int)): MatrixF = zeros(dims._1, dims._2)
-  def ones(nRows: Int, nCols: Int): MatrixF = scalarToMatrix(1f)(nCols,nRows)
+  def ones(nRows: Int, nCols: Int): MatrixF = new MatrixF(Array.fill(nRows * nCols)(1f), nCols)
   def ones(dims: (Int, Int)): MatrixF = ones(dims._1, dims._2)
-
 
   def dot(v1: Array[Float], range1: Tuple2[Int, Int], v2: Array[Float], range2: Tuple2[Int, Int]): Float = {
     //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
@@ -59,18 +64,17 @@ object MatrixF {
 
   /* could also define one as transpose of other... */
   def rowMatrix(a: Array[Float]) = new MatrixF(a, a.length)
-  def rowMatrix(s: Float, nCols : Int) : MatrixF = rowMatrix(Array.fill(nCols)(s))
 
   def columnMatrix(a: Array[Float]) = new MatrixF(a, 1)
-  def columnMatrix(s: Float, nRows : Int) : MatrixF = columnMatrix(Array.fill(nRows)(s))
-
-  def randn(nRows: Int, nCols: Int, epsilon : Float = .25f): MatrixF = {
+  def randn(dims: Tuple2[Int, Int], epsilon: Float): MatrixF = randn(dims._1, dims._2, epsilon)
+  def randn(dims: Tuple2[Int, Int]): MatrixF = randn(dims._1, dims._2)
+  def randn(nRows: Int, nCols: Int, epsilon: Float = 1f): MatrixF = {
     val rnd = new Random(System.currentTimeMillis)
     val l = nRows * nCols
     val c = new Array[Float](l)
     var i = 0
     while (i < l) {
-      c(i) = (2 * rnd.nextFloat -1) * epsilon
+      c(i) = (2 * rnd.nextFloat - 1) * epsilon
       i += 1
     }
     new MatrixF(c, nCols)
@@ -79,15 +83,6 @@ object MatrixF {
   def randSpace(nRows: Int, nCols: Int, nElements: Int): Array[Float] = {
     val rnd = new Random(System.currentTimeMillis)
     Array.fill(nRows * nCols * nElements, 1)(rnd.nextFloat).flatten
-  }
-
-  def arrTest = {
-    val a1 = Array(5, 4, 3, 2, 1)
-    val a2 = a1
-    a2(3) = 9
-    println("a1 " + a1.mkString(","))
-
-    println("a2 " + a2.mkString(","))
   }
 
   def mult4by4(mat1: Array[Float], mat2: Array[Float], resMat: Array[Float]) = {
@@ -218,15 +213,16 @@ object MatrixF {
       offset -= 1
     }
   }
-  
+
   def mapFeature(x1: MatrixF, x2: MatrixF, degree: Int = 6): MatrixF = {
     require(x1.dims() == x2.dims(), x1.dims() + "!=" + x2.dims())
     require(x1.nCols == 1, "must be column vecs")
 
     var res = MatrixF.ones(x1.nRows, 1)
     var i = 1
-    var j = 1
+    var j = 0
     while (i <= degree) {
+      j = 0
       while (j <= i) {
         res = res ++ x1.elementOp(math.pow(_, i - j).asInstanceOf[Float]) ** x2.elementOp(math.pow(_, j).asInstanceOf[Float])
         j += 1
@@ -235,24 +231,57 @@ object MatrixF {
     }
     res
   }
-  
-  
+
 }
 
+import MatrixF.verbose
 /*
- * The array backed,  single-precision version
+ * The array backed,  Float precision version
  */
-case class MatrixF(val elements: Array[Float], var nCols: Int) {
-  require(elements.length % nCols == 0)
+case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF, transpose: Boolean) {
+  if (nCols != 0) require(elements.length % nCols == 0)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
-  def validIndicesQ(row: Int, col: Int) {
+  val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
+
+  def this(els: Array[Float], cols: Int, transpose: Boolean = true) {
+    this(els, cols, null, transpose)
+  }
+
+  def same(o: MatrixF, maxError: Float = 0): Boolean = {
+    if (nCols == o.nCols) {
+      val l = elements.length
+      if (l == o.elements.length) {
+        var i = 0
+        var exceededError = false
+        while (!exceededError && i < l) {
+          if (math.abs(elements(i) - o.elements(i)) > maxError) {
+            exceededError = true
+          }
+          i += 1
+        }
+        !exceededError
+      } else 
+        false
+    } else 
+    	false
+  }
+
+  def sameSqrDiff(o: MatrixF, maxError: Float = 0): Boolean = {
+    if (nCols == o.nCols) {
+      val l = elements.length
+      l == o.elements.length && sumSquaredDiffs(o) / l <= maxError
+    } else 
+      false
+  }
+
+  @inline def validIndicesQ(row: Int, col: Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
   }
-  def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
-  def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
+  @inline def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
+  @inline def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
-  def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
+  @inline def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
   def enref(idx: Int): (Int, Int) = {
     if (idx >= nCols) {
       (idx / nCols + 1, idx % nCols + 1)
@@ -261,52 +290,87 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     }
   }
 
-  override def equals(other: Any): Boolean =
-    other match {
-      case that: MatrixF =>
-        if((that canEqual this) &&
-          nCols == that.nCols &&
-          nRows == that.nRows && elements.length == that.elements.length) {
-          var idx = 0
-          while(idx < elements.length) {
-            if(elements(idx) != that.elements(idx)) {
-              false
-            }
-          }
-          true
-        } else false
-      case _ => false
-    }
-  def canEqual(other: Any): Boolean =
-    other.isInstanceOf[MatrixF]
-  
-  override def hashCode: Int =
-    41 * (
-      41 + nCols) + elements.hashCode()
-
   override def clone = {
-    new MatrixF(elements.clone(), nCols)
+    new MatrixF(elements.clone(), nCols, txp.get, true)
   }
 
-  def negate = {
-    var i = elements.length-1
-    while(i >= 0) {
+  @inline def negateIp: MatrixF = {
+    var i = elements.length - 1
+    while (i >= 0) {
       elements(i) = -elements(i)
       i -= 1
     }
+    if (txp != null) txp.get.negateIp
     this
   }
 
-  def apply(row: Int, col: Int): Float = {
+  @inline def negateN = {
+    val cl = elements.clone
+    var txcl = if (txp != null) txp.get.elements else null
+    var i = elements.length - 1
+    while (i >= 0) {
+      cl(i) = -elements(i)
+      if (txcl != null) txcl(i) = -txp.get.elements(i)
+      i -= 1
+    }
+    new MatrixF(cl, nCols, new MatrixF(txcl, nRows, false), txcl == null)
+  }
+
+  @inline def sum() = { var s = 0d; var i = 0; while (i < elements.length) { s += elements(i); i += 1 }; s }
+
+  def length = {
+    var s = 0d
+    var v = 0d
+    var i = elements.length - 1
+    while (i > -1) {
+      v = elements(i)
+      s += v * v
+      i += i
+    }
+    math.sqrt(s)
+  }
+
+  def unitV = {
+    var s = length
+    val el = elements.clone
+    var v = 0f
+    var i = elements.length - 1
+    while (i > -1) {
+      el(i) = (el(i)/s).asInstanceOf[Float]
+    }
+    new MatrixF(el, nCols, txp != null)
+  }
+
+  @inline def apply(row: Int, col: Int): Float = {
     validIndicesQ(row, col)
     elements(deref(row, col))
   }
 
-  def addBiasCol() : MatrixF = {
-    MatrixF.ones(nRows,1) rightConcatenate this
+  def update(row: Int, col: Int, v: Float) { elements(deref(row, col)) = v }
+
+  def addBiasCol() = MatrixF.ones(nRows, 1).rightConcatenate(this, true)
+
+  def hasBiasCol() = nCols > 1 && !columnVector(1).elements.exists(_ != 1)
+
+  def toBinaryCategoryMatrix(): MatrixF = {
+    val s = elements.toSet
+    val max = s.max
+    val newCols = s.size
+    val bmat = MatrixF.zeros(nRows, newCols)
+    var i = 0
+    var off = 0
+    while (i < nRows) {
+      off = apply(i + 1, 1).asInstanceOf[Int] - 1
+      // println("changing " + (i * newCols + off ))
+      bmat.elements(i * newCols + off) = 1
+      i += 1
+    }
+    bmat
   }
 
-  private def matrixOp(o: MatrixF, f: (Float, Float) => Float): MatrixF = {
+  def isBinaryCategoryMatrix = !elements.exists(x => x != 0 && x != 1)
+
+  private def matrixOpIp(o: MatrixF, f: (Float, Float) => Float): MatrixF = {
     var l = elements.length
     require(l == o.elements.length && nCols == o.nCols, "sizes don't match")
     l -= 1
@@ -317,10 +381,9 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     this
   }
 
-  private def matrixOpNew(o: MatrixF, f: (Float, Float) => Float): MatrixF = {
+  private def matrixOpN(o: MatrixF, f: (Float, Float) => Float): MatrixF = {
     var l = elements.length
-    println("o: " + o)
-    require(l == o.elements.length && nCols == o.nCols, "sizes don't match")
+    require(l == o.elements.length && nCols == o.nCols, "this: elements " + l + ", cols " + nCols + " vs o: elements " + o.elements.length + ", cols " + o.nCols + " sizes or dims don't match")
     val c = new Array[Float](l)
     l -= 1
     while (l >= 0) {
@@ -330,9 +393,9 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     new MatrixF(c, nCols)
   }
 
-  def +(other: MatrixF): MatrixF = matrixOpNew(other, _ + _)
-  def -(other: MatrixF): MatrixF = matrixOpNew(other, _ - _)
-  def hadamardProduct(other: MatrixF) = matrixOpNew(other, _ * _)
+  def +(other: MatrixF): MatrixF = matrixOpN(other, _ + _)
+  def -(other: MatrixF): MatrixF = matrixOpN(other, _ - _)
+  def hadamardProduct(other: MatrixF) = matrixOpN(other, _ * _)
   def **(other: MatrixF) = hadamardProduct(other)
 
   def squareQ() = nCols == nRows
@@ -351,7 +414,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     (start, start + nCols - 1)
   }
 
-  def columnIndices(col: Int): Array[Int] = {
+  @inline def columnIndices(col: Int): Array[Int] = {
     validColQ(col)
     val c = new Array[Int](nRows)
     var i = 0
@@ -384,8 +447,76 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     c
   }
 
-  def columnVector(col:Int) = {
-    new MatrixF(copyOfCol(col), 1)
+  def columnVector(col: Int) = {
+    new MatrixF(copyOfCol(col), 1, false)
+  }
+
+  def rowVector(row: Int) = {
+    new MatrixF(copyOfRow(row), nCols, false)
+  }
+
+  def rowVectorQ = nRows == 1
+
+  def columnVectorQ = nCols == 1
+
+  def toRowVector = if (columnVectorQ) tN else this
+
+  def toColumnVector = if (rowVectorQ) tN else this
+
+  def columnSubset(indices: List[Int]) = {
+    // delay precomputing tx until matrix is complete
+    var i = 0
+    var res: MatrixF = null
+    while (i < indices.size) {
+      val cVec = columnVector(indices(i))
+      if (res == null) {
+        res = cVec
+      } else {
+        res = res ++ cVec
+      }
+      i += 1
+    }
+    new MatrixF(res.elements, res.nCols, true)
+  }
+
+  def rowSubset(indices: List[Int]) = {
+    var i = 0
+    var res: MatrixF = null
+    while (i < indices.size) {
+      val rVec = rowVector(indices(i))
+      if (res == null) {
+        res = rVec
+      } else {
+        res = res +/ rVec
+      }
+      i += 1
+    }
+    res
+  }
+
+  def toRowMaxIndices() = {
+    val l = new Array[Int](nRows)
+    var idx = 0
+    var jdx = 0
+    var rowMax = 0d
+    var maxIdx = 0
+    var currEl = 0d
+    while (idx < nRows) {
+      jdx = 0
+      rowMax = elements(idx * nCols)
+      maxIdx = 0
+      while (jdx < nCols) {
+        currEl = elements(idx * nCols + jdx)
+        if (currEl > rowMax) {
+          rowMax = currEl
+          maxIdx = jdx
+        }
+        jdx += 1
+      }
+      l(idx) = maxIdx + 1
+      idx += 1
+    }
+    l
   }
 
   def copyRange(src: Array[Float], targ: Array[Float], range: Tuple2[Int, Int], start: Int) {
@@ -398,23 +529,27 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     }
   }
 
-  def rowCopy(out: Array[Float], row: Int, startIdx: Int) = {
+  @inline def rowCopy(out: Array[Float], row: Int, startIdx: Int) = {
     copyRange(elements, out, rowIndices(row), startIdx)
   }
 
   override def toString(): String = {
-    val rowA = new Array[Float](nCols)
-    var row = nRows
-    var l = List[String]()
-    while (row > 0) {
-      rowCopy(rowA, row, 0)
-      l = l :+ rowA.mkString("[", ", ", "]")
-      row -= 1
+    if (verbose || (nRows < 11 && nCols < 11)) {
+      val rowA = new Array[Float](nCols)
+      var row = nRows
+      var l = List[String]()
+      while (row > 0) {
+        rowCopy(rowA, row, 0)
+        l = l :+ rowA.mkString("[", ", ", "]")
+        row -= 1
+      }
+      l.reverse.mkString("", "\n", "\n")
+    } else {
+      "MatrixF[" + nRows + "," + nCols + "]"
     }
-    l.reverse.mkString("", "\n", "\n")
   }
 
-  def rightConcatenate(other: MatrixF): MatrixF = {
+  def rightConcatenate(other: MatrixF, transpose: Boolean = false): MatrixF = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
     val newCols = nCols + other.nCols
     val c = new Array[Float](nRows * newCols)
@@ -424,7 +559,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
       other.rowCopy(c, row, (row - 1) * newCols + nCols)
       row -= 1
     }
-    new MatrixF(c, newCols)
+    new MatrixF(c, newCols, transpose)
   }
 
   def ++(other: MatrixF) = rightConcatenate(other)
@@ -472,25 +607,89 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     }
   }
 
-  def transposeNew(): MatrixF = {
-    val l : Long = elements.length - 1
-    val b = new Array[Float]( (l + 1).asInstanceOf[Int])
-    
+  def tN() = transposeN()
+  def transposeN(): MatrixF = {
+    MatrixF.txpsUseCount += 1
+    if (txp != null) {
+      // println(dims + " cached !!! txps")
+      txp.get
+    } else {
+      //  println(dims + " had no cached txps")
+      transposeDc
+    }
+  }
+
+  //  def transposeChunky() : MatrixF = {
+  //    
+  //  }
+
+  def transposeEl(): MatrixF = {
+    MatrixF.txpsCreateCount += 1
+    val l: Long = elements.length - 1
+    val b = new Array[Float]((l + 1).asInstanceOf[Int])
+
     // first and last elems unchanged
     b(0) = elements(0)
     b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
-    var i : Long = 1
+    var i: Long = 1
     while (i < l) {
-      b( (i * nRows % l).asInstanceOf[Int]) = elements(i.asInstanceOf[Int])
+      b((i * nRows % l).asInstanceOf[Int]) = elements(i.asInstanceOf[Int])
       i += 1
     }
-    new MatrixF(b, nRows)
+    val ret = new MatrixF(b, nRows, this, false)
+    //println("transposeEl b.length " + b.length + " cols " + nRows)
+    ret
   }
 
-  def transpose(m: java.util.Map[Int, Float] = null): MatrixF = if (nCols == nRows) transposeSquare else transposeNS(m)
+  def transposeChunky(): MatrixF = {
+    MatrixF.txpsCreateCount += 1
+    val l: Long = elements.length - 1
+    val b = new Array[Float]((l + 1).asInstanceOf[Int])
+    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
+    val spans = Concurrent.toSpans(l, Concurrent.threadCount)
+    //println("spans " + spans.mkString)
+    val futs = new Array[Future[Long]](spans.length)
+    var i = 0
+    while (i < spans.length) {
+      futs(i) = Concurrent.effort(Concurrent.transposeChunkF(elements, l, b, nRows)(spans(i)))
+      i += 1
+    }
+    i = 0
+    while (i < spans.length) {
+      futs(i).get
+      i += 1
+    }
+    new MatrixF(b, nRows, this, false)
+  }
+
+  def transposeDc(): MatrixF = {
+    MatrixF.txpsCreateCount += 1
+    val l: Long = elements.length - 1
+    val b = new Array[Float]((l + 1).asInstanceOf[Int])
+    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
+    Concurrent.combine(Concurrent.distribute(l, Concurrent.transposeChunkF(elements, l, b, nRows)))
+    new MatrixF(b, nRows, this, false)
+  }
+
+  def transposeSlow(): MatrixF = {
+    val res = MatrixF.zeros(nCols, nRows)
+    var i = 1
+    var j = 1
+    while (i < nRows) {
+      j = 1
+      while (j < nCols) {
+        res.elements(res.deref(j, i)) = elements(deref(i, j))
+        j += 1
+      }
+      i += 1
+    }
+    res
+  }
+
+  def transposeIp(m: java.util.Map[Int, Float] = null): MatrixF = if (nCols == nRows) transposeSquareIp else transposeNsIp(m)
 
   // about 37% faster than txNew
-  def transposeSquare() : MatrixF = {
+  def transposeSquareIp(): MatrixF = {
     val l = elements.length - 1
     var idx = 1 // can skip first and last elements
     var temp = 0.f
@@ -511,7 +710,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     this
   }
 
-  def transposeNS(m: java.util.Map[Int, Float] = null) : MatrixF = {
+  def transposeNsIp(m: java.util.Map[Int, Float] = null): MatrixF = {
     val l = elements.length - 1
     var i = 1
     var idx = i
@@ -536,15 +735,18 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     this
   }
 
-  def *(o: MatrixF): MatrixF = {
+  @inline def *(o: MatrixF): MatrixF = multDc(o)
+
+  def multSequential(o: MatrixF): MatrixF = {
     require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
     val c = new Array[Float](nRows * o.nCols)
-    val oT = o.transposeNew
+    val oT = o.transposeN
     var row = 1
     var rowT = 1
     var idx = 0
     while (row <= nRows) {
       rowT = 1
+      //println("row " + row + " idx " + idx)
       while (rowT <= oT.nRows) {
         c(idx) = MatrixF.dot(elements, rowIndices(row), oT.elements, oT.rowIndices(rowT))
         rowT += 1
@@ -555,24 +757,81 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
     new MatrixF(c, o.nCols)
   }
 
-  def elementOp(f: (Float) => Float) :MatrixF = {
-    val m = clone
-    var l = elements.length - 1
-    while (l >= 0) {
-      m.elements(l) = f(elements(l))
-      l -= 1
+  //  def multChunk(src1: Array[Float], cols1 : Int, src2: Array[Float], rows2 : Int, cols2 : Int,  trg: Array[Float])( range : Tuple2[Long,Long])() : Long = {
+
+  def multChunky(o: MatrixF): MatrixF = {
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
+    val oT = o.transposeN
+    val c = new Array[Float](nRows * o.nCols)
+    val spans = Concurrent.toSpans(nRows, Concurrent.threadCount, true)
+    //println("spans " +spans.mkString)
+    val futs = new Array[Future[Long]](spans.length)
+    var i = 0
+    while (i < spans.length) {
+      futs(i) = Concurrent.effort(Concurrent.multChunkF(elements, nCols, oT.elements, oT.nRows, oT.nCols, c)(spans(i)))
+      i += 1
     }
-    m
+    // getum
+    i = 0
+    while (i < spans.length) {
+      futs(i).get
+      i += 1
+    }
+    new MatrixF(c, o.nCols)
+
   }
-  
-  def elementScalarOp(s: Float, f: (Float, Float) => Float) : MatrixF = {
-    val m = clone
+
+  def multDc(o: MatrixF): MatrixF = {
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
+    val oT = o.transposeN
+    val c = new Array[Float](nRows * o.nCols)
+    Concurrent.combine(Concurrent.distribute(nRows, Concurrent.multChunkF(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
+    new MatrixF(c, o.nCols)
+  }
+
+  def slowMult(o: MatrixF): MatrixF = {
+    val rRows = nRows
+    val rCols = o.nCols
+    val res = MatrixF.zeros(rRows, rCols)
+    var i = 0
+    var j = 0
+    var k = 0
+    while (i < rRows) {
+      j = 0
+      while (j < rCols) {
+        k = 0
+        while (k < nCols) {
+          //res.elements( res.deref(i, j)) += elements( deref(i, k)) * o.elements(o.deref(k, j))
+          //println( (i * rCols + j) + " " + ( i * nCols + k) + " " +  (k * o.nCols + j))
+          res.elements(i * rCols + j) += elements(i * nCols + k) * o.elements(k * o.nCols + j)
+          k += 1
+        }
+        j += 1
+      }
+      i += 1
+    }
+    res
+  }
+
+  def elOp(f: (Float) => Float) = elementOp(f)
+  def elementOp(f: (Float) => Float): MatrixF = {
+    var el = elements.clone
     var l = elements.length - 1
     while (l >= 0) {
-      m.elements(l) = f(elements(l), s)
+      el(l) = f(elements(l))
       l -= 1
     }
-    m
+    new MatrixF(el, nCols, txp != null)
+  }
+
+  def elementScalarOp(s: Float, f: (Float, Float) => Float): MatrixF = {
+    val el = elements.clone
+    var l = elements.length - 1
+    while (l >= 0) {
+      el(l) = f(elements(l), s)
+      l -= 1
+    }
+    new MatrixF(el, nCols, txp != null)
   }
 
   def +(s: Float) = elementScalarOp(s, _ + _)
@@ -580,9 +839,23 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
   def *(s: Float) = elementScalarOp(s, _ * _)
   def /(s: Float) = elementScalarOp(s, _ / _)
 
-  def ^(exp: Float) = elementScalarOp(exp, (x, y) => scala.math.pow(x, y).toFloat)
-
+  def ^(exp: Float) = elementScalarOp(exp, (x, y) => (scala.math.pow(x, y).asInstanceOf[Float]))
+  
   def clean(σ: Float = .0001f) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0.f else x)
+
+  def sumSquaredDiffs(other: MatrixF): Float = {
+    require(dims() == other.dims(), "this " + dims + " dimly incompat w other: " + other.dims)
+    var sum = 0f
+    val l = elements.length
+    var i = 0
+    var delta = 0f
+    while (i < l) {
+      delta = elements(i) - other.elements(i)
+      sum += delta * delta
+      i += 1
+    }
+    sum
+  }
 
   def sgn(row: Int, col: Int): Int = {
     validIndicesQ(row, col)
@@ -666,22 +939,19 @@ case class MatrixF(val elements: Array[Float], var nCols: Int) {
   def inverse(): MatrixF = {
     val d = determinant
     require(d != 0, "not linearly independent")
-    val mT = cofactorM.transposeNew()
+    val mT = cofactorM.transposeN()
     mT / d
     mT
   }
 
-  implicit val matDims = (nRows,nCols)
-  import MatrixF.scalarToMatrix
-    
+  implicit val matDims = (nRows, nCols)
   implicit def matrixToScalar(): Float = {
     require(nCols == 1 && nRows == 1)
     elements(0)
   }
 
-  def test() =  {
+  import MatrixF.scalarOp
+  def test() = {
     2 + this
   }
-
 }
-

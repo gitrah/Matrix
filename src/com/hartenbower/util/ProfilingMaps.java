@@ -82,6 +82,8 @@ public class ProfilingMaps {
                         if (DEBUG) {
                             npe.printStackTrace();
                         }
+                    } catch (Exception other) {
+                    	other.printStackTrace();
                     }
                 }
             } catch (InterruptedException e) {
