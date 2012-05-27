@@ -1,3 +1,7 @@
-has Matrix class (adapted from a Jonathan Merritt blog http://jsmerritt.blogspot.com/2008/07/matrix-multiplication-in-scala.html)
-with operations like cofactor, minor, determinant, inverse, etc
+has Matrix classes (scala idiomatic and performant/concurrent versions) with operations like cofactor, minor, determinant, inverse, etc
+and linear / logistic regression and neural network functions
+functions for reading octave data files
+concurrency features with actor and java future implementations 
+profiling aspect
+
 
