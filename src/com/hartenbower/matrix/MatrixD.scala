@@ -231,7 +231,16 @@ object MatrixD {
     }
     res
   }
-
+  
+  def copy(a : Array[MatrixD]) = {
+    val res = new Array[MatrixD](a.length)
+    var i = a.length - 1
+    while(i > -1) {
+      res(i) = a(i).clone
+      i-=1
+    }
+    res
+  }
 }
 
 import MatrixD.verbose
@@ -242,7 +251,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int, val txpM: Matrix
   if (nCols != 0) require(elements.length % nCols == 0)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
-  val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
+  @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
 
   def this(els: Array[Double], cols: Int, transpose: Boolean = true) {
     this(els, cols, null, transpose)
@@ -282,7 +291,7 @@ case class MatrixD(val elements: Array[Double], var nCols: Int, val txpM: Matrix
   @inline def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
   @inline def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
-  def enref(idx: Int): (Int, Int) = {
+  @inline def enref(idx: Int): (Int, Int) = {
     if (idx >= nCols) {
       (idx / nCols + 1, idx % nCols + 1)
     } else {

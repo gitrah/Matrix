@@ -9,7 +9,7 @@ object Util {
 
   object Concurrent {
 
-    val defaultSpanThreshold = 3
+    val defaultSpanThreshold = 1
     val threadCount = 5 * Runtime.getRuntime.availableProcessors / 2
     val pool = Executors.newFixedThreadPool(threadCount)
 
@@ -59,7 +59,7 @@ object Util {
 
     def toSpans(l: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
       val span = l / d
-      if (span > threshold) {
+      if (span >= threshold) {
         val ret = new Array[Tuple2[Long, Long]](d)
         var i = 0
         while (i < d - 1) {

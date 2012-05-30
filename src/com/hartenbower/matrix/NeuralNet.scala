@@ -1,6 +1,8 @@
 package com.hartenbower.matrix
 
 import LogisticRegression._
+import MatrixD.copy
+
 object NeuralNet {
 
   def forwardAndBack(x: MatrixD, y: MatrixD, thetas: Array[MatrixD], lambda: Double) = {
@@ -81,6 +83,98 @@ object NeuralNet {
       lastTxpsCrCount = MatrixD.txpsCreateCount
       lastTxpsUseCount = MatrixD.txpsUseCount
       i += 1
+    }
+    (j, thetas)
+  }
+
+  def descendAdaptive(
+    inputs: MatrixD,
+    y: MatrixD,
+    thetasOrDims: Array[_],
+    maxIters: Int,
+    epsilon: Double,
+    regularizationFactor: Double,
+    learningRate: Double,
+    maxError: Double) = {
+    val layers = thetasOrDims.length
+    val depth = 3
+    val yb = if (y.isBinaryCategoryMatrix) y else y.toBinaryCategoryMatrix
+    val x = if (inputs.hasBiasCol) inputs else inputs.addBiasCol
+    var thetas = new Array[MatrixD](layers)
+    var i = 0
+    var layerIdx = 0
+    while (layerIdx < layers) {
+      thetasOrDims match {
+        case specifiedThetas: Array[MatrixD] =>
+          thetas(layerIdx) = specifiedThetas(layerIdx)
+        case specifiedDims: Array[Tuple2[Int, Int]] =>
+          thetas(layerIdx) = MatrixD.randn(specifiedDims(layerIdx), epsilon).addBiasCol()
+      }
+      layerIdx += 1
+    }
+    println("thetas " + thetas)
+    var deltaCost = -maxError
+    var lastJ = 0d
+    var lastI = 0
+    var alpha = learningRate
+    val currThetas: Array[MatrixD] = copy(thetas)
+    //var currThetas: Array[MatrixD] = thetas
+    var fNbTup = forwardAndBack(x, yb, thetas, regularizationFactor)
+    var j = fNbTup._1
+    val grads: Array[MatrixD] = fNbTup._2
+    val gradHistory = new java.util.Stack[Array[MatrixD]]();
+    gradHistory.push(copy(grads));
+    val thetaHistory = new java.util.Stack[Array[MatrixD]]();
+    thetaHistory.push(copy(thetas));
+    var modAlphaCounter = 0
+    while (i < maxIters && -1 * deltaCost >= maxError) {
+      lastI = i
+      modAlphaCounter = 0
+      do {
+        val ths = thetas(0).sum
+        println("\nthetas(0).sum " + ths)
+        println("lastThetas(0).sum " + thetaHistory.peek()(0).sum)
+        println("grads(0).sum " + grads(0).sum)
+        // update thetas with grads
+        layerIdx = 0
+        while (layerIdx < layers) {
+          currThetas(layerIdx) = thetas(layerIdx) - grads(layerIdx) * alpha
+          layerIdx += 1
+        }
+        // calc cost and new grads
+        fNbTup = forwardAndBack(x, yb, currThetas, regularizationFactor)
+        j = fNbTup._1
+        if (lastJ != 0) {
+          deltaCost = j - lastJ
+        }
+        modAlphaCounter += 1
+        println("iter: " + i + ", modCtr: " + modAlphaCounter + ", j " + j + " delta: " + deltaCost + " alpha: " + alpha)
+        if (deltaCost > 0) {
+          deltaCost = -maxError
+          if (modAlphaCounter < 5) {
+            alpha = alpha / 2d
+            Array.copy(gradHistory.peek(), 0, grads, 0, layers)
+            Array.copy(thetaHistory.peek(), 0, thetas, 0, layers)
+          } else {
+            Array.copy(gradHistory.pop(), 0, grads, 0, layers)
+            Array.copy(thetaHistory.pop(), 0, thetas, 0, layers)
+          }
+        } else {
+          thetaHistory.push(copy(currThetas))
+          if (thetaHistory.size() > depth) {
+            thetaHistory.remove(thetaHistory.firstElement())
+          }
+          gradHistory.push(copy(grads))
+          if (gradHistory.size() > depth) {
+            gradHistory.remove(gradHistory.firstElement())
+          }
+          Array.copy(fNbTup._2, 0, grads, 0, layers)
+          alpha += alpha / 10d
+          lastJ = j
+          i += 1
+        }
+
+      } while (lastI == i)
     }
     (j, thetas)
   }
