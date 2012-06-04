@@ -59,7 +59,7 @@ object Util {
 
     def toSpans(l: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
       val span = l / d
-      if (span >= threshold) {
+      //if (span >= threshold) {
         val ret = new Array[Tuple2[Long, Long]](d)
         var i = 0
         while (i < d - 1) {
@@ -68,19 +68,9 @@ object Util {
         }
         ret(d - 1) = if (oneBased) ((d - 1) * span + 1, l) else ((d - 1) * span, l - 1)
         ret
-      } else {
-        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
-      }
-    }
-
-    def transposeChunk(src: Array[Double], len: Long, trg: Array[Double], rows: Int)(range: Tuple2[Long, Long])(): Long = {
-      //println("txChunk range " + range)
-      var i: Long = range._1
-      while (i <= range._2) {
-        trg((i * rows % len).asInstanceOf[Int]) = src(i.asInstanceOf[Int])
-        i += 1
-      }
-      i
+//      } else {
+//        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
+//      }
     }
 
     def transposeChunkF(src: Array[Float], len: Long, trg: Array[Float], rows: Int)(range: Tuple2[Long, Long])(): Long = {
