@@ -10,7 +10,8 @@ object Util {
   object Concurrent {
 
     val defaultSpanThreshold = 1
-    val threadCount = 5 * Runtime.getRuntime.availableProcessors / 2
+    var threadCount =  2 * Runtime.getRuntime.availableProcessors
+    println("starting with a " + threadCount + "-thread pool")
     val pool = Executors.newFixedThreadPool(threadCount)
 
     class FutureIsNow[T](v: T) extends Future[T] {
@@ -32,14 +33,14 @@ object Util {
       ft
     }
 
-    def distribute(indexSpace: Long, f: (Tuple2[Long, Long]) => () => Long, oneBased: Boolean = false) = {
+    def distribute[T](indexSpace: Long, f: (Tuple2[Long, Long]) => () => T, oneBased: Boolean = false) = {
       var i = 0
       val spans = toSpans(indexSpace, threadCount, oneBased)
       //println("spans " + spans.mkString)
-      val efforts = new Array[Future[Long]](spans.length)
+      val efforts = new Array[Future[T]](spans.length)
       spans.length match {
         case 1 =>
-          efforts(0) = new FutureIsNow(f(spans(0))())
+          efforts(0) = new FutureIsNow[T](f(spans(0))())
         case _ =>
           while (i < spans.length) {
             efforts(i) = effort(f(spans(i)))
@@ -176,8 +177,8 @@ object Util {
 
     def parseOctaveDataFile(path: String, asDouble: Boolean = true): Map[String, _] = {
       var m = Map[String, Any]()
-      val la = lines(Source.fromFile(path).toArray)
-      println("loaded " + path + " into line array of size " + la.length)
+      val la = Source.fromFile(path).getLines 
+      //println("loaded " + path + " into line array of size " + la.length)
       var elementType = ""
       var idx = -1
       var rows = -1
@@ -185,8 +186,8 @@ object Util {
       var currRow = 0
       var lastChunk = 0l
       var name = ""
-      var elementDataD = if (asDouble) Array[Double]() else null
-      var elementDataF = if (!asDouble) Array[Float]() else null
+      var elementDataD = if (asDouble) new Array[Double](0) else null
+      var elementDataF = if (!asDouble) new Array[Float](0) else null
       var lastTime = 0l
 
       def addObject {
@@ -196,10 +197,10 @@ object Util {
             elementType match {
               case "matrix" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + (name -> new MatrixD(elementDataD, cols))
+                m = m +  new Tuple2(name, new MatrixD(elementDataD, cols, true))
               case "scalar" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + (name -> elementDataD(0))
+                m = m + new Tuple2(name, elementDataD(0))
             }
           }
         } else {
@@ -208,10 +209,10 @@ object Util {
             elementType match {
               case "matrix" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + (name -> new MatrixF(elementDataF, cols))
+                m = m + new Tuple2(name ,new MatrixF(elementDataF, cols, true))
               case "scalar" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + (name -> elementDataF(0))
+                m = m + new Tuple2(name , elementDataF(0))
             }
           }
 
@@ -222,7 +223,7 @@ object Util {
         val elDatD = if (asDouble) elementData.asInstanceOf[Array[Double]] else null
         val elDatF = if (!asDouble) elementData.asInstanceOf[Array[Float]] else null
         val spl = l.split(" ")
-        assert(spl.length == cols)
+        assert(spl.length == cols, spl.length + " != " + cols)
         val len = spl.length
         var idx = 0
         while (idx < len) {
@@ -233,7 +234,9 @@ object Util {
         }
       }
 
-      for (line <- la) {
+      for (l <- la) {
+        val line = l.trim
+        //println(line)
         if (line.startsWith("#")) {
           idx = line.indexOf("name:")
           if (idx > -1) {
@@ -264,7 +267,7 @@ object Util {
               }
             }
           }
-        } else {
+        } else if(!line.isEmpty()) {
           elementType match {
             case "matrix" =>
               assert(!name.isEmpty() && !elementType.isEmpty() && rows > -1 && cols > -1)
@@ -305,9 +308,11 @@ object Util {
               }
             case "scalar" =>
               if (asDouble) {
-                elementDataD = Array[Double](java.lang.Double.parseDouble(line))
+                elementDataD = new Array[Double](1)
+                elementDataD(0)= java.lang.Double.parseDouble(line)
               } else {
-                elementDataF = Array[Float](java.lang.Float.parseFloat(line))
+                elementDataF = new Array[Float](1)
+                elementDataF(0) = java.lang.Float.parseFloat(line)
               }
 
             case _ =>

@@ -660,6 +660,18 @@ import MatrixD.verbose
   @inline def rowCopy(out: Array[Double], row: Int, startIdx: Int) = {
     copyRange(elements, out, rowIndices(row), startIdx)
   }
+  
+  def toArrayArray() : Array[Array[Double]] = {
+    var ir = 0
+    val out = new Array[Array[Double]](nRows)
+    while(ir < nRows) {
+      val line = new Array[Double](nCols)
+      Array.copy(elements,ir * nCols,line, 0 , nCols)
+      out(ir) = line
+      ir += 1
+    }
+    out
+  }
 
   override def toString(): String = {
     if (verbose || (nRows < 11 && nCols < 11)) {
