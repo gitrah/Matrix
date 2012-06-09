@@ -83,6 +83,7 @@ object Clustering {
       }
       o
     }
+    
     def -(d :Double) : Array[Double] = {
       val l = a.length
       val o = new Array[Double](l)
@@ -93,6 +94,7 @@ object Clustering {
       }
       o
     }
+    
     def /(d :Double) : Array[Double] = {
       val l = a.length
       val o = new Array[Double](l)
@@ -103,6 +105,7 @@ object Clustering {
       }
       o
     }
+    
     def *(d :Double) : Array[Double] = {
       val l = a.length
       val o = new Array[Double](l)
@@ -126,6 +129,7 @@ object Clustering {
       s
     }
   }
+ 
   def lengthSquared(v : Array[Double]) : Double = {
     var d = 0d
     var vi = 0d
@@ -296,8 +300,6 @@ object Clustering {
   	Concurrent.combine(Concurrent.distribute(centroids, avgChunk(cents, counts )))
   }
   
- 
-  
   def kMeans(x: Array[Array[Double]], centroids: Int, threshold : Double) = {
     val xl = x.length
     val assignments = new Array[(Double,Int)](xl)
@@ -362,55 +364,92 @@ object Clustering {
   	}
   }
   
+  def distortion(centroids: Int, assignments: Array[(Double,Int)]) : Double = {
+    val counts = Array.fill(centroids)(0)
+    val dists = Array.fill(centroids)(0d)
+    var i = assignments.length-1
+    var idx = -1
+    var tup : (Double,Int) = null
+    while(i > -1) {
+      tup = assignments(i)
+      counts(tup._2) += 1 
+      dists(tup._2) += tup._1
+      i -= 1
+    }
+    i = 0
+    var total = 0d
+    while(i < centroids) {
+      total += dists(i) / counts(i)
+      i += 1
+    }
+    total
+  }
   
-  def kMeansDc(x: Array[Array[Double]], centroids: Int, threshold : Double) = {
+
+  
+  def kMeansDc(x: Array[Array[Double]], centroids: Int ) = {
     val xl = x.length
     val n = x(0).length
     val assignments = new Array[(Double,Int)](xl)
   	val cents = Array.fill(centroids,n)(0d)
   	val newCents = Array.fill(centroids,n)(0d)
   	var i = 0
-  	println("minMaxing")
   	val mm = minMax(x)
-  	println("minMaxed " + mm.deep.mkString)
+  	//println("minMaxed " + mm.deep.mkString)
   	var v1 = mm(0)
   	
-  	println("unitVing")
   	val (v2l, uv2) = unitV(mm(1) - mm(0))
   	val epsilon = v2l * rnd.nextDouble()
-  	var delta = 0d
-
-  	println("randomizing cents")
 
     var iter = 0
+    // init centroids
   	while (i < cents.length) {
   		cents(i) = randTerb(v1 + rnd.nextDouble() * uv2, epsilon)
   		i += 1
   	}
-  	println("random cents: " + cents.deep.mkString)
+    var lastDistortion = 0d
+    var currDistortion = 0d
     do {
-      Concurrent.combine(Concurrent.distribute(xl, assignChunk(x, assignments, cents)))
-      //println("made assignments")  
+      lastDistortion = currDistortion
+      do {
+        // make assignments; check for centroids with zero assignments and re-init if so
+	      Concurrent.combine(Concurrent.distribute(xl, assignChunk(x, assignments, cents)))
+	      currDistortion = distortion(centroids,assignments)
+	      if(currDistortion.isNaN()) {
+	        println("got a bad centroid, re-randomizing")
+	        i = 0
+			  	while (i < cents.length) {
+			  		cents(i) = randTerb(v1 + rnd.nextDouble() * uv2, epsilon)
+			  		i += 1
+			  	}
+	      }
+      } while(currDistortion.isNaN())
       zero(newCents,n)
-	  	println("after zero cents " + cents.deep.mkString)
-	  	println("after zero newcs " + newCents.deep.mkString)
+      // update centroids
 	  	newCentroidsDc(x, assignments, centroids, newCents)
-	  	//println("moved cents");    
-	  	i = 0
-	  	delta = 0
-	  	while(i < centroids) {
-	  	  delta += lengthSquared(newCents(i)-cents(i))
-	  	  i += 1
-	  	}
-	  	delta /= xl
 	  	iter += 1
-	    println("iter " + iter + " delta " + delta)
-	  	println("cents " + cents.deep.mkString)
-	  	println("newcs " + newCents.deep.mkString)
 	  	copy(newCents,cents, n)
-	  	println("now cents " + cents.deep.mkString)
-    } while(delta > threshold)
-	  newCents	
+    } while(lastDistortion != currDistortion)
+    println("iter " + iter + " cost " + currDistortion)
+	  (currDistortion, newCents)	
   }
   
+  def kMeansTrials(x: Array[Array[Double]], centroids: Int, iterations : Int, stopAfterXrepetitions: Int = 5) = {
+    var i = iterations
+    var res : (Double, Array[Array[Double]]) = null
+    var repeats = 0
+    while(i > 0 && repeats < stopAfterXrepetitions) {
+      val curr = kMeansDc(x, centroids)
+      if(res == null || res._1 > curr._1) {
+        res = curr
+      } else if(res._1 == curr._1) {
+        repeats += 1
+      }
+      i -= 1
+    }
+    if(repeats == stopAfterXrepetitions) {
+      println("halted at " + i + " after same distortion repeated " + repeats + " times")
+    }
+    res
+  }
 }

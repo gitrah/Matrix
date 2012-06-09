@@ -13,8 +13,7 @@ class TestClustering {
     val f = Io.parseOctaveDataFile("ex7data2.txt")
   	val x = f.get("X").get.asInstanceOf[MatrixD]
     val xs = x.toArrayArray
-    
-    val cents = Clustering.kMeansDc(xs, 2, 0)
+    var cents = Clustering.kMeansDc(xs, 3 )
 
   
   }
