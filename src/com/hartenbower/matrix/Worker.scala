@@ -13,7 +13,7 @@ object Scheduler {
 }
 import Scheduler.{ log, DEBUG }
 
-class Scheduler[T](val queue: Array[T],val elementSize:Int, val procs : Int = Runtime.getRuntime.availableProcessors) extends Actor {
+class Scheduler[T](val queue: Array[T], val elementSize: Int, val procs: Int = Runtime.getRuntime.availableProcessors) extends Actor {
   val total = queue.size / elementSize
   var workers: Set[Worker] = Set[Worker]()
   var lastIdx = 0
@@ -80,7 +80,7 @@ class Scheduler[T](val queue: Array[T],val elementSize:Int, val procs : Int = Ru
   }
 
   def prolog() {
-    if(DEBUG) log.info("prolog")
+    if (DEBUG) log.info("prolog")
   }
 
 }
@@ -96,7 +96,7 @@ class Worker(name: String, action: Tuple2[Int, Int] => Unit) extends Actor {
         s ! FinishedChunk(this)
         act
       case Stop =>
-        if(DEBUG)log.info(this + " is stopping")
+        if (DEBUG) log.info(this + " is stopping")
       case msg =>
         println("Unhandled message: " + msg)
     }

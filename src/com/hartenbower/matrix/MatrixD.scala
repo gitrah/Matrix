@@ -14,100 +14,100 @@ object MatrixD {
     def -(matrix: MatrixD): MatrixD = matrix.negateN + d
     def /(matrix: MatrixD): MatrixD = matrix / d
     def *(matrix: MatrixD): MatrixD = matrix * d
-    def +(a: Array[MatrixD]): Array[MatrixD] = 
-    {var i = a.length; val o = new Array[MatrixD](i); i-=1; while(i > -1){o(i) = a(i) + d; i-=1}; o}
-    def -(a: Array[MatrixD]): Array[MatrixD] =  
-    {var i = a.length; val o = new Array[MatrixD](i); i-=1; while(i > -1){o(i) = a(i).negateN + d; i-=1}; o}
-    def /(a: Array[MatrixD]): Array[MatrixD] = 
-    {var i = a.length; val o = new Array[MatrixD](i); i-=1; while(i > -1){o(i) = a(i) / d; i-=1}; o}
-    def *(a: Array[MatrixD]): Array[MatrixD] = 
-    {var i = a.length; val o = new Array[MatrixD](i); i-=1; while(i > -1){o(i) = a(i) * d; i-=1}; o}
+    def +(a: Array[MatrixD]): Array[MatrixD] =
+      { var i = a.length; val o = new Array[MatrixD](i); i -= 1; while (i > -1) { o(i) = a(i) + d; i -= 1 }; o }
+    def -(a: Array[MatrixD]): Array[MatrixD] =
+      { var i = a.length; val o = new Array[MatrixD](i); i -= 1; while (i > -1) { o(i) = a(i).negateN + d; i -= 1 }; o }
+    def /(a: Array[MatrixD]): Array[MatrixD] =
+      { var i = a.length; val o = new Array[MatrixD](i); i -= 1; while (i > -1) { o(i) = a(i) / d; i -= 1 }; o }
+    def *(a: Array[MatrixD]): Array[MatrixD] =
+      { var i = a.length; val o = new Array[MatrixD](i); i -= 1; while (i > -1) { o(i) = a(i) * d; i -= 1 }; o }
   }
-  
+
   implicit def arrayOp(a: Array[MatrixD]) = new ArrayOp(a)
-  
-  class ArrayOp(a:Array[MatrixD]) {
-    def +(m : MatrixD) : Array[MatrixD] = {
+
+  class ArrayOp(a: Array[MatrixD]) {
+    def +(m: MatrixD): Array[MatrixD] = {
       val l = a.length
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) + m
-        i-=1
+        i -= 1
       }
       o
     }
-    def +(oa : Array[ MatrixD]) : Array[MatrixD] = {
+    def +(oa: Array[MatrixD]): Array[MatrixD] = {
       val l = a.length
       require(l == oa.length, "arrays of unequal length")
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) + oa(i)
-        i-=1
+        i -= 1
       }
       o
     }
-    def -(m : MatrixD) : Array[MatrixD] = {
+    def -(m: MatrixD): Array[MatrixD] = {
       val l = a.length
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) - m
-        i-=1
+        i -= 1
       }
       o
     }
-    def -(oa : Array[ MatrixD]) : Array[MatrixD] = {
+    def -(oa: Array[MatrixD]): Array[MatrixD] = {
       val l = a.length
       require(l == oa.length, "arrays of unequal length")
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) - oa(i)
-        i-=1
+        i -= 1
       }
       o
     }
-    def *(m : MatrixD) : Array[MatrixD] = {
+    def *(m: MatrixD): Array[MatrixD] = {
       val l = a.length
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) * m
-        i-=1
+        i -= 1
       }
       o
     }
-    def *(oa : Array[ MatrixD]) : Array[MatrixD] = {
+    def *(oa: Array[MatrixD]): Array[MatrixD] = {
       val l = a.length
       require(l == oa.length, "arrays of unequal length")
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) * oa(i)
-        i-=1
+        i -= 1
       }
       o
     }
-    def /(m : MatrixD) : Array[MatrixD] = {
+    def /(m: MatrixD): Array[MatrixD] = {
       val l = a.length
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) / m
-        i-=1
+        i -= 1
       }
       o
     }
-    def /(oa : Array[ MatrixD]) : Array[MatrixD] = {
+    def /(oa: Array[MatrixD]): Array[MatrixD] = {
       val l = a.length
       require(l == oa.length, "arrays of unequal length")
       val o = new Array[MatrixD](l)
-      var i = l-1
-      while(i > -1) {
+      var i = l - 1
+      while (i > -1) {
         o(i) = a(i) / oa(i)
-        i-=1
+        i -= 1
       }
       o
     }
@@ -498,9 +498,9 @@ import MatrixD.verbose
     }
     new MatrixD(c, nCols)
   }
-  
-  def matrixOpChunk(f: (Double, Double) => Double,src1: Array[Double],src2: Array[Double], 
-      len: Long, trg: Array[Double], rows: Int)(range: Tuple2[Long, Long])(): Long = {
+
+  def matrixOpChunk(f: (Double, Double) => Double, src1: Array[Double], src2: Array[Double],
+    len: Long, trg: Array[Double], rows: Int)(range: Tuple2[Long, Long])(): Long = {
     //println("txChunk range " + range)
     var i: Long = range._1
     while (i <= range._2) {
@@ -514,8 +514,8 @@ import MatrixD.verbose
     var l = elements.length
     require(l == o.elements.length && nCols == o.nCols, "this: elements " + l + ", cols " + nCols + " vs o: elements " + o.elements.length + ", cols " + o.nCols + " sizes or dims don't match")
     val c = new Array[Double](l)
-    
-    Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f,elements,o.elements, l, c, nRows)))
+
+    Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f, elements, o.elements, l, c, nRows)))
     new MatrixD(c, nCols)
   }
 
@@ -660,13 +660,13 @@ import MatrixD.verbose
   @inline def rowCopy(out: Array[Double], row: Int, startIdx: Int) = {
     copyRange(elements, out, rowIndices(row), startIdx)
   }
-  
-  def toArrayArray() : Array[Array[Double]] = {
+
+  def toArrayArray(): Array[Array[Double]] = {
     var ir = 0
     val out = new Array[Array[Double]](nRows)
-    while(ir < nRows) {
+    while (ir < nRows) {
       val line = new Array[Double](nCols)
-      Array.copy(elements,ir * nCols,line, 0 , nCols)
+      Array.copy(elements, ir * nCols, line, 0, nCols)
       out(ir) = line
       ir += 1
     }
@@ -984,11 +984,11 @@ import MatrixD.verbose
     new MatrixD(el, nCols, txp != null)
   }
 
-   def elementScalarOpChunk(f: (Double, Double) => Double, src: Array[ Double], s: Double, trg: Array[Double] )(range: Tuple2[Long, Long])(): Long = {
+  def elementScalarOpChunk(f: (Double, Double) => Double, src: Array[Double], s: Double, trg: Array[Double])(range: Tuple2[Long, Long])(): Long = {
     //println("txChunk range " + range)
     var i: Long = range._1
     while (i <= range._2) {
-      trg(i.asInstanceOf[Int]) = f(src(i.asInstanceOf[Int]),s)
+      trg(i.asInstanceOf[Int]) = f(src(i.asInstanceOf[Int]), s)
       i += 1
     }
     i

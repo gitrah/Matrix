@@ -34,7 +34,7 @@ object GradientDescent {
       oldθ = θ
       ctr += 1
       θ = θ0θ1(θ._1, θ._2, α, data)
-     // println("iter " + ctr + " θ " + θ + " diff " + diffSquared(θ, oldθ))
+      // println("iter " + ctr + " θ " + θ + " diff " + diffSquared(θ, oldθ))
     } while (diffSquared(θ, oldθ) > σ * σ)
     θ
   }
@@ -58,12 +58,12 @@ object GradientDescent {
     l
   }
 
-  def normalEquation(features: Array[Double], nCols : Int, values: Array[Double]): MatrixD = {
+  def normalEquation(features: Array[Double], nCols: Int, values: Array[Double]): MatrixD = {
     require(features.length / nCols == values.length, "counts of feature examples and value examples must agree")
     /*       T -1  T
      * θ = (X X)  X y
      */
-    val designMatrix = new MatrixD(features,nCols).prependColumnNew(
+    val designMatrix = new MatrixD(features, nCols).prependColumnNew(
       Array.fill[Double](values.length)(1.))
     val dmTxp = designMatrix.transposeN()
     // without determinant check, just return

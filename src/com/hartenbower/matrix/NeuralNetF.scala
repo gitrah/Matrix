@@ -31,14 +31,14 @@ object NeuralNetF {
   }
 
   def descend(
-      inputs: MatrixF, 
-      y: MatrixF, 
-      thetasOrDims: Array[_],
-      maxIters : Int,
-      epsilon: Float, 
-      regularizationFactor : Float, 
-      learningRate : Float,
-      maxError : Float) = {
+    inputs: MatrixF,
+    y: MatrixF,
+    thetasOrDims: Array[_],
+    maxIters: Int,
+    epsilon: Float,
+    regularizationFactor: Float,
+    learningRate: Float,
+    maxError: Float) = {
     val layers = thetasOrDims.length
     val yb = if (y.isBinaryCategoryMatrix) y else y.toBinaryCategoryMatrix
     val x = if (inputs.hasBiasCol) inputs else inputs.addBiasCol
@@ -49,9 +49,9 @@ object NeuralNetF {
     var lastTxpsCrCount = MatrixF.txpsCreateCount
     while (layerIdx < layers) {
       thetasOrDims match {
-        case specifiedThetas : Array[MatrixF] =>
+        case specifiedThetas: Array[MatrixF] =>
           thetas(layerIdx) = specifiedThetas(layerIdx)
-        case specifiedDims : Array[Tuple2[Int, Int]] =>
+        case specifiedDims: Array[Tuple2[Int, Int]] =>
           thetas(layerIdx) = MatrixF.randn(specifiedDims(layerIdx), epsilon).addBiasCol()
       }
       layerIdx += 1
@@ -60,24 +60,23 @@ object NeuralNetF {
     var deltaCost = -maxError
     var j = 0f
     var lastJ = 0f
-    while (i < maxIters && -1*deltaCost >= maxError) {
-      val tup = forwardAndBack(x,yb,thetas,regularizationFactor)
+    while (i < maxIters && -1 * deltaCost >= maxError) {
+      val tup = forwardAndBack(x, yb, thetas, regularizationFactor)
       j = tup._1
       val grads = tup._2
       layerIdx = 0
-	  while (layerIdx < layers) {
-	    thetas(layerIdx) = thetas(layerIdx) - grads(layerIdx) * learningRate
-	    layerIdx += 1
-	  }
-      if(lastJ != 0) {
+      while (layerIdx < layers) {
+        thetas(layerIdx) = thetas(layerIdx) - grads(layerIdx) * learningRate
+        layerIdx += 1
+      }
+      if (lastJ != 0) {
         deltaCost = j - lastJ
       }
       lastJ = j
-      
+
       println("iter: " + i + ", j " + j + " delta: " + deltaCost
-          + "; txCreateDelta " + (MatrixF.txpsCreateCount -lastTxpsCrCount)
-         + "; txUseDelta " + (MatrixF.txpsUseCount -lastTxpsUseCount)
-          )
+        + "; txCreateDelta " + (MatrixF.txpsCreateCount - lastTxpsCrCount)
+        + "; txUseDelta " + (MatrixF.txpsUseCount - lastTxpsUseCount))
       lastTxpsCrCount = MatrixF.txpsCreateCount
       lastTxpsUseCount = MatrixF.txpsUseCount
       i += 1

@@ -261,17 +261,17 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
           i += 1
         }
         !exceededError
-      } else 
+      } else
         false
-    } else 
-    	false
+    } else
+      false
   }
 
   def sameSqrDiff(o: MatrixF, maxError: Float = 0): Boolean = {
     if (nCols == o.nCols) {
       val l = elements.length
       l == o.elements.length && sumSquaredDiffs(o) / l <= maxError
-    } else 
+    } else
       false
   }
 
@@ -336,7 +336,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
     var v = 0f
     var i = elements.length - 1
     while (i > -1) {
-      el(i) = (el(i)/s).asInstanceOf[Float]
+      el(i) = (el(i) / s).asInstanceOf[Float]
     }
     new MatrixF(el, nCols, txp != null)
   }
@@ -840,7 +840,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
   def /(s: Float) = elementScalarOp(s, _ / _)
 
   def ^(exp: Float) = elementScalarOp(exp, (x, y) => (scala.math.pow(x, y).asInstanceOf[Float]))
-  
+
   def clean(σ: Float = .0001f) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0.f else x)
 
   def sumSquaredDiffs(other: MatrixF): Float = {

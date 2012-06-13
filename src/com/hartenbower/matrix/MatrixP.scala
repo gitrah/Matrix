@@ -9,25 +9,25 @@ object MatrixP {
   }
 
   def dot[N](v1: Array[N], range1: Tuple2[Int, Int],
-      v2: Array[N], range2: Tuple2[Int, Int])(implicit numeric: Numeric[N]): N = {
-    
+    v2: Array[N], range2: Tuple2[Int, Int])(implicit numeric: Numeric[N]): N = {
+
     //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
     //require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")
     var l = range1._2 - range1._1
     val s1 = range1._1
     val s2 = range2._1
     //require(l == range2._2 - range2._1, "vectors of unequal length")
-    var sum : N = numeric.zero
+    var sum: N = numeric.zero
     while (l >= 0) {
-       sum = numeric.plus(sum, numeric.times( v1(s1 + l), v2(s2 + l) ))
+      sum = numeric.plus(sum, numeric.times(v1(s1 + l), v2(s2 + l)))
       l -= 1
     }
     sum
   }
-  
+
   //def array[N](dim : Int)(implicit manifest : Manifest[N])  = new Array[N](dim)
 
-  def diagonalM[N](dim: Int, d: N)(implicit numeric: Numeric[N], manifest : Manifest[N]): MatrixP[N] = {
+  def diagonalM[N](dim: Int, d: N)(implicit numeric: Numeric[N], manifest: Manifest[N]): MatrixP[N] = {
     val l = dim * dim
     val c = manifest.newArray(l)
     var i = 0
@@ -35,26 +35,26 @@ object MatrixP {
       c(i) = if (i / dim == i % dim) d else numeric.zero
       i += 1
     }
-    new MatrixP(c, dim)(numeric,manifest)
+    new MatrixP(c, dim)(numeric, manifest)
   }
 
-  def identityM[N](dim: Int)(implicit numeric: Numeric[N], manifest : Manifest[N]) = diagonalM[N](dim,numeric.one)(numeric,manifest)
+  def identityM[N](dim: Int)(implicit numeric: Numeric[N], manifest: Manifest[N]) = diagonalM[N](dim, numeric.one)(numeric, manifest)
 
   /* could also define one as transpose of other... */
-  def rowMatrix[N](a: Array[N])(implicit numeric: Numeric[N], manifest : Manifest[N]) = new MatrixP[N](a, a.length)
+  def rowMatrix[N](a: Array[N])(implicit numeric: Numeric[N], manifest: Manifest[N]) = new MatrixP[N](a, a.length)
 
-  def columnMatrix[N](a: Array[N])(implicit numeric: Numeric[N], manifest : Manifest[N]) = new MatrixP[N](a, 1)
+  def columnMatrix[N](a: Array[N])(implicit numeric: Numeric[N], manifest: Manifest[N]) = new MatrixP[N](a, 1)
 
-  def randn[N](nRows: Int, nCols: Int)(implicit numeric: Numeric[N], manifest : Manifest[N]): MatrixP[N] = {
+  def randn[N](nRows: Int, nCols: Int)(implicit numeric: Numeric[N], manifest: Manifest[N]): MatrixP[N] = {
     val rnd = new Random(System.currentTimeMillis)
     val l = nRows * nCols
     val c = manifest.newArray(l)
     var idx = 0
     while (idx < l) {
-      c(idx) =  numeric match {
-        case i : Integral[N]=> rnd.nextInt.asInstanceOf[N]
-        case fr : Fractional[N]=>
-          if(java.lang.Double.TYPE.isAssignableFrom(manifest.erasure)) 
+      c(idx) = numeric match {
+        case i: Integral[N] => rnd.nextInt.asInstanceOf[N]
+        case fr: Fractional[N] =>
+          if (java.lang.Double.TYPE.isAssignableFrom(manifest.erasure))
             rnd.nextDouble.asInstanceOf[N]
           else
             rnd.nextFloat.asInstanceOf[N]
@@ -66,19 +66,19 @@ object MatrixP {
 }
 
 /**
- * This is the parameterized implementation.  
+ * This is the parameterized implementation.
  * @return
  */
 
-case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Numeric[N], manifest : Manifest[N]) {
+case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Numeric[N], manifest: Manifest[N]) {
   require(elements.length % nCols == 0)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
   def validIndicesQ(row: Int, col: Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")
   }
-  def validColQ(col : Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
-  def validRowQ(row : Int) = require(row > 0 && row <= nRows,"row " + row + " must be 1 to " + nRows)
+  def validColQ(col: Int) = require(col > 0 && col <= nCols, "column " + col + " must be 1 to " + nCols)
+  def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
   def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
   def enref(idx: Int): (Int, Int) = {
@@ -105,11 +105,11 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
     this
   }
 
-  private def matrixOpNew(o: MatrixP[N], f: (N, N) => N)(implicit num: Numeric[N], manifest : Manifest[N]): MatrixP[N] = {
+  private def matrixOpNew(o: MatrixP[N], f: (N, N) => N)(implicit num: Numeric[N], manifest: Manifest[N]): MatrixP[N] = {
     var l = elements.length
     require(l == o.elements.length && nCols == o.nCols, "sizes don't match")
     val c = manifest.newArray(l)
-    
+
     l -= 1
     while (l >= 0) {
       c(l) = f(elements(l), o.elements(l))
@@ -118,10 +118,10 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
     new MatrixP[N](c.asInstanceOf[Array[N]], nCols)
   }
 
-  def +(other: MatrixP[N])(implicit num: Numeric[N], manifest : Manifest[N]): MatrixP[N] = matrixOpNew(other, num.plus(_, _))(num, manifest)
-  def -(other: MatrixP[N])(implicit num: Numeric[N], manifest : Manifest[N]): MatrixP[N] = matrixOpNew(other, num.minus(_ , _))(num, manifest)
-  def hadamardProduct(other: MatrixP[N])(implicit num: Numeric[N], manifest : Manifest[N]) = matrixOpNew(other, num.times(_ , _))(num, manifest)
-  def **(other: MatrixP[N])(implicit num: Numeric[N], manifest : Manifest[N]) = hadamardProduct(other)(num,manifest)
+  def +(other: MatrixP[N])(implicit num: Numeric[N], manifest: Manifest[N]): MatrixP[N] = matrixOpNew(other, num.plus(_, _))(num, manifest)
+  def -(other: MatrixP[N])(implicit num: Numeric[N], manifest: Manifest[N]): MatrixP[N] = matrixOpNew(other, num.minus(_, _))(num, manifest)
+  def hadamardProduct(other: MatrixP[N])(implicit num: Numeric[N], manifest: Manifest[N]) = matrixOpNew(other, num.times(_, _))(num, manifest)
+  def **(other: MatrixP[N])(implicit num: Numeric[N], manifest: Manifest[N]) = hadamardProduct(other)(num, manifest)
 
   def squareQ() = nCols == nRows
 
@@ -149,29 +149,29 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
     }
     c
   }
-  
-  def copyOfRow(row : Int) = {
+
+  def copyOfRow(row: Int) = {
     validRowQ(row)
     val c = new Array[N](nCols)
-    var l = nCols -1
-    while(l >= 0) {
-      c(l) = elements( (row -1) * nCols + l)
-      l-=1
+    var l = nCols - 1
+    while (l >= 0) {
+      c(l) = elements((row - 1) * nCols + l)
+      l -= 1
     }
     c
   }
-  
-  def copyOfCol(col : Int) = {
+
+  def copyOfCol(col: Int) = {
     validColQ(col)
     val c = manifest.newArray(nRows)
-    var l = nRows -1
-    while(l >= 0) {
-      c(l) = elements( l * nCols + col-1)
-      l-=1
+    var l = nRows - 1
+    while (l >= 0) {
+      c(l) = elements(l * nCols + col - 1)
+      l -= 1
     }
     c
   }
-  
+
   def copyRange(src: Array[N], targ: Array[N], range: Tuple2[Int, Int], start: Int) {
     require(range._1 > -1 && range._2 < src.length, "range " + range + " bad for source")
     require(start + range._2 - range._1 < targ.length, "range (" + (range._2 - range._1) + ") + start (" + start + ") bad for target length " + targ.length)
@@ -181,7 +181,6 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
       l -= 1
     }
   }
-
 
   def rowCopy(out: Array[N], row: Int, startIdx: Int) = {
     copyRange(elements, out, rowIndices(row), startIdx)
@@ -256,10 +255,10 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
       row += 1
     }
   }
-  
+
   def transposeNew(): MatrixP[N] = {
     val l = elements.length - 1
-    val b = manifest.newArray(l+1)
+    val b = manifest.newArray(l + 1)
     // first and last elems unchanged
     b(0) = elements(0)
     b(l) = elements(l)
@@ -281,15 +280,15 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
     var imod = 0
     var idiv = 1
     var oppIdx = 0
-    while (idx < l ) {
+    while (idx < l) {
       idiv = idx / nCols
       imod = idx % nCols
-      if( imod > idiv) { // stay on top triangle and skip diagonals
-    	  oppIdx = imod * nCols + idiv
-    	  temp = elements(idx)
-    	  elements(idx) = elements(oppIdx)
-    	  elements(oppIdx) = temp
-      } 
+      if (imod > idiv) { // stay on top triangle and skip diagonals
+        oppIdx = imod * nCols + idiv
+        temp = elements(idx)
+        elements(idx) = elements(oppIdx)
+        elements(oppIdx) = temp
+      }
       idx += 1
     }
   }
@@ -299,15 +298,15 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
     var i = 1
     var idx = i
     val map: java.util.Map[Int, N] = if (m == null) new java.util.HashMap else { m.clear; m }
-    var cachedElem : Any = null
+    var cachedElem: Any = null
 
-    while (i < l ) {
+    while (i < l) {
       idx = i * nRows % l
       if (idx > i) {
         // store original content
         map.put(idx, elements(idx))
       }
-      cachedElem = map.get(i) 
+      cachedElem = map.get(i)
       elements(idx) = if (cachedElem != null) cachedElem.asInstanceOf[N] else elements(i)
       i += 1
     }
@@ -348,12 +347,13 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
   def +(s: N) = elementScalarOp(s, num.plus(_, _))
   def -(s: N) = elementScalarOp(s, num.minus(_, _))
   def *(s: N) = elementScalarOp(s, num.times(_, _))
-  def /(s: N) =  num match{
-     case i: Integral[_] => elementScalarOp(s,i.quot(_, _))
-     case fr: Fractional[_] => elementScalarOp(s,fr.div(_, _))}
+  def /(s: N) = num match {
+    case i: Integral[_] => elementScalarOp(s, i.quot(_, _))
+    case fr: Fractional[_] => elementScalarOp(s, fr.div(_, _))
+  }
 
   def ^(exp: N) = elementScalarOp(exp, (x, y) => scala.math.pow(num.toDouble(x), num.toDouble(y)).asInstanceOf[N])
-  def clean(σ: N) = elementScalarOp(σ, (x, y) => if (num.lt(num.times(x,x),  num.times(y, y))) num.zero else x)
+  def clean(σ: N) = elementScalarOp(σ, (x, y) => if (num.lt(num.times(x, x), num.times(y, y))) num.zero else x)
 
   def sgn(row: Int, col: Int): Int = {
     validIndicesQ(row, col)
@@ -391,20 +391,20 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
       case 1 =>
         elements(0)
       case 2 =>
-        num.minus(num.times(elements(0) , elements(3)), num.times( elements(1) ,elements(2)))
+        num.minus(num.times(elements(0), elements(3)), num.times(elements(1), elements(2)))
       case _ =>
         // cofactor expansion along the first column
         var row = 1
         var sum = num.zero
         while (row <= nRows) {
-          sum = num.plus(sum, num.times(elements((row - 1) * nCols) , cofactor(row, 1)))
+          sum = num.plus(sum, num.times(elements((row - 1) * nCols), cofactor(row, 1)))
           row += 1
         }
         sum
     }
   }
 
-  def cofactor(row: Int, col: Int) = num.times(minor(row, col),num.fromInt(sgn(row, col)))
+  def cofactor(row: Int, col: Int) = num.times(minor(row, col), num.fromInt(sgn(row, col)))
 
   def cofactorM() = {
     val c = manifest.newArray(elements.length)
@@ -443,7 +443,7 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
   }
 
   implicit val dim = nCols
-  implicit def scalarToMatrix(i: Int)(implicit dim: Int): MatrixP[N]= {
+  implicit def scalarToMatrix(i: Int)(implicit dim: Int): MatrixP[N] = {
     MatrixP.diagonalM(dim, num.fromInt(i))
   }
   implicit def scalarToMatrix(s: N)(implicit dim: Int): MatrixP[N] = {

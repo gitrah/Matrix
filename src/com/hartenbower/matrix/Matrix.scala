@@ -137,7 +137,7 @@ object Matrix {
  * This is the most idiomatic implementation.  As so often happens,
  * it is as slow as it is pretty; some operations are several hundred times slower
  * than the corresponding Array-backed, non-for-comprehending implementation
- * 
+ *
  */
 case class Matrix(val elements: List[List[Double]]) {
 
@@ -152,9 +152,9 @@ case class Matrix(val elements: List[List[Double]]) {
 
   //def this(ss : Seq[Seq[Double]]) = this((ss map ( _.toList)).toList) 
 
-//  def this(tups: Product*) = {
-//    this((for (t <- tups) yield (t.productIterator.toList).asInstanceOf[List[Double]]).toList)
-//  }
+  //  def this(tups: Product*) = {
+  //    this((for (t <- tups) yield (t.productIterator.toList).asInstanceOf[List[Double]]).toList)
+  //  }
 
   def validIndicesQ(row: Int, col: Int) {
     require(col > 0 && col <= nCols && row <= nRows && row > 0, "index (" + row + ", " + col + ") out of bounds [1," + nRows + "],[1," + nCols + "]")

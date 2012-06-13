@@ -10,7 +10,7 @@ object Util {
   object Concurrent {
 
     val defaultSpanThreshold = 1
-    var threadCount =  2 * Runtime.getRuntime.availableProcessors
+    var threadCount = 2 * Runtime.getRuntime.availableProcessors
     println("starting with a " + threadCount + "-thread pool")
     val pool = Executors.newFixedThreadPool(threadCount)
 
@@ -61,17 +61,17 @@ object Util {
     def toSpans(l: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
       val span = l / d
       //if (span >= threshold) {
-        val ret = new Array[Tuple2[Long, Long]](d)
-        var i = 0
-        while (i < d - 1) {
-          ret(i) = if (oneBased) (i * span + 1, (i + 1) * span) else (i * span, (i + 1) * span - 1)
-          i += 1
-        }
-        ret(d - 1) = if (oneBased) ((d - 1) * span + 1, l) else ((d - 1) * span, l - 1)
-        ret
-//      } else {
-//        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
-//      }
+      val ret = new Array[Tuple2[Long, Long]](d)
+      var i = 0
+      while (i < d - 1) {
+        ret(i) = if (oneBased) (i * span + 1, (i + 1) * span) else (i * span, (i + 1) * span - 1)
+        i += 1
+      }
+      ret(d - 1) = if (oneBased) ((d - 1) * span + 1, l) else ((d - 1) * span, l - 1)
+      ret
+      //      } else {
+      //        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
+      //      }
     }
 
     def transposeChunkF(src: Array[Float], len: Long, trg: Array[Float], rows: Int)(range: Tuple2[Long, Long])(): Long = {
@@ -177,7 +177,7 @@ object Util {
 
     def parseOctaveDataFile(path: String, asDouble: Boolean = true): Map[String, _] = {
       var m = Map[String, Any]()
-      val la = Source.fromFile(path).getLines 
+      val la = Source.fromFile(path).getLines
       //println("loaded " + path + " into line array of size " + la.length)
       var elementType = ""
       var idx = -1
@@ -197,7 +197,7 @@ object Util {
             elementType match {
               case "matrix" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m +  new Tuple2(name, new MatrixD(elementDataD, cols, true))
+                m = m + new Tuple2(name, new MatrixD(elementDataD, cols, true))
               case "scalar" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
                 m = m + new Tuple2(name, elementDataD(0))
@@ -209,10 +209,10 @@ object Util {
             elementType match {
               case "matrix" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name ,new MatrixF(elementDataF, cols, true))
+                m = m + new Tuple2(name, new MatrixF(elementDataF, cols, true))
               case "scalar" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name , elementDataF(0))
+                m = m + new Tuple2(name, elementDataF(0))
             }
           }
 
@@ -267,7 +267,7 @@ object Util {
               }
             }
           }
-        } else if(!line.isEmpty()) {
+        } else if (!line.isEmpty()) {
           elementType match {
             case "matrix" =>
               assert(!name.isEmpty() && !elementType.isEmpty() && rows > -1 && cols > -1)
@@ -309,7 +309,7 @@ object Util {
             case "scalar" =>
               if (asDouble) {
                 elementDataD = new Array[Double](1)
-                elementDataD(0)= java.lang.Double.parseDouble(line)
+                elementDataD(0) = java.lang.Double.parseDouble(line)
               } else {
                 elementDataF = new Array[Float](1)
                 elementDataF(0) = java.lang.Float.parseFloat(line)
@@ -375,11 +375,11 @@ object Util {
       }
       s
     }
-    
-    def powF(f :Float, exp : Float) = {
-      math.pow(f,exp).asInstanceOf[Float]
+
+    def powF(f: Float, exp: Float) = {
+      math.pow(f, exp).asInstanceOf[Float]
     }
-    def logF(f :Float) = {
+    def logF(f: Float) = {
       math.log(f).asInstanceOf[Float]
     }
 
