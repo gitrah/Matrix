@@ -404,7 +404,7 @@ object Clustering {
     var iter = 0
     // init centroids
   	while (i < cents.length) {
-  		cents(i) = randTerb(v1 + rnd.nextDouble() * uv2, epsilon)
+  		cents(i) = randTerb(v1 + rnd.nextDouble() * v2l * uv2, epsilon)
   		i += 1
   	}
     var lastDistortion = 0d
