@@ -2,6 +2,7 @@ package com.hartenbower.matrix
 import scala.util.Random
 import java.util.concurrent._
 import Util._
+import Util.Math._
 object MatrixD {
   val verbose = false
   var txpsCreateCount = 0l
@@ -398,6 +399,30 @@ import MatrixD.verbose
 
   override def clone = {
     new MatrixD(elements.clone(), nCols, txp.get, true)
+  }
+  
+  //  Xi - μi
+  //  -------
+  //     σ
+  def normalize : MatrixD = {
+    val te = tN.elements  // each row holds all samples of ith feature
+    val l = te.length
+    var mus = Array.fill(nCols)(0d)  // will hold avg of each feature
+    var i = 0
+    while(i < l) {
+      mus(i / nRows) += te(i)
+      i+=1
+    }
+    mus = mus / nRows
+    var e = elements.clone()
+    // for each feature of each sample, subtract feature mean and divide by standard deviation of feature  
+    i = 0
+    while(i < l) {
+      e(i) -= mus(i % nCols)
+      i+=1
+    }
+    e = e / Math.std(e)
+    new MatrixD(e, nCols)
   }
 
   @inline def negateIp: MatrixD = {

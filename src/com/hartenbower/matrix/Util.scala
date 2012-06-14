@@ -6,6 +6,7 @@ import java.util.concurrent._
 import com.hartenbower.util.TimingUtil
 
 object Util {
+  val rnd = new java.util.Random(System.currentTimeMillis())
 
   object Concurrent {
 
@@ -376,6 +377,10 @@ object Util {
       s
     }
 
+    def average(a: Array[Double]): Double = {
+      sum(a) / a.length
+    }
+
     def powF(f: Float, exp: Float) = {
       math.pow(f, exp).asInstanceOf[Float]
     }
@@ -427,6 +432,226 @@ object Util {
       res.toList
     }
 
+    implicit def scalarOp(d: Double) = new ScalarOp(d)
+
+    class ScalarOp(d: Double) {
+      def +(a: Array[Double]): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + d
+          i -= 1
+        }
+        o
+      }
+      def -(a: Array[Double]): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = d - a(i)
+          i -= 1
+        }
+        o
+      }
+      def /(a: Array[Double]): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) / d
+          i -= 1
+        }
+        o
+      }
+      def *(a: Array[Double]): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * d
+          i -= 1
+        }
+        o
+      }
+    }
+
+    implicit def arrayOp(a: Array[Double]) = new ArrayOp(a)
+
+    class ArrayOp(a: Array[Double]) {
+      def +(oa: Array[Double]): Array[Double] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + oa(i)
+          i -= 1
+        }
+        o
+      }
+      def +(d: Double): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + d
+          i -= 1
+        }
+        o
+      }
+      def -(oa: Array[Double]): Array[Double] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) - oa(i)
+          i -= 1
+        }
+        o
+      }
+
+      def -(d: Double): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) - d
+          i -= 1
+        }
+        o
+      }
+
+      def /(d: Double): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) / d
+          i -= 1
+        }
+        o
+      }
+
+      def *(d: Double): Array[Double] = {
+        val l = a.length
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * d
+          i -= 1
+        }
+        o
+      }
+      def *(oa: Array[Double]): Array[Double] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * oa(i)
+          i -= 1
+        }
+        o
+      }
+
+      def dot(oa: Array[Double]): Double = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        var s = 0d
+        var i = l - 1
+        while (i > -1) {
+          s += a(i) * oa(i)
+          i -= 1
+        }
+        s
+      }
+    }
+
+    def lengthSquared(v: Array[Double]): Double = {
+      var d = 0d
+      var vi = 0d
+      var i = v.length - 1
+      while (i > -1) {
+        vi = v(i)
+        d += vi * vi
+        i -= 1
+      }
+      d
+    }
+
+    def lengthSquared2(v: Array[Double]): Double = {
+      var d = 0d
+      var i = v.length - 1
+      while (i > -1) {
+        d += v(i) * v(i)
+        i -= 1
+      }
+      d
+    }
+
+    def minMax(x: Array[Array[Double]]): Array[Array[Double]] = {
+      val mm = new Array[Array[Double]](2)
+      val innerL = x(0).length
+      var min = x(0)
+      var minL = 0d
+      var maxL = 0d
+      var curr = 0d
+      var currL = 0d
+      var max = x(0)
+      val outerL = x.length
+      var i = 0
+      var j = 0
+      while (i < outerL) {
+        j = 0
+        currL = 0
+        while (j < innerL) {
+          curr = x(i)(j)
+          currL += curr * curr
+          j += 1
+        }
+        if (currL > maxL) {
+          max = x(i)
+          maxL = currL
+        } else if (currL < minL) {
+          min = x(i)
+          minL = currL
+        }
+        i += 1
+      }
+      Array(min, max)
+    }
+
+    def unitV(v: Array[Double]): (Double, Array[Double]) = {
+      val ov = v.clone
+      val l = math.sqrt(lengthSquared(v))
+      var i = ov.length - 1
+      while (i > -1) {
+        ov(i) /= l
+        i -= 1
+      }
+      (l, ov)
+    }
+
+    def randTerb(v: Array[Double], epsilon: Double): Array[Double] = {
+      val ov = v.clone
+      var i = ov.length - 1
+      while (i > -1) {
+        ov(i) += (2 * rnd.nextDouble - 1) * epsilon
+        i -= 1
+      }
+      ov
+    }
+    
+    def std(a : Array[Double]) = {
+      val l = a.length
+      val avg= average(a)
+      val t = a - avg
+      val tt = t * t
+      math.sqrt( sum(tt)/(l -1))
+    }
   }
 
 }
