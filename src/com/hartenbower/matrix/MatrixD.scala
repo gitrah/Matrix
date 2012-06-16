@@ -401,10 +401,34 @@ import MatrixD.verbose
     new MatrixD(elements.clone(), nCols, txp.get, true)
   }
   
-  //  Xi - μi
-  //  -------
-  //     σ
-  def normalize : MatrixD = {
+  //     Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f, elements, o.elements, l, c, nRows)))
+  def averageChunk(te : Array[Double], mus : Array[Double])(range : (Long,Long))()= {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var j = 0
+    var rowOff = 0
+    while(i <= end) {
+      j = 0
+      rowOff = i * nRows
+      while( j < nRows) {
+        mus(i) += te(rowOff + j)
+        j += 1
+      }
+      mus(i) /= nRows
+      i+=1
+    }
+    i
+  }
+  
+  def featureAveragesDc : Array[Double] = {
+    val te = tN.elements  // each row holds all samples of ith feature
+    val l = nCols
+    var mus = Array.fill(nCols)(0d)  // will hold avg of each feature
+    Concurrent.combine(Concurrent.distribute(nCols, averageChunk(te, mus)))
+    mus
+  }
+  
+  def featureAverages : Array[Double] = {
     val te = tN.elements  // each row holds all samples of ith feature
     val l = te.length
     var mus = Array.fill(nCols)(0d)  // will hold avg of each feature
@@ -413,7 +437,61 @@ import MatrixD.verbose
       mus(i / nRows) += te(i)
       i+=1
     }
-    mus = mus / nRows
+    mus / nRows
+  }
+  
+  def varianceChunk(te: Array[Double], sigmas: Array[Double], mus:Array[Double])(range : (Long,Long))() = {
+    	var i = range._1.asInstanceOf[Int]
+    	val end = range._2.asInstanceOf[Int]
+    	var p = 0d
+      var rowOff = 0
+    	var j= 0
+    	while(i <= end) {
+    	  j = 0
+    	  rowOff = i * nRows
+    	  while(j < nRows) {
+    	    p = te(rowOff + j) - mus( i)
+    	    sigmas(i) += p * p
+    	    j+=1
+    	  }
+    	  sigmas(i) = math.sqrt(sigmas(i)/ nRows)
+    	  i+=1
+    	}
+    	i
+  }
+  
+  def varianceDc(mus : Array[Double]) : Array[Double] = {
+    var sigmas = Array.fill(nCols)(0d)
+    val te = tN.elements
+    Concurrent.combine(Concurrent.distribute(nCols, varianceChunk(te,sigmas,mus)))
+    sigmas
+  }
+  
+  def variance(mus : Array[Double]) : Array[Double] = {
+    var sigmas = Array.fill(nCols)(0d)
+    val l = nRows * nCols
+    var i = l -1
+    var t = 0d
+    while(i > -1) {
+      t = elements(i) - mus(i % nCols)
+      sigmas(i % nCols) += t*t 
+      i -= 1
+    }
+    i=0
+    while(i < nCols) {
+      sigmas(i) = math.sqrt(sigmas(i)/nRows)
+      i+=1
+    }
+    sigmas
+  }
+  
+  //  Xi - μi
+  //  -------
+  //     σ
+  def normalize : MatrixD = {
+    val mus = featureAveragesDc
+    var i = 0
+    val l = elements.length
     var e = elements.clone()
     // for each feature of each sample, subtract feature mean and divide by standard deviation of feature  
     i = 0

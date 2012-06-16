@@ -58,6 +58,16 @@ object Util {
         i += 1
       }
     }
+    
+    def aggregateD(efforts: Array[Future[Double]]) : Double = {
+      var i = 0
+      var s = 0d
+      while (i < efforts.length) {
+        s+= efforts(i).get
+        i += 1
+      }
+      s
+    }
 
     def toSpans(l: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
       val span = l / d
@@ -147,7 +157,6 @@ object Util {
       val delta = (System.currentTimeMillis - l)
       println("\n" + msg + " took " + TimingUtil.fromMillis(delta) + " or " + (count * 1000. / delta) + "evals/s")
       (count, delta)
-
     }
   }
 
@@ -406,6 +415,7 @@ object Util {
       while (i < len) {
         delta = t(i) - s(i)
         sum += delta * delta
+        i+=1
       }
       sum
     }
