@@ -171,4 +171,24 @@ public class StringUtil {
         return ret;
     }
     
+    public static String rep(char c, int count) {
+      StringBuffer sb = new StringBuffer();
+      while(count-- >0) sb.append(c);
+      return sb.toString();
+    }
+    
+    public static String hollowTo(String s , int maxLen) {
+      String ts = s.trim();
+      int len = ts.length();
+      int removeCount;
+      if( (removeCount = ( len - maxLen ))<= 0) {
+        return ts + rep(' ', maxLen - len);
+      }
+      int startIdx = len/2 - removeCount/2;
+      if(removeCount >= 2)
+        return ts.substring(0,startIdx-1) + ".." + ts.substring(startIdx+1+removeCount);
+      else
+        return ts.substring(0,startIdx) +  ts.substring(startIdx+removeCount);
+    }
+    
 }

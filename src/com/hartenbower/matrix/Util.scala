@@ -85,60 +85,8 @@ object Util {
       //      }
     }
 
-    def transposeChunkF(src: Array[Float], len: Long, trg: Array[Float], rows: Int)(range: Tuple2[Long, Long])(): Long = {
-      //println("txChunk range " + range)
-      var i: Long = range._1
-      while (i <= range._2) {
-        trg((i * rows % len).asInstanceOf[Int]) = src(i.asInstanceOf[Int])
-        i += 1
-      }
-      i
-    }
-
-    def multChunk(src1: Array[Double], cols1: Int, src2: Array[Double], rows2: Int, cols2: Int, trg: Array[Double])(range: Tuple2[Long, Long])(): Long = {
-      @inline def rowIndices(row: Int, cols: Int) = {
-        val start = (row - 1) * cols
-        (start, start + cols - 1)
-      }
-      var row = range._1
-      var rowT = 1
-      var idx = (row - 1) * rows2
-      while (row <= range._2) {
-        rowT = 1
-        //println("row " + row + " idx " + idx)
-        while (rowT <= rows2) {
-          trg(idx.asInstanceOf[Int]) = MatrixD.dot(src1, rowIndices(row.asInstanceOf[Int], cols1), src2, rowIndices(rowT, cols2))
-          rowT += 1
-          idx += 1
-        }
-        row += 1
-      }
-      row
-    }
-
-    def multChunkF(src1: Array[Float], cols1: Int, src2: Array[Float], rows2: Int, cols2: Int, trg: Array[Float])(range: Tuple2[Long, Long])(): Long = {
-      @inline def rowIndices(row: Int, cols: Int) = {
-        val start = (row - 1) * cols
-        (start, start + cols - 1)
-      }
-      var row = range._1
-      var rowT = 1
-      var idx = (row - 1) * rows2
-      while (row <= range._2) {
-        rowT = 1
-        //println("row " + row + " idx " + idx)
-        while (rowT <= rows2) {
-          trg(idx.asInstanceOf[Int]) = MatrixF.dot(src1, rowIndices(row.asInstanceOf[Int], cols1), src2, rowIndices(rowT, cols2))
-          rowT += 1
-          idx += 1
-        }
-        row += 1
-      }
-      row
-    }
-
   }
-
+  
   object Timing {
     def elapsed(msg: String, l: Long) = {
       val now = System.currentTimeMillis

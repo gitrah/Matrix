@@ -400,104 +400,104 @@ import MatrixD.verbose
   override def clone = {
     new MatrixD(elements.clone(), nCols, txp.get, true)
   }
-  
+
   //     Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f, elements, o.elements, l, c, nRows)))
-  def averageChunk(te : Array[Double], mus : Array[Double])(range : (Long,Long))()= {
+  def averageChunk(te: Array[Double], mus: Array[Double])(range: (Long, Long))() = {
     var i = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     var j = 0
     var rowOff = 0
-    while(i <= end) {
+    while (i <= end) {
       j = 0
       rowOff = i * nRows
-      while( j < nRows) {
+      while (j < nRows) {
         mus(i) += te(rowOff + j)
         j += 1
       }
       mus(i) /= nRows
-      i+=1
+      i += 1
     }
     i
   }
-  
-  def featureAveragesDc : Array[Double] = {
-    val te = tN.elements  // each row holds all samples of ith feature
+
+  def featureAveragesDc: Array[Double] = {
+    val te = tN.elements // each row holds all samples of ith feature
     val l = nCols
-    var mus = Array.fill(nCols)(0d)  // will hold avg of each feature
+    var mus = Array.fill(nCols)(0d) // will hold avg of each feature
     Concurrent.combine(Concurrent.distribute(nCols, averageChunk(te, mus)))
     mus
   }
-  
-  def featureAverages : Array[Double] = {
-    val te = tN.elements  // each row holds all samples of ith feature
+
+  def featureAverages: Array[Double] = {
+    val te = tN.elements // each row holds all samples of ith feature
     val l = te.length
-    var mus = Array.fill(nCols)(0d)  // will hold avg of each feature
+    var mus = Array.fill(nCols)(0d) // will hold avg of each feature
     var i = 0
-    while(i < l) {
+    while (i < l) {
       mus(i / nRows) += te(i)
-      i+=1
+      i += 1
     }
     mus / nRows
   }
-  
-  def varianceChunk(te: Array[Double], sigmas: Array[Double], mus:Array[Double])(range : (Long,Long))() = {
-    	var i = range._1.asInstanceOf[Int]
-    	val end = range._2.asInstanceOf[Int]
-    	var p = 0d
-      var rowOff = 0
-    	var j= 0
-    	while(i <= end) {
-    	  j = 0
-    	  rowOff = i * nRows
-    	  while(j < nRows) {
-    	    p = te(rowOff + j) - mus( i)
-    	    sigmas(i) += p * p
-    	    j+=1
-    	  }
-    	  sigmas(i) = math.sqrt(sigmas(i)/ nRows)
-    	  i+=1
-    	}
-    	i
+
+  def varianceChunk(te: Array[Double], sigmas: Array[Double], mus: Array[Double])(range: (Long, Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var p = 0d
+    var rowOff = 0
+    var j = 0
+    while (i <= end) {
+      j = 0
+      rowOff = i * nRows
+      while (j < nRows) {
+        p = te(rowOff + j) - mus(i)
+        sigmas(i) += p * p
+        j += 1
+      }
+      sigmas(i) = math.sqrt(sigmas(i) / nRows)
+      i += 1
+    }
+    i
   }
-  
-  def varianceDc(mus : Array[Double]) : Array[Double] = {
+
+  def varianceDc(mus: Array[Double]): Array[Double] = {
     var sigmas = Array.fill(nCols)(0d)
     val te = tN.elements
-    Concurrent.combine(Concurrent.distribute(nCols, varianceChunk(te,sigmas,mus)))
+    Concurrent.combine(Concurrent.distribute(nCols, varianceChunk(te, sigmas, mus)))
     sigmas
   }
-  
-  def variance(mus : Array[Double]) : Array[Double] = {
+
+  def variance(mus: Array[Double]): Array[Double] = {
     var sigmas = Array.fill(nCols)(0d)
     val l = nRows * nCols
-    var i = l -1
+    var i = l - 1
     var t = 0d
-    while(i > -1) {
+    while (i > -1) {
       t = elements(i) - mus(i % nCols)
-      sigmas(i % nCols) += t*t 
+      sigmas(i % nCols) += t * t
       i -= 1
     }
-    i=0
-    while(i < nCols) {
-      sigmas(i) = math.sqrt(sigmas(i)/nRows)
-      i+=1
+    i = 0
+    while (i < nCols) {
+      sigmas(i) = math.sqrt(sigmas(i) / nRows)
+      i += 1
     }
     sigmas
   }
-  
+
   //  Xi - μi
   //  -------
   //     σ
-  def normalize : MatrixD = {
+  def normalize: MatrixD = {
     val mus = featureAveragesDc
     var i = 0
     val l = elements.length
     var e = elements.clone()
     // for each feature of each sample, subtract feature mean and divide by standard deviation of feature  
     i = 0
-    while(i < l) {
+    while (i < l) {
       e(i) -= mus(i % nCols)
-      i+=1
+      i += 1
     }
     e = e / Math.std(e)
     new MatrixD(e, nCols)
@@ -884,29 +884,7 @@ import MatrixD.verbose
     ret
   }
 
-  def transposeChunky(): MatrixD = {
-    MatrixD.txpsCreateCount += 1
-    val l: Long = elements.length - 1
-    val b = new Array[Double]((l + 1).asInstanceOf[Int])
-    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
-    val spans = Concurrent.toSpans(l, Concurrent.threadCount)
-    //println("spans " + spans.mkString)
-    val futs = new Array[Future[Long]](spans.length)
-    var i = 0
-    while (i < spans.length) {
-      futs(i) = Concurrent.effort(transposeChunk(elements, l, b, nRows)(spans(i)))
-      i += 1
-    }
-    i = 0
-    while (i < spans.length) {
-      futs(i).get
-      i += 1
-    }
-    new MatrixD(b, nRows, this, false)
-  }
-
   def transposeChunk(src: Array[Double], len: Long, trg: Array[Double], rows: Int)(range: Tuple2[Long, Long])(): Long = {
-    //println("txChunk range " + range)
     var i: Long = range._1
     while (i <= range._2) {
       trg((i * rows % len).asInstanceOf[Int]) = src(i.asInstanceOf[Int])
@@ -1010,35 +988,32 @@ import MatrixD.verbose
     new MatrixD(c, o.nCols)
   }
 
-  //  def multChunk(src1: Array[Double], cols1 : Int, src2: Array[Double], rows2 : Int, cols2 : Int,  trg: Array[Double])( range : Tuple2[Long,Long])() : Long = {
-
-  def multChunky(o: MatrixD): MatrixD = {
-    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
-    val oT = o.transposeN
-    val c = new Array[Double](nRows * o.nCols)
-    val spans = Concurrent.toSpans(nRows, Concurrent.threadCount, true)
-    //println("spans " +spans.mkString)
-    val futs = new Array[Future[Long]](spans.length)
-    var i = 0
-    while (i < spans.length) {
-      futs(i) = Concurrent.effort(Concurrent.multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c)(spans(i)))
-      i += 1
+  def multChunk(src1: Array[Double], cols1: Int, src2: Array[Double], rows2: Int, cols2: Int, trg: Array[Double])(range: Tuple2[Long, Long])(): Long = {
+    @inline def rowIndices(row: Int, cols: Int) = {
+      val start = (row - 1) * cols
+      (start, start + cols - 1)
     }
-    // getum
-    i = 0
-    while (i < spans.length) {
-      futs(i).get
-      i += 1
+    var row = range._1
+    var rowT = 1
+    var idx = (row - 1) * rows2
+    while (row <= range._2) {
+      rowT = 1
+      //println("row " + row + " idx " + idx)
+      while (rowT <= rows2) {
+        trg(idx.asInstanceOf[Int]) = MatrixD.dot(src1, rowIndices(row.asInstanceOf[Int], cols1), src2, rowIndices(rowT, cols2))
+        rowT += 1
+        idx += 1
+      }
+      row += 1
     }
-    new MatrixD(c, o.nCols)
-
+    row
   }
 
   def multDc(o: MatrixD): MatrixD = {
     require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
     val oT = o.transposeN
     val c = new Array[Double](nRows * o.nCols)
-    Concurrent.combine(Concurrent.distribute(nRows, Concurrent.multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
+    Concurrent.combine(Concurrent.distribute(nRows, multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
     new MatrixD(c, o.nCols)
   }
 

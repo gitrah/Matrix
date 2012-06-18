@@ -637,29 +637,16 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
       i += 1
     }
     val ret = new MatrixF(b, nRows, this, false)
-    //println("transposeEl b.length " + b.length + " cols " + nRows)
     ret
   }
-
-  def transposeChunky(): MatrixF = {
-    MatrixF.txpsCreateCount += 1
-    val l: Long = elements.length - 1
-    val b = new Array[Float]((l + 1).asInstanceOf[Int])
-    b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
-    val spans = Concurrent.toSpans(l, Concurrent.threadCount)
-    //println("spans " + spans.mkString)
-    val futs = new Array[Future[Long]](spans.length)
-    var i = 0
-    while (i < spans.length) {
-      futs(i) = Concurrent.effort(Concurrent.transposeChunkF(elements, l, b, nRows)(spans(i)))
+  
+  def transposeChunk(src: Array[Float], len: Long, trg: Array[Float], rows: Int)(range: Tuple2[Long, Long])(): Long = {
+    var i: Long = range._1
+    while (i <= range._2) {
+      trg((i * rows % len).asInstanceOf[Int]) = src(i.asInstanceOf[Int])
       i += 1
     }
-    i = 0
-    while (i < spans.length) {
-      futs(i).get
-      i += 1
-    }
-    new MatrixF(b, nRows, this, false)
+    i
   }
 
   def transposeDc(): MatrixF = {
@@ -667,7 +654,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
     val l: Long = elements.length - 1
     val b = new Array[Float]((l + 1).asInstanceOf[Int])
     b(l.asInstanceOf[Int]) = elements(l.asInstanceOf[Int])
-    Concurrent.combine(Concurrent.distribute(l, Concurrent.transposeChunkF(elements, l, b, nRows)))
+    Concurrent.combine(Concurrent.distribute(l, transposeChunk(elements, l, b, nRows)))
     new MatrixF(b, nRows, this, false)
   }
 
@@ -757,35 +744,33 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
     new MatrixF(c, o.nCols)
   }
 
-  //  def multChunk(src1: Array[Float], cols1 : Int, src2: Array[Float], rows2 : Int, cols2 : Int,  trg: Array[Float])( range : Tuple2[Long,Long])() : Long = {
-
-  def multChunky(o: MatrixF): MatrixF = {
-    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
-    val oT = o.transposeN
-    val c = new Array[Float](nRows * o.nCols)
-    val spans = Concurrent.toSpans(nRows, Concurrent.threadCount, true)
-    //println("spans " +spans.mkString)
-    val futs = new Array[Future[Long]](spans.length)
-    var i = 0
-    while (i < spans.length) {
-      futs(i) = Concurrent.effort(Concurrent.multChunkF(elements, nCols, oT.elements, oT.nRows, oT.nCols, c)(spans(i)))
-      i += 1
+  def multChunk(src1: Array[Float], cols1: Int,
+    src2: Array[Float], rows2: Int, cols2: Int,
+    trg: Array[Float])(range: Tuple2[Long, Long])(): Long = {
+    @inline def rowIndices(row: Int, cols: Int) = {
+      val start = (row - 1) * cols
+      (start, start + cols - 1)
     }
-    // getum
-    i = 0
-    while (i < spans.length) {
-      futs(i).get
-      i += 1
+    var row = range._1
+    var rowT = 1
+    var idx = (row - 1) * rows2
+    while (row <= range._2) {
+      rowT = 1
+      while (rowT <= rows2) {
+        trg(idx.asInstanceOf[Int]) = MatrixF.dot(src1, rowIndices(row.asInstanceOf[Int], cols1), src2, rowIndices(rowT, cols2))
+        rowT += 1
+        idx += 1
+      }
+      row += 1
     }
-    new MatrixF(c, o.nCols)
-
+    row
   }
 
   def multDc(o: MatrixF): MatrixF = {
     require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
     val oT = o.transposeN
     val c = new Array[Float](nRows * o.nCols)
-    Concurrent.combine(Concurrent.distribute(nRows, Concurrent.multChunkF(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
+    Concurrent.combine(Concurrent.distribute(nRows, multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
     new MatrixF(c, o.nCols)
   }
 
@@ -801,8 +786,6 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
       while (j < rCols) {
         k = 0
         while (k < nCols) {
-          //res.elements( res.deref(i, j)) += elements( deref(i, k)) * o.elements(o.deref(k, j))
-          //println( (i * rCols + j) + " " + ( i * nCols + k) + " " +  (k * o.nCols + j))
           res.elements(i * rCols + j) += elements(i * nCols + k) * o.elements(k * o.nCols + j)
           k += 1
         }

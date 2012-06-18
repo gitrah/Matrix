@@ -34,7 +34,7 @@ object TestMatrixD {
     time("randn ",  m = MatrixD.randn(500,5000), lim)
     time("tranposeN ",  {m = MatrixD.randn(500,5000); m = m.transposeN}, lim)
     time("transposeSlow ", { m = MatrixD.randn(500,5000); m = m.transposeSlow}, lim)
-    time("transposeChunky ", { m = MatrixD.randn(500,5000); m = m.transposeChunky}, lim)
+    time("transposeChunky ", { m = MatrixD.randn(500,5000); m = m.transposeDc}, lim)
   }
   
     // import com.hartenbower.matrix._; import Util._ ; import MatrixD._
@@ -50,7 +50,7 @@ object TestMatrixD {
     var lim = 1000
     time("slowMult ", m1 slowMult m2, lim)
     time("* ", m1 multSequential m2, lim)
-    time("multChunkty ", m1 multChunky m2, lim)
+    time("multChunkty ", m1 multDc m2, lim)
     
   }
   
