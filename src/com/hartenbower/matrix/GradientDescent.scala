@@ -1,6 +1,6 @@
 package com.hartenbower.matrix
 import scala.io.Source
-
+import Util._
 object GradientDescent {
   /**
    * linear regresson model
@@ -71,6 +71,25 @@ object GradientDescent {
     val prod = dmTxp * designMatrix
     require(prod.determinant != 0., "features matrix is singular")
     prod.inverse() * dmTxp * MatrixD.columnMatrix(values)
+  }
+  
+  def hLinReg( theta : MatrixD, x : MatrixD ) = theta.tN * x
+  
+  def cost( h : (MatrixD, MatrixD) => MatrixD, x: MatrixD, theta: MatrixD, y: MatrixD) : Double = {
+     (.5 * (h(x,theta) - y)^2).sum
+  }
+  
+  type CostFn = ( (MatrixD, MatrixD) => MatrixD, MatrixD, MatrixD, MatrixD) => Double 
+  
+  def stochasticDescent(c : CostFn, x: MatrixD, theta : MatrixD, alpha : Double, epsilon: Double)  {
+    val (m,n) = x.dims()
+    var j = 0d
+    var lastJ = Double.NaN
+    do {
+      val rows = Math.randpermArray(m)
+      
+    }
+    while( lastJ.isNaN() || (j - lastJ) > epsilon)
   }
 
 }

@@ -155,7 +155,7 @@ object Util {
             elementType match {
               case "matrix" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name, new MatrixD(elementDataD, cols, true))
+                m = m + new Tuple2(name, new MatrixD(elementDataD.clone(), cols, true))
               case "scalar" =>
                 println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
                 m = m + new Tuple2(name, elementDataD(0))
@@ -370,7 +370,7 @@ object Util {
 
     def meanSquaredError(s: Array[Double], t: Array[Double]) = sumSquaredDiffs(s, t) / s.length
 
-    def randperm(m: Int): List[Int] = {
+    def randpermArray(m: Int): Array[Int] = {
       val rnd = new Random(System.currentTimeMillis())
       var src = new Array[Int](m)
       var res = new Array[Int](m)
@@ -387,8 +387,10 @@ object Util {
         src = src.filterNot(_ == src(idx))
         i += 1
       }
-      res.toList
+      res
     }
+    
+    def randperm(m: Int): List[Int] = randpermArray(m).toList
 
     implicit def scalarOp(d: Double) = new ScalarOp(d)
 
@@ -466,6 +468,17 @@ object Util {
         var i = l - 1
         while (i > -1) {
           o(i) = a(i) - oa(i)
+          i -= 1
+        }
+        o
+      }
+      def -(oa: Array[Double], sOff : Int = 0, tOff : Int = 0): Array[Double] = {
+        val l = oa.length
+        //require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i + sOff) - oa(i + tOff)
           i -= 1
         }
         o

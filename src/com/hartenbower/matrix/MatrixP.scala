@@ -318,7 +318,7 @@ case class MatrixP[N](val elements: Array[N], var nCols: Int)(implicit num: Nume
   }
 
   def *(o: MatrixP[N]): MatrixP[N] = {
-    require(nCols == o.nRows, "matrices of incompatible shape for mulitplication")
+    require(nCols == o.nRows, "matrices of incompatible shape for multiplication")
     val c = manifest.newArray(nRows * o.nCols)
     val oT = o.transposeNew
     var row = 1

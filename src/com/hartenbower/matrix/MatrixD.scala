@@ -312,6 +312,7 @@ object MatrixD {
     }
   }
 
+  // TODO: finish / generalize this
   def mapFeature(x1: MatrixD, x2: MatrixD, degree: Int = 6): MatrixD = {
     require(x1.dims() == x2.dims(), x1.dims() + "!=" + x2.dims())
     require(x1.nCols == 1, "must be column vecs")
@@ -350,6 +351,7 @@ import MatrixD.verbose
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
   @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
+  @transient lazy val inv = Concurrent.effort(_inverseDc)
 
   def this(els: Array[Double], cols: Int, transpose: Boolean = true) {
     this(els, cols, null, transpose)
@@ -709,6 +711,30 @@ import MatrixD.verbose
     }
     new MatrixD(res.elements, res.nCols, true)
   }
+  
+  def clippedRowSubset (r : Array[Int], colRange : (Int,Int)) = {
+    require(colRange._1 > -1 && colRange._2 < nCols, "bad column range")
+    val newM = r.length
+    val res  = MatrixD.zeros(newM,colRange._2 - colRange._1+1)
+    val (m,n) = res.dims()
+    val b = res.elements
+    var i = 0
+    var j = 0
+    var boff = 0
+    var eoff = 0
+    while(i < newM) {
+      j = colRange._1
+      boff = i * n - colRange._1
+      eoff = r(i) * nCols
+      while(j <= colRange._2) {
+        b(boff + j) = elements(eoff + j)
+        j+=1
+      }
+      i+=1
+    }
+    res
+ }
+
 
   def rowSubset(indices: List[Int]) = {
     var i = 0
@@ -775,6 +801,7 @@ import MatrixD.verbose
     }
     out
   }
+  
 
   override def toString(): String = {
     if (verbose || (nRows < 11 && nCols < 11)) {
@@ -969,7 +996,7 @@ import MatrixD.verbose
   @inline def *(o: MatrixD): MatrixD = multDc(o)
 
   def multSequential(o: MatrixD): MatrixD = {
-    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for multiplication")
     val c = new Array[Double](nRows * o.nCols)
     val oT = o.transposeN
     var row = 1
@@ -1010,7 +1037,7 @@ import MatrixD.verbose
   }
 
   def multDc(o: MatrixD): MatrixD = {
-    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for mulitplication")
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for multiplication")
     val oT = o.transposeN
     val c = new Array[Double](nRows * o.nCols)
     Concurrent.combine(Concurrent.distribute(nRows, multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
@@ -1086,6 +1113,16 @@ import MatrixD.verbose
   def ^(exp: Double) = elementScalarOpDc(exp, (x, y) => scala.math.pow(x, y))
   def clean(σ: Double = .0001) = elementScalarOpDc(σ, (x, y) => if (x * x < y * y) 0. else x)
 
+  def filterElements( f: Double => Double) : MatrixD = {
+    val c = elements.clone
+    var i = elements.length-1
+    while(i > -1) {
+      c(i) = f(c(i))
+      i-=1
+    }
+    new MatrixD(c, nCols)
+  }
+  
   def sumSquaredDiffs(other: MatrixD): Double = {
     require(dims() == other.dims(), "this " + dims + " dimly incompat w other: " + other.dims)
     var sum = 0d
@@ -1098,6 +1135,23 @@ import MatrixD.verbose
       i += 1
     }
     sum
+  }
+  
+  def sumSqrChunk(range:(Long,Long))() = {
+    val end = range._2.asInstanceOf[Int] 
+    var s = 0d
+    var c = 0d
+    var i = range._1.asInstanceOf[Int]
+    while(i <= end) {
+      c = elements(i)
+      s += c * c
+      i += 1
+    }
+    s
+  }
+  
+  def sumSqrsDc() : Double = {
+    Concurrent.aggregateD( Concurrent.distribute(elements.length, sumSqrChunk) )
   }
 
   def sgn(row: Int, col: Int): Int = {
@@ -1113,6 +1167,38 @@ import MatrixD.verbose
   }
 
   def minorM(row: Int, col: Int): MatrixD = {
+    validIndicesQ(row, col)
+    val c = new Array[Double]((nCols - 1) * (nRows - 1))
+    var i = 0
+    var j = 0
+    var rowRange = rowIndices(row)
+    while (j < elements.length) {
+      if ((j < rowRange._1 || j > rowRange._2) && j % nCols + 1 != col) {
+        c(i) = elements(j)
+        i += 1
+      }
+      j += 1
+    }
+    new MatrixD(c, nCols - 1)
+  }
+
+  def minorChunk(c: Array[Double])(row: Int, col: Int): MatrixD = {
+    validIndicesQ(row, col)
+    val c = new Array[Double]((nCols - 1) * (nRows - 1))
+    var i = 0
+    var j = 0
+    var rowRange = rowIndices(row)
+    while (j < elements.length) {
+      if ((j < rowRange._1 || j > rowRange._2) && j % nCols + 1 != col) {
+        c(i) = elements(j)
+        i += 1
+      }
+      j += 1
+    }
+    new MatrixD(c, nCols - 1)
+  }
+
+  def minorMdc(row: Int, col: Int): MatrixD = {
     validIndicesQ(row, col)
     val c = new Array[Double]((nCols - 1) * (nRows - 1))
     var i = 0
@@ -1149,6 +1235,30 @@ import MatrixD.verbose
     }
   }
 
+  def determinantChunk(range: (Long, Long))(): Double = {
+    var row = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var sum = 0.
+    while (row <= end) {
+      sum += elements((row - 1) * nCols) * cofactor(row, 1)
+      row += 1
+    }
+    sum
+  }
+
+  def determinantDc: Double = {
+    require(nCols == nRows, "not square")
+    nCols match {
+      case 1 =>
+        elements(0)
+      case 2 =>
+        elements(0) * elements(3) - elements(1) * elements(2)
+      case _ =>
+        // cofactor expansion along the first column
+        Concurrent.aggregateD(Concurrent.distribute(nRows, determinantChunk))
+    }
+  }
+
   def cofactor(row: Int, col: Int) = minor(row, col) * sgn(row, col)
 
   def cofactorM() = {
@@ -1168,6 +1278,30 @@ import MatrixD.verbose
     new MatrixD(c, nCols)
   }
 
+  def cofactorChunk(c: Array[Double])(range: (Long, Long))() = {
+    val c = new Array[Double](elements.length)
+    var row = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var col = 1
+    var i = row * nCols
+    while (row <= end) {
+      col = 1
+      while (col <= nCols) {
+        c(i) = cofactor(row, col)
+        col += 1
+        i += 1
+      }
+      row += 1
+    }
+    row
+  }
+
+  def cofactorMdc() = {
+    val c = new Array[Double](elements.length)
+    Concurrent.combine(Concurrent.distribute(nRows, cofactorChunk(c)))
+    new MatrixD(c, nCols)
+  }
+
   def cofactorM2() = { // about 3% slower than nested whiles
     val l = elements.length
     val c = new Array[Double](l)
@@ -1179,10 +1313,18 @@ import MatrixD.verbose
     new MatrixD(c, nCols)
   }
 
-  def inverse(): MatrixD = {
+  def inverse() = inv.get
+  def _inverse(): MatrixD = {
     val d = determinant
     require(d != 0, "not linearly independent")
     val mT = cofactorM.transposeN()
+    mT / d
+  }
+
+  def _inverseDc(): MatrixD = {
+    val d = determinant
+    require(d != 0, "not linearly independent")
+    val mT = cofactorMdc.transposeN()
     mT / d
     mT
   }
