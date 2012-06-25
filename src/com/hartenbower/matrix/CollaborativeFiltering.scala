@@ -1,5 +1,5 @@
 package com.hartenbower.matrix
-
+import MatrixD._
 object CollaborativeFiltering {
 	/**
 	 * @param x : inputs (num samples x num features)

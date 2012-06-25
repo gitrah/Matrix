@@ -1,6 +1,7 @@
 package com.hartenbower.matrix
 import scala.io.Source
 import Util._
+import MatrixD._
 object GradientDescent {
   /**
    * linear regresson model
