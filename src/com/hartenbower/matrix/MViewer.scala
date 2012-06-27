@@ -1,7 +1,7 @@
 package com.hartenbower.matrix
 import scala.collection.JavaConverters._
 import java.util.Random
-import   swing._                                                                
+import   scala.swing._                                                                
 import scala.swing.event._
 import GridBagPanel._
 
@@ -72,7 +72,7 @@ class MViewer(val m: MatrixD)( dims: (Int,Int) = m.dims) extends Frame {
   	while(i < m.nRows) {
   	  j = 0
   	  while(j < m.nCols) {
-  	    println("i,j" + i + ", " + j)
+  	    //println("i,j" + i + ", " + j)
   	    Util.ArrayUtil.fill(sample, m.elements(i * m.nCols + j).asInstanceOf[Int])
   	    raster.setSamples((j*scalex).asInstanceOf[Int],(i * scaley).asInstanceOf[Int],isx, isy, 0, sample)
   	    j+=1
@@ -84,21 +84,19 @@ class MViewer(val m: MatrixD)( dims: (Int,Int) = m.dims) extends Frame {
   
   val imagePanel = new ImagePanel
   imagePanel.bufferedImage=bufferedImage
-  imagePanel.size =(new Dimension(bufferedImage.getWidth(), bufferedImage.getHeight()))
+  //imagePanel.size =(new Dimension(bufferedImage.getWidth(), bufferedImage.getHeight()))
   
-  println("size " + imagePanel.size)
+  //println("size " + imagePanel.size)
   val top = new MainFrame {
     title = "MViewer"
 
     contents = new BoxPanel(Orientation.Vertical) {
         contents += imagePanel
         contents += bye
-        size = imagePanel.size
-        println("size inner " + size)
+        //size = imagePanel.size
     }
     
     size = imagePanel.size
-    println("boxPanel size " + contents.size)
     
     listenTo( bye)
     var nClicks = 0
