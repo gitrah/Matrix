@@ -58,12 +58,12 @@ object Util {
         i += 1
       }
     }
-    
-    def aggregateD(efforts: Array[Future[Double]]) : Double = {
+
+    def aggregateD(efforts: Array[Future[Double]]): Double = {
       var i = 0
       var s = 0d
       while (i < efforts.length) {
-        s+= efforts(i).get
+        s += efforts(i).get
         i += 1
       }
       s
@@ -86,7 +86,7 @@ object Util {
     }
 
   }
-  
+
   object Timing {
     def elapsed(msg: String, l: Long) = {
       val now = System.currentTimeMillis
@@ -314,6 +314,30 @@ object Util {
   }
 
   object Math {
+    private def sumChunk(a: Array[Double])(range: (Long, Long))(): Double = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var s = 0d
+      while (i <= end) {
+        s += a(i)
+        i += 1
+      }
+      s
+    }
+
+    private def sumSqrChunk(a: Array[Double])(range: (Long, Long))(): Double = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var s = 0d
+      var t = 0d
+      while (i <= end) {
+        t = a(i)
+        s += t * t
+        i += 1
+      }
+      s
+    }
+
     def sum(a: Array[Double]): Double = {
       var i = a.length - 1
       var s = 0d
@@ -322,6 +346,14 @@ object Util {
         i -= 1
       }
       s
+    }
+    import Concurrent._
+    def sumDc(a: Array[Double]): Double = {
+      aggregateD(distribute(a.length, sumChunk(a)))
+    }
+
+    def sumSqrDc(a: Array[Double]): Double = {
+      aggregateD(distribute(a.length, sumSqrChunk(a)))
     }
 
     def sumF(a: Array[Float]): Float = {
@@ -336,6 +368,10 @@ object Util {
 
     def average(a: Array[Double]): Double = {
       sum(a) / a.length
+    }
+
+    def averageDc(a: Array[Double]): Double = {
+      sumDc(a) / a.length
     }
 
     def powF(f: Float, exp: Float) = {
@@ -363,12 +399,31 @@ object Util {
       while (i < len) {
         delta = t(i) - s(i)
         sum += delta * delta
-        i+=1
+        i += 1
       }
       sum
     }
 
+    private def sumSquaredDiffsChunk(s: Array[Double], t: Array[Double])(range: (Long, Long))() = {
+      val end = range._2.asInstanceOf[Int]
+      var i = range._1.asInstanceOf[Int]
+      var sum = 0d
+      var delta = 0d
+      while (i <= end) {
+        delta = t(i) - s(i)
+        sum += delta * delta
+        i += 1
+      }
+      sum
+    }
+
+    def sumSquaredDiffsDc(s: Array[Double], t: Array[Double]) = {
+      val len = s.length
+      aggregateD(distribute(len, sumSquaredDiffsChunk(s, t)))
+    }
+
     def meanSquaredError(s: Array[Double], t: Array[Double]) = sumSquaredDiffs(s, t) / s.length
+    def meanSquaredErrorDc(s: Array[Double], t: Array[Double]) = sumSquaredDiffsDc(s, t) / s.length
 
     def randpermArray(m: Int): Array[Int] = {
       val rnd = new Random(System.currentTimeMillis())
@@ -389,7 +444,30 @@ object Util {
       }
       res
     }
-    
+
+    def randpermBatch(m: Int, batchSize: Int): Array[Array[Int]] = {
+      val rnd = new Random(System.currentTimeMillis())
+      var src = new Array[Int](m)
+      var res = new Array[Array[Int]](m)
+      var i = 0
+      while (i < m) {
+        src(i) = i + 1
+        i += 1
+      }
+      i = 0
+
+      while (src.length > 1) {
+        if (i % batchSize == 0) {
+          res(i) = new Array[Int](batchSize)
+        }
+        val idx = math.abs(rnd.nextInt) % src.length
+        res(i / batchSize)(i % batchSize) = src(idx)
+        src = src.filterNot(_ == src(idx))
+        i += 1
+      }
+      res
+    }
+
     def randperm(m: Int): List[Int] = randpermArray(m).toList
 
     implicit def scalarOp(d: Double) = new ScalarOp(d)
@@ -472,7 +550,7 @@ object Util {
         }
         o
       }
-      def -(oa: Array[Double], sOff : Int = 0, tOff : Int = 0): Array[Double] = {
+      def -(oa: Array[Double], sOff: Int = 0, tOff: Int = 0): Array[Double] = {
         val l = oa.length
         //require(oa.length == l, "arrays of unequal length")
         val o = new Array[Double](l)
@@ -553,6 +631,20 @@ object Util {
       d
     }
 
+    private def lengthSquaredChunk(v: Array[Double])(range:(Long,Long))(): Double = {
+      var d = 0d
+      var vi = 0d
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      while (i <= end) {
+        vi = v(i)
+        d += vi * vi
+        i += 1
+      }
+      d
+    }
+    def lengthSquaredDc(v: Array[Double]): Double = aggregateD(distribute(v.length, lengthSquaredChunk(v)))
+
     def lengthSquared2(v: Array[Double]): Double = {
       var d = 0d
       var i = v.length - 1
@@ -605,6 +697,33 @@ object Util {
       }
       (l, ov)
     }
+    
+    def divChunk(v:Array[Double], divisor : Double)(range:(Long,Long))() = {
+       var i = range._1.asInstanceOf[Int]
+       val end = range._2.asInstanceOf[Int]
+       while (i <= end) {
+        v(i) /= divisor
+        i += 1
+      }
+      i
+    }
+
+    def addChunk(v:Array[Double], add : Double)(range:(Long,Long))() = {
+       var i = range._1.asInstanceOf[Int]
+       val end = range._2.asInstanceOf[Int]
+       while (i <= end) {
+        v(i) += add
+        i += 1
+      }
+      i
+    }
+
+    def unitVDc(v: Array[Double]): (Double, Array[Double]) = {
+      val ov = v.clone
+      val l = math.sqrt(lengthSquaredDc(v))
+      combine(distribute(ov.length, divChunk(ov,l)))
+      (l, ov)
+    }
 
     def randTerb(v: Array[Double], epsilon: Double): Array[Double] = {
       val ov = v.clone
@@ -615,14 +734,36 @@ object Util {
       }
       ov
     }
-    
-    def std(a : Array[Double]) = {
+
+    def stdDc(a: Array[Double]) = {
       val l = a.length
-      val avg= average(a)
-      val t = a - avg
-      val tt = t * t
-      math.sqrt( sum(tt)/(l -1))
+      val sumSqr = sumSqrDc(a)
+      val avg = averageDc(a)
+      math.sqrt( sumSqr /l - (avg * avg) )
     }
   }
 
+  object ArrayUtil {
+    def fill(a:Array[Double], v : Double) {
+      var i = a.length-1
+      while(i > -1) {
+        a(i) = v
+        i-=1
+      }
+    }
+    def fill(a:Array[Short], s : Short) {
+      var i = a.length-1
+      while(i > -1) {
+        a(i) = s
+        i-=1
+      }
+    }
+    def fill(a:Array[Int], s : Int) {
+      var i = a.length-1
+      while(i > -1) {
+        a(i) = s
+        i-=1
+      }
+    }
+  }
 }

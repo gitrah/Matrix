@@ -501,7 +501,28 @@ import MatrixD.verbose
       e(i) -= mus(i % nCols)
       i += 1
     }
-    e = e / Math.std(e)
+    e = e / Math.stdDc(e)
+    new MatrixD(e, nCols)
+  }
+  
+  private def subChunk(e: Array[Double], mus: Array[Double])(range:(Long,Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    while(i <= end) {
+      e(i) -= mus(i % nCols)
+      i+=1
+    }
+    i
+  }
+
+  def normalizeDc: MatrixD = {
+    val mus = featureAveragesDc
+    var i = 0
+    val l = elements.length
+    var e = elements.clone()
+    Concurrent.combine(Concurrent.distribute(l, subChunk(e,mus)))
+    val stdDev = Math.stdDc(e)
+    Concurrent.combine(Concurrent.distribute(l, Math.divChunk(e,stdDev)))
     new MatrixD(e, nCols)
   }
 
@@ -736,7 +757,7 @@ import MatrixD.verbose
  }
 
 
-  def rowSubset(indices: List[Int]) = {
+  def rowSubset(indices: Array[Int]) = {
     var i = 0
     var res: MatrixD = null
     while (i < indices.size) {
@@ -749,6 +770,31 @@ import MatrixD.verbose
       i += 1
     }
     res
+  }
+
+  def copyRowChunk(e: Array[Double], indices:Array[Int])(range : (Long,Long))() = {
+    val end = range._2.asInstanceOf[Int]
+    var i = range._1.asInstanceOf[Int]
+    var j = 0
+    var soff = 0
+    var toff = 0
+    while(i <= end) {
+      j = 0
+      soff = indices(i) * nCols
+      toff = i * nCols
+      while(j < nCols) {
+        e(toff + j) = elements(soff + j)
+        j+=1
+      }
+      i+=1
+    }
+  }
+  
+  def rowSubsetDc(indices: Array[Int]) = {
+    var i = 0
+    val e = new Array[Double](indices.length * nCols)
+    Concurrent.combine(Concurrent.distribute(indices.length, copyRowChunk(e,indices)))
+    new MatrixD(e,nCols)
   }
 
   def toRowMaxIndices() = {

@@ -51,14 +51,6 @@ object GradientDescent {
     }
   }
 
-  def parseTupleFile(path: String): Array[Product] = {
-    var l = Array[Product]()
-    for (line <- Source.fromFile(path).getLines()) {
-      l = l :+ arrayToTuple(line.split(",").map(_.toDouble))
-    }
-    l
-  }
-
   def normalEquation(features: Array[Double], nCols: Int, values: Array[Double]): MatrixD = {
     require(features.length / nCols == values.length, "counts of feature examples and value examples must agree")
     /*       T -1  T
@@ -76,23 +68,40 @@ object GradientDescent {
   
   def hLinReg( theta : MatrixD, x : MatrixD ) = theta.tN * x
   
-  def cost( h : (MatrixD, MatrixD) => MatrixD, x: MatrixD, theta: MatrixD, y: MatrixD) : Double = {
+  def cost( h : (MatrixD, MatrixD) => MatrixD)(x: MatrixD, theta: MatrixD, y: MatrixD) : Double = {
      (.5 * (h(x,theta) - y)^2).sum
   }
   
-  type CostFn = ( (MatrixD, MatrixD) => MatrixD, MatrixD, MatrixD, MatrixD) => Double 
+  type HypothFn = (MatrixD, MatrixD) => MatrixD
+  type CostFn =  ( HypothFn, MatrixD, MatrixD, MatrixD) => Double 
   
-  def stochasticDescent(c : CostFn, x: MatrixD, theta : MatrixD, alpha : Double, epsilon: Double)  {
+  // same as stochastic gradient descent if batchSize == 1
+  // store cost per batch and average over every x* 1000th sample to verify convergence.
+  def batchDescent(h: HypothFn, c : CostFn, x: MatrixD, y: MatrixD, theta : MatrixD, alpha : Double, epsilon: Double, batchSize : Int = 10)  {
     val (m,n) = x.dims()
     var j = 0d
     var lastJ = Double.NaN
+    var i = 0
+    var xiter :MatrixD = null
+    var yiter :MatrixD = null
+    var newTheta : MatrixD = theta.clone()
     do {
-      val rows = Math.randpermArray(m)
+      val rows = Math.randpermBatch(m, batchSize)
+      i = 0
+      while(i < rows.length) {
+        xiter = x.rowSubset(rows(i))
+        yiter = y.rowSubset(rows(i))
+        newTheta = iterativeThetaGrad(theta, xiter, h, yiter, alpha)
+      }
       
     }
     while( lastJ.isNaN() || (j - lastJ) > epsilon)
   }
 
+  def iterativeThetaGrad(theta : MatrixD, xiter:MatrixD, hypThetaX : HypothFn, yiter : MatrixD, alpha : Double) : MatrixD = {
+    // theta = theta - alpha (cost(xi) - yi) * xi
+    theta - ((hypThetaX(theta, xiter)-yiter) * xiter) * (alpha)
+  }
 }
 
 
