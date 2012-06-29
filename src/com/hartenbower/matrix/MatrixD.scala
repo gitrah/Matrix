@@ -645,6 +645,34 @@ import MatrixD.verbose
     new MatrixD(c, nCols)
   }
 
+  def gtChunk(f: (Double,Double) => Boolean, oe:Array[Double])(range : (Long,Long))() = {
+  		var i = range._1.asInstanceOf[Int]
+  		val end = range._2.asInstanceOf[Int]
+  		var greater = true
+  		while(greater && i <= end) {
+  		  if(elements(i) < oe(i)) {
+  		    greater = false
+  		  }
+  		  i+=1
+  		}
+  	  greater
+  }
+  
+  def binBoolOpDc(f:(Double,Double) => Boolean, other: MatrixD) : Boolean = {
+    val futs = Concurrent.distribute(elements.length,gtChunk(f,other.elements))
+    var i = 0
+    var greater = true
+    while(i < futs.length) {
+      greater &= futs(i).get()
+    }
+    greater
+  }
+
+  def >(o: MatrixD) = binBoolOpDc( (a,b) => a > b, o)
+  def <(o: MatrixD) = binBoolOpDc( (a,b) => a < b, o)
+  def `>=`(o: MatrixD) = binBoolOpDc( (a,b) => a >= b, o)
+  def `<=`(o: MatrixD) = binBoolOpDc( (a,b) => a <= b, o)
+  
   def +(other: MatrixD): MatrixD = matrixOpDc(other, _ + _)
   def -(other: MatrixD): MatrixD = matrixOpDc(other, _ - _)
   def hadamardProduct(other: MatrixD) = matrixOpDc(other, _ * _)
@@ -717,6 +745,11 @@ import MatrixD.verbose
 
   def toColumnVector = if (rowVectorQ) tN else this
 
+  def toScalar() = {
+    require(nCols == nRows && nRows == 1)
+    elements(0)
+  }
+  
   def columnSubset(indices: List[Int]) = {
     // delay precomputing tx until matrix is complete
     var i = 0
