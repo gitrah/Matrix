@@ -340,6 +340,18 @@ object MatrixD {
     }
     res
   }
+  
+  
+  def aggregate(m: Int, n: Int, efforts: Array[Future[MatrixD]]): MatrixD = {
+    var i = 0
+    var s = MatrixD.zeros(m,n)
+    while (i < efforts.length) {
+      s = s + efforts(i).get
+      i += 1
+    }
+    s
+  }
+  
 }
 
 import MatrixD.verbose
@@ -352,7 +364,8 @@ import MatrixD.verbose
 
   @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
   @transient lazy val inv = Concurrent.effort(_inverseDc)
-
+  var oldCols  = -1
+  var oldRows = -1
   def this(els: Array[Double], cols: Int, transpose: Boolean = true) {
     this(els, cols, null, transpose)
   }
@@ -505,7 +518,7 @@ import MatrixD.verbose
     new MatrixD(e, nCols)
   }
   
-  private def subChunk(e: Array[Double], mus: Array[Double])(range:(Long,Long))() = {
+  private def normalizeChunk(e: Array[Double], mus: Array[Double])(range:(Long,Long))() = {
     var i = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     while(i <= end) {
@@ -520,7 +533,7 @@ import MatrixD.verbose
     var i = 0
     val l = elements.length
     var e = elements.clone()
-    Concurrent.combine(Concurrent.distribute(l, subChunk(e,mus)))
+    Concurrent.combine(Concurrent.distribute(l, normalizeChunk(e,mus)))
     val stdDev = Math.stdDc(e)
     Concurrent.combine(Concurrent.distribute(l, Math.divChunk(e,stdDev)))
     new MatrixD(e, nCols)
@@ -547,7 +560,8 @@ import MatrixD.verbose
     }
     new MatrixD(cl, nCols, new MatrixD(txcl, nRows, false), txcl == null)
   }
-
+    
+  @inline def sumDc() = Math.sumDc(elements)
   @inline def sum() = { var s = 0d; var i = 0; while (i < elements.length) { s += elements(i); i += 1 }; s }
 
   def length = {
@@ -601,6 +615,52 @@ import MatrixD.verbose
   }
 
   def isBinaryCategoryMatrix = !elements.exists(x => x != 0 && x != 1)
+  
+  def makeRowVector() = {
+    oldRows = nRows
+    nRows = 1
+    nCols *= oldRows
+    this
+  }
+
+  def revertRowVector() = {
+    nRows = oldRows
+    nCols /= oldRows
+    oldRows = -1
+    this
+  }
+
+  def makeColVector() = {
+    oldCols = nCols
+    nCols = 1
+    nRows *= oldCols
+    this
+  }
+
+  def revertColVector() = {
+    nCols = oldCols 
+    nRows /= oldCols
+    oldCols = -1
+    this
+  }
+  
+  def reshape(rows: Int, cols: Int, offset : Long = 0) : MatrixD = {
+    val l = rows*cols
+    val nelems = new Array[Double](l)
+    Array.copy(elements, offset.asInstanceOf[Int], nelems, 0, l)
+    new MatrixD(nelems, cols)
+  }
+  def redimension(dims : (Int,Int), offset : Long = 0) : MatrixD = reshape(dims._1,dims._2, offset)
+  
+  def dropFirst() = {
+     val nelems = new Array[Double](nCols * nRows - nRows)
+     var i =0
+     while(i < nRows) {
+       Array.copy(elements, i * nCols + 1, nelems, i * (nCols-1), nCols -1)
+       i+=1
+     }
+     new MatrixD(nelems, nCols-1)
+  }
 
   private def matrixOpIp(o: MatrixD, f: (Double, Double) => Double): MatrixD = {
     var l = elements.length
@@ -645,25 +705,26 @@ import MatrixD.verbose
     new MatrixD(c, nCols)
   }
 
-  def gtChunk(f: (Double,Double) => Boolean, oe:Array[Double])(range : (Long,Long))() = {
+  def boolOpChunk(f: (Double,Double) => Boolean, oe:Array[Double])(range : (Long,Long))() = {
   		var i = range._1.asInstanceOf[Int]
   		val end = range._2.asInstanceOf[Int]
-  		var greater = true
-  		while(greater && i <= end) {
-  		  if(elements(i) < oe(i)) {
-  		    greater = false
+  		var test = true
+  		while(test && i <= end) {
+  		  if(!f(elements(i),oe(i))) {
+  		    test = false
   		  }
   		  i+=1
   		}
-  	  greater
+  	  test
   }
   
   def binBoolOpDc(f:(Double,Double) => Boolean, other: MatrixD) : Boolean = {
-    val futs = Concurrent.distribute(elements.length,gtChunk(f,other.elements))
+    val futs = Concurrent.distribute(elements.length,boolOpChunk(f,other.elements))
     var i = 0
     var greater = true
     while(i < futs.length) {
       greater &= futs(i).get()
+      i+=1
     }
     greater
   }
@@ -672,6 +733,9 @@ import MatrixD.verbose
   def <(o: MatrixD) = binBoolOpDc( (a,b) => a < b, o)
   def `>=`(o: MatrixD) = binBoolOpDc( (a,b) => a >= b, o)
   def `<=`(o: MatrixD) = binBoolOpDc( (a,b) => a <= b, o)
+  def equals(o:MatrixD) = binBoolOpDc( (a,b) => a == b, o)
+  def almostEquals(o:MatrixD, epsilon : Double ) = binBoolOpDc( (a,b) => math.abs(b-a) <= epsilon, o)
+  def ==(o:MatrixD) = equals(o)
   
   def +(other: MatrixD): MatrixD = matrixOpDc(other, _ + _)
   def -(other: MatrixD): MatrixD = matrixOpDc(other, _ - _)
@@ -1155,6 +1219,22 @@ import MatrixD.verbose
       el(l) = f(elements(l))
       l -= 1
     }
+    new MatrixD(el, nCols, txp != null)
+  }
+
+  def elementChunk(el:Array[Double], f: (Double) => Double)(range:(Long,Long))() = {
+    var l = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    while (l <= end) {
+      el(l) = f(elements(l))
+      l += 1
+    }
+    l
+  }
+  def elementOpDc(f: (Double) => Double): MatrixD = {
+    var el = elements.clone
+    var l = elements.length
+    Concurrent.combine(Concurrent.distribute(l, elementChunk(el,f)))
     new MatrixD(el, nCols, txp != null)
   }
 

@@ -11,7 +11,7 @@ object Util {
   object Concurrent {
 
     val defaultSpanThreshold = 1
-    var threadCount = 2 * Runtime.getRuntime.availableProcessors
+    var threadCount = 20 * Runtime.getRuntime.availableProcessors
     println("starting with a " + threadCount + "-thread pool")
     val pool = Executors.newFixedThreadPool(threadCount)
 
@@ -64,6 +64,33 @@ object Util {
       var s = 0d
       while (i < efforts.length) {
         s += efforts(i).get
+        i += 1
+      }
+      s
+    }
+
+    def aggregateDA(n : Int, efforts: Array[Future[Array[Double]]]): Array[Double] = {
+      
+      def arrayPlus(a : Array[Double], oa: Array[Double]): Array[Double] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length (" + oa.length + " != " + l)
+        
+        val o = new Array[Double](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + oa(i)
+          i -= 1
+        }
+        o
+      }
+      
+      var i = 0
+      var s = new Array[Double](n)
+      
+      // can't just say s = s + efforts(i).get because array math stuff hasn't been declared 
+      // and can't move Concurrent stuff after it because of dependencies 
+      while (i < efforts.length) {
+        s = arrayPlus(s,efforts(i).get)
         i += 1
       }
       s
@@ -314,7 +341,7 @@ object Util {
   }
 
   object Math {
-    private def sumChunk(a: Array[Double])(range: (Long, Long))(): Double = {
+    def sumChunk(a: Array[Double])(range: (Long, Long))(): Double = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
       var s = 0d
@@ -325,7 +352,7 @@ object Util {
       s
     }
 
-    private def sumSqrChunk(a: Array[Double])(range: (Long, Long))(): Double = {
+    def sumSqrChunk(a: Array[Double])(range: (Long, Long))(): Double = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
       var s = 0d
@@ -347,6 +374,28 @@ object Util {
       }
       s
     }
+
+    def transposeDot(a: Array[Double]): Array[Double] = {
+      val l = a.length
+      val out = new Array[Double](l * l)
+      var rows = 0
+      var cols = 0
+      var s = 0d
+      // iterator over diag and upper tri
+      while (rows < l) {
+        cols = rows
+        while (cols < l) {
+          s = a(cols) * a(rows)
+          out(rows * l + cols) = s
+          // copy value to lower tri where approp
+          if (rows != cols) out(cols * l + rows) = s
+          cols += 1
+        }
+        rows += 1
+      }
+      out
+    }
+
     import Concurrent._
     def sumDc(a: Array[Double]): Double = {
       aggregateD(distribute(a.length, sumChunk(a)))
@@ -617,6 +666,7 @@ object Util {
         }
         s
       }
+
     }
 
     def lengthSquared(v: Array[Double]): Double = {
@@ -631,7 +681,7 @@ object Util {
       d
     }
 
-    private def lengthSquaredChunk(v: Array[Double])(range:(Long,Long))(): Double = {
+    private def lengthSquaredChunk(v: Array[Double])(range: (Long, Long))(): Double = {
       var d = 0d
       var vi = 0d
       var i = range._1.asInstanceOf[Int]
@@ -697,21 +747,21 @@ object Util {
       }
       (l, ov)
     }
-    
-    def divChunk(v:Array[Double], divisor : Double)(range:(Long,Long))() = {
-       var i = range._1.asInstanceOf[Int]
-       val end = range._2.asInstanceOf[Int]
-       while (i <= end) {
+
+    def divChunk(v: Array[Double], divisor: Double)(range: (Long, Long))() = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      while (i <= end) {
         v(i) /= divisor
         i += 1
       }
       i
     }
 
-    def addChunk(v:Array[Double], add : Double)(range:(Long,Long))() = {
-       var i = range._1.asInstanceOf[Int]
-       val end = range._2.asInstanceOf[Int]
-       while (i <= end) {
+    def addChunk(v: Array[Double], add: Double)(range: (Long, Long))() = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      while (i <= end) {
         v(i) += add
         i += 1
       }
@@ -721,7 +771,7 @@ object Util {
     def unitVDc(v: Array[Double]): (Double, Array[Double]) = {
       val ov = v.clone
       val l = math.sqrt(lengthSquaredDc(v))
-      combine(distribute(ov.length, divChunk(ov,l)))
+      combine(distribute(ov.length, divChunk(ov, l)))
       (l, ov)
     }
 
@@ -739,30 +789,30 @@ object Util {
       val l = a.length
       val sumSqr = sumSqrDc(a)
       val avg = averageDc(a)
-      math.sqrt( sumSqr /l - (avg * avg) )
+      math.sqrt(sumSqr / l - (avg * avg))
     }
-  }
 
+  }
   object ArrayUtil {
-    def fill(a:Array[Double], v : Double) {
-      var i = a.length-1
-      while(i > -1) {
+    def fill(a: Array[Double], v: Double) {
+      var i = a.length - 1
+      while (i > -1) {
         a(i) = v
-        i-=1
+        i -= 1
       }
     }
-    def fill(a:Array[Short], s : Short) {
-      var i = a.length-1
-      while(i > -1) {
+    def fill(a: Array[Short], s: Short) {
+      var i = a.length - 1
+      while (i > -1) {
         a(i) = s
-        i-=1
+        i -= 1
       }
     }
-    def fill(a:Array[Int], s : Int) {
-      var i = a.length-1
-      while(i > -1) {
+    def fill(a: Array[Int], s: Int) {
+      var i = a.length - 1
+      while (i > -1) {
         a(i) = s
-        i-=1
+        i -= 1
       }
     }
   }

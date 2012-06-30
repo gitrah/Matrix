@@ -1,4 +1,8 @@
-package com.hartenbower.matrix
+package com.hartenbower.matrix.view
+import  com.hartenbower.matrix.MatrixD
+import  com.hartenbower.matrix.Util
+import  com.hartenbower.matrix.MatrixD._
+
 import scala.collection.JavaConverters._
 import java.util.Random
 import   scala.swing._                                                                

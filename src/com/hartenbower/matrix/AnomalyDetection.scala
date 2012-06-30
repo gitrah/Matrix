@@ -1,6 +1,8 @@
 package com.hartenbower.matrix
 
+import Util._
 import Util.Math._
+
 object AnomalyDetection {
   val oneOverSqrt2Pi = 1d / math.sqrt(2 * math.Pi)
   val twoPi = 2 * math.Pi
@@ -54,6 +56,26 @@ object AnomalyDetection {
       i-=1
     }
     sigma / m
+  }
+  
+  def sigmaChunk(xElems : Array[Double], mus: Array[Double], m : Int, n : Int)(range : (Long,Long))(): Array[Double] = {
+    var sigma = Array.fill(n*n)(0d)
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var mat = new Array[Double](n)
+    while(i <= end) {
+      Array.copy(xElems,i*n, mat, 0, n )
+      Array.copy(mat - mus,0, mat,0,n)
+      sigma = sigma + Math.transposeDot(mat)
+      i+=1
+    }
+    sigma
+  }
+  
+  def sigmaDc(x:MatrixD, mus: Array[Double]) : MatrixD = {
+    val (m,n) = x.dims
+    val sigma = Concurrent.aggregateDA(n*n,Concurrent.distribute(m, sigmaChunk(x.elements, mus, m, n)))
+    new MatrixD(sigma, n)/m
   }
   
   // multiply a 1 by N matrix by its transpose
