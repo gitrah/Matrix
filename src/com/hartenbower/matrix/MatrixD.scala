@@ -4,7 +4,6 @@ import java.util.concurrent._
 import Util._
 import Util.Math._
 object MatrixD {
-  val verbose = false
   var txpsCreateCount = 0l
   var txpsUseCount = 0l
 
@@ -355,11 +354,11 @@ object MatrixD {
   
 }
 
-import MatrixD.verbose
 /*
  * The array backed,  double precision version
  */
 @SerialVersionUID(1l) case class MatrixD(val elements: Array[Double], var nCols: Int, val txpM: MatrixD, transpose: Boolean) {
+  var verbose = false
   if (nCols != 0) require(elements.length % nCols == 0)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
