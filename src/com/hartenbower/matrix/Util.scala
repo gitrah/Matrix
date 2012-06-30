@@ -11,7 +11,7 @@ object Util {
   object Concurrent {
 
     val defaultSpanThreshold = 1
-    var threadCount = 20 * Runtime.getRuntime.availableProcessors
+    var threadCount = 2 * Runtime.getRuntime.availableProcessors
     println("starting with a " + threadCount + "-thread pool")
     val pool = Executors.newFixedThreadPool(threadCount)
 

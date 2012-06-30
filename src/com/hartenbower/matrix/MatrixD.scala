@@ -8,6 +8,7 @@ object MatrixD {
   var txpsCreateCount = 0l
   var txpsUseCount = 0l
 
+  implicit def log(m : MatrixD) = m.log()
   implicit def scalarOp(d: Double) = new ScalarOp(d)
 
   class ScalarOp(d: Double) {
@@ -498,6 +499,50 @@ import MatrixD.verbose
       i += 1
     }
     sigmas
+  }
+  
+  def range() : (Double,Double) = {
+    var min = Double.MaxValue
+    var max = Double.MinValue
+    var s = 0d
+    var i = 0
+    while(i < elements.length) {
+      s=elements(i)
+      if(s < min) {
+        min = s
+      }
+      if(s > max) {
+        max = s
+      }
+      i+=1
+    }
+    (min,max)
+  }
+  
+  def featureMinMax() : Array[(Double,Double)] = {
+    val res =  Array.fill(nCols)((Double.MaxValue, Double.MinValue))
+    var i = 0
+    var j = 0
+    var s = 0d
+    var offset = 0
+    var tup : (Double,Double) = null
+    while(i < nRows) {
+      j = 0
+      offset = i * nCols
+      while(j < nCols) {
+        s = elements(offset + j)
+        tup = res(j)
+        if(s < tup._1) {
+          res(j) = (s, tup._2)
+        }
+        if(s > tup._2) {
+          res(j) = (tup._1,s)
+        }
+        j+=1
+      }
+      i+=1
+    }
+    res
   }
 
   //  Xi - μi
@@ -1270,6 +1315,7 @@ import MatrixD.verbose
   def /(s: Double) = elementScalarOpDc(s, _ / _)
 
   def ^(exp: Double) = elementScalarOpDc(exp, (x, y) => scala.math.pow(x, y))
+  def log() = elementOpDc(math.log)
   def clean(σ: Double = .0001) = elementScalarOpDc(σ, (x, y) => if (x * x < y * y) 0. else x)
 
   def filterElements( f: Double => Double) : MatrixD = {

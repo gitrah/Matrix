@@ -4,52 +4,52 @@ import LogisticRegression._
 import MatrixD._
 
 object NeuralNet {
-  
-  
-  def nnCostFunction(nn_params : MatrixD,  input_layer_size : Int, 
-                                   hidden_layer_size : Int, 
-                                   num_labels: Int, 
-                                   _x : MatrixD, y : MatrixD, lambda : Double) : (Double, MatrixD) = {
+
+  def nnCostFunction(nn_params: MatrixD, input_layer_size: Int,
+    hidden_layer_size: Int,
+    num_labels: Int,
+    _x: MatrixD, y: MatrixD, lambda: Double): (Double, MatrixD) = {
     val theta1 = nn_params.reshape(hidden_layer_size, input_layer_size + 1)
     val theta2 = nn_params.reshape(num_labels, hidden_layer_size + 1, (hidden_layer_size * (input_layer_size + 1)))
     val m = _x.nRows
-    var x = if(!_x.hasBiasCol) _x.addBiasCol else _x
+    var x = if (!_x.hasBiasCol) _x.addBiasCol else _x
     val yb = y.toBinaryCategoryMatrix
-		val z2 = (theta1 * x.tN()).tN()
-		val a2 = MatrixD.ones(m,1) ++ z2.elementOpDc(sigmoid)
-		val z3 = (theta2 * a2.tN()).tN()
-		val a3 = z3.elementOpDc(sigmoid)
-		
-		var j = (- 1d/m * ( yb ** (a3.elementOpDc(math.log)) + (1d -yb) ** ((1d - a3).elementOpDc(math.log)))).sumDc()
-		println("j initial " + j)
-		//temp = Theta2(:,2:end); % skip bias
-		var tempTheta2 = theta2.dropFirst
-		//jreg3 =sum(sum((lambda / (2 * m) * temp.^2)));
-		val jreg3 = ((tempTheta2 ^ 2d) * (lambda/(2d*m))).sumDc()
-		println("jreg3 " + jreg3)
-		j += jreg3
-		//temp = Theta1(:,2:end); % skip bias
-		val tempTheta1 = theta1.dropFirst()
-		//jreg2 =sum(sum((lambda / (2 * m) * temp.^2))); 
-		val jreg2 =((tempTheta1 ^ 2d) * (lambda/(2d*m))).sumDc()
-		println("jreg2 " + jreg2)
-		j +=jreg2 
-		
-		val delta_3 = a3 - yb
-		//% Theta2_grad=  1/m* ((a3 - y') * X);
-		val delta_2 =  (delta_3 * tempTheta2) ** sigmoidGradient(z2)
-		val bigDelta2 = delta_3.tN() * a2
-		val bigDelta1 = delta_2.tN() * x
-		
-		//temp = [zeros(size(Theta2,1),1) Theta2(:,2:end)];
-		var temp = MatrixD.zeros(theta2.nRows,1) ++ tempTheta2
-		val theta2_grad=  (bigDelta2 + (temp * lambda))/m
-		// temp = [zeros(size(Theta1,1),1) Theta1(:,2:end)];
-		temp = MatrixD.zeros(theta1.nRows,1) ++ tempTheta1
-		val theta1_grad = 1d/m * (bigDelta1 + lambda * temp)
-		
-		val grad = theta1_grad.makeRowVector ++ theta2_grad.makeRowVector
-		(j, grad)
+    val z2 = (theta1 * x.tN()).tN()
+    val a2 = MatrixD.ones(m, 1) ++ z2.elementOpDc(sigmoid)
+    val z3 = (theta2 * a2.tN()).tN()
+    val a3 = z3.elementOpDc(sigmoid)
+
+    // 
+    var j = (-1d / m * (yb ** log(a3) + (1d - yb) ** ( log(1d - a3)))).sumDc()
+    println("j initial " + j)
+    //temp = Theta2(:,2:end); % skip bias
+    var tempTheta2 = theta2.dropFirst
+    //jreg3 =sum(sum((lambda / (2 * m) * temp.^2)));
+    val jreg3 = ((tempTheta2 ^ 2d) * (lambda / (2d * m))).sumDc()
+    println("jreg3 " + jreg3)
+    j += jreg3
+    //temp = Theta1(:,2:end); % skip bias
+    val tempTheta1 = theta1.dropFirst()
+    //jreg2 =sum(sum((lambda / (2 * m) * temp.^2))); 
+    val jreg2 = ((tempTheta1 ^ 2d) * (lambda / (2d * m))).sumDc()
+    println("jreg2 " + jreg2)
+    j += jreg2
+
+    val delta_3 = a3 - yb
+    //% Theta2_grad=  1/m* ((a3 - y') * X);
+    val delta_2 = (delta_3 * tempTheta2) ** sigmoidGradient(z2)
+    val bigDelta2 = delta_3.tN() * a2
+    val bigDelta1 = delta_2.tN() * x
+
+    //temp = [zeros(size(Theta2,1),1) Theta2(:,2:end)];
+    var temp = MatrixD.zeros(theta2.nRows, 1) ++ tempTheta2
+    val theta2_grad = (bigDelta2 + (temp * lambda)) / m
+    // temp = [zeros(size(Theta1,1),1) Theta1(:,2:end)];
+    temp = MatrixD.zeros(theta1.nRows, 1) ++ tempTheta1
+    val theta1_grad = 1d / m * (bigDelta1 + lambda * temp)
+
+    val grad = theta1_grad.makeRowVector ++ theta2_grad.makeRowVector
+    (j, grad)
   }
 
   def forwardAndBack(x: MatrixD, y: MatrixD, thetas: Array[MatrixD], lambda: Double) = {

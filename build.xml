@@ -79,6 +79,7 @@
 
         <path refid="aspectj.jars" />
         <path refid="JUnit.classpath" />
+        <pathelement location="./tools/sgt_v30.jar" />
     </path>
 
     <path id="Matrix.testClasspath" >
