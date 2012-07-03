@@ -4,6 +4,33 @@ import LogisticRegression._
 import MatrixD._
 
 object NeuralNet {
+  
+  def checkNnGradients(lambda : Double = 0d) {
+	  def sin(m:Int,n:Int) : MatrixD = {
+	    val l = m*n
+	    val mat = MatrixD.zeros(m,n +1)
+	    var i = 0
+	    while(i < l) {
+	      mat.elements(i) = math.sin(i+1)/10
+	      i+=1
+	    }
+	    mat
+	  }
+	  val input_layer_size = 3
+		val hidden_layer_size = 5
+		val num_labels = 3
+		val m = 5
+		
+		// We generate some 'random' test data
+		val theta1 = sin(hidden_layer_size, input_layer_size)
+		val theta2 = sin(num_labels, hidden_layer_size)
+		// Reusing debugInitializeWeights to generate X
+		val x  = sin(m, input_layer_size - 1)
+		val y  = new MatrixD(Util.Math.toDouble((1 to m).toArray), num_labels).elementOp( _ % num_labels) + 1 
+		
+
+  }
+  
 
   def nnCostFunction(nn_params: MatrixD, input_layer_size: Int,
     hidden_layer_size: Int,
@@ -65,14 +92,14 @@ object NeuralNet {
     deltas(thetas.length - 1) = hTheta - yb;
     i -= 1
     while (i > -1) {
-      val theta = thetas(i + 1).columnSubset((2 to thetas(i + 1).nCols).toList)
+      val theta = thetas(i + 1).columnSubset((2 to thetas(i + 1).nCols).toArray)
       deltas(i) = (deltas(i + 1) * theta) ** (sigmoidGradient(zs(i)).transposeIp())
       i -= 1
     }
     i = thetas.length - 1
     while (i > -1) {
       bigDeltas(i) = deltas(i).tN() * as(i)
-      val theta = MatrixD.zeros(thetas(i).nRows, 1) ++ thetas(i).columnSubset((2 to thetas(i).nCols).toList)
+      val theta = MatrixD.zeros(thetas(i).nRows, 1) ++ thetas(i).columnSubset((2 to thetas(i).nCols).toArray)
       grads(i) = (bigDeltas(i) + theta * lambda) / m
       i -= 1
     }

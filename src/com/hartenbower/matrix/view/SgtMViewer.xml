@@ -1,0 +1,201 @@
+<?xml version="1.0" encoding="UTF-8"?> 
+<java version="1.4.1_01" class="java.beans.XMLDecoder"> 
+ <object class="gov.noaa.pmel.sgt.beans.PanelModel"> 
+  <void property="pageSize"> 
+   <object class="java.awt.Dimension"> 
+    <int>475</int> 
+    <int>450</int> 
+   </object> 
+  </void> 
+  <void property="panelList"> 
+   <void method="put"> 
+    <string>PointPanel</string> 
+    <object class="gov.noaa.pmel.sgt.beans.PanelHolder"> 
+     <void property="bounds"> 
+      <object class="java.awt.Rectangle"> 
+       <int>0</int> 
+       <int>0</int> 
+       <int>475</int> 
+       <int>450</int> 
+      </object> 
+     </void> 
+     <void property="dataGroups"> 
+      <void method="put"> 
+       <string>PointData</string> 
+       <object class="gov.noaa.pmel.sgt.beans.DataGroup"> 
+        <void property="XAxisHolder"> 
+         <void property="boundsP"> 
+          <void property="height"> 
+           <double>0.4166666567325592</double> 
+          </void> 
+          <void property="width"> 
+           <double>4.80555534362793</double> 
+          </void> 
+          <void property="x"> 
+           <double>0.5</double> 
+          </void> 
+          <void property="y"> 
+           <double>0.0833333358168602</double> 
+          </void> 
+         </void> 
+         <void property="title"> 
+          <void property="moveable"> 
+           <boolean>false</boolean> 
+          </void> 
+         </void> 
+         <void property="transformGroup"> 
+          <string>PointData</string> 
+         </void> 
+         <void property="userRange"> 
+          <void id="SoTValue$Double6" property="delta"/> 
+          <void property="delta"> 
+           <object idref="SoTValue$Double6"/> 
+          </void> 
+          <void id="SoTValue$Double7" property="end"/> 
+          <void property="end"> 
+           <object idref="SoTValue$Double7"/> 
+          </void> 
+          <void id="SoTValue$Double8" property="start"/> 
+          <void property="start"> 
+           <object idref="SoTValue$Double8"/> 
+          </void> 
+         </void> 
+        </void> 
+        <void property="YAxisHolder"> 
+         <void property="boundsP"> 
+          <void property="height"> 
+           <double>4.80555534362793</double> 
+          </void> 
+          <void property="width"> 
+           <double>0.4166666567325592</double> 
+          </void> 
+          <void property="x"> 
+           <double>0.0833333358168602</double> 
+          </void> 
+          <void property="y"> 
+           <double>0.5</double> 
+          </void> 
+         </void> 
+         <void property="title"> 
+          <void property="moveable"> 
+           <boolean>false</boolean> 
+          </void> 
+         </void> 
+         <void property="transformGroup"> 
+          <string>PointData</string> 
+         </void> 
+         <void property="userRange"> 
+          <void id="SoTValue$Double9" property="delta"/> 
+          <void property="delta"> 
+           <object idref="SoTValue$Double9"/> 
+          </void> 
+          <void id="SoTValue$Double10" property="end"/> 
+          <void property="end"> 
+           <object idref="SoTValue$Double10"/> 
+          </void> 
+          <void id="SoTValue$Double11" property="start"/> 
+          <void property="start"> 
+           <object idref="SoTValue$Double11"/> 
+          </void> 
+         </void> 
+        </void> 
+        <void property="ZRangeU"> 
+         <void id="SoTValue$Double12" property="delta"/> 
+         <void property="delta"> 
+          <object idref="SoTValue$Double12"/> 
+         </void> 
+         <void id="SoTValue$Double13" property="end"/> 
+         <void property="end"> 
+          <object idref="SoTValue$Double13"/> 
+         </void> 
+         <void id="SoTValue$Double14" property="start"/> 
+         <void property="start"> 
+          <object idref="SoTValue$Double14"/> 
+         </void> 
+        </void> 
+        <void property="id"> 
+         <string>PointData</string> 
+        </void> 
+        <void id="Margin1" property="margin"> 
+         <void property="right"> 
+          <float>1.2916666</float> 
+         </void> 
+         <void property="top"> 
+          <float>0.9444444</float> 
+         </void> 
+        </void> 
+        <void property="margin"> 
+         <object idref="Margin1"/> 
+        </void> 
+       </object> 
+      </void> 
+     </void> 
+     <void property="id"> 
+      <string>PointPanel</string> 
+     </void> 
+     <void property="labels"> 
+      <void method="put"> 
+       <string>Title</string> 
+       <object class="gov.noaa.pmel.sgt.beans.Label"> 
+        <void property="boundsP"> 
+         <object class="gov.noaa.pmel.util.Rectangle2D$Double"> 
+          <void property="height"> 
+           <double>0.5</double> 
+          </void> 
+          <void property="width"> 
+           <double>4.763888835906982</double> 
+          </void> 
+          <void property="x"> 
+           <double>0.5277777910232544</double> 
+          </void> 
+          <void property="y"> 
+           <double>5.611111164093018</double> 
+          </void> 
+         </object> 
+        </void> 
+        <void property="id"> 
+         <string>Ttitle</string> 
+        </void> 
+        <void property="justification"> 
+         <int>1</int> 
+        </void> 
+        <void property="text"> 
+         <string>SGT Beans Demo</string> 
+        </void> 
+       </object> 
+      </void> 
+     </void> 
+     <void property="legends"> 
+      <void method="put"> 
+       <string>ColorLegend</string> 
+       <object class="gov.noaa.pmel.sgt.beans.Legend"> 
+        <void property="boundsP"> 
+         <object class="gov.noaa.pmel.util.Rectangle2D$Double"> 
+          <void property="height"> 
+           <double>4.833333492279053</double> 
+          </void> 
+          <void property="width"> 
+           <double>1.0833333730697632</double> 
+          </void> 
+          <void property="x"> 
+           <double>5.416666507720947</double> 
+          </void> 
+          <void property="y"> 
+           <double>0.4722222089767456</double> 
+          </void> 
+         </object> 
+        </void> 
+        <void property="id"> 
+         <string>ColorLegend</string> 
+        </void> 
+        <void property="type"> 
+         <int>1</int> 
+        </void> 
+       </object> 
+      </void> 
+     </void> 
+    </object> 
+   </void> 
+  </void> 
+ </object> 
+</java> 

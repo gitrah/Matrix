@@ -69,12 +69,12 @@ object Util {
       s
     }
 
-    def aggregateDA(n : Int, efforts: Array[Future[Array[Double]]]): Array[Double] = {
-      
-      def arrayPlus(a : Array[Double], oa: Array[Double]): Array[Double] = {
+    def aggregateDA(n: Int, efforts: Array[Future[Array[Double]]]): Array[Double] = {
+
+      def arrayPlus(a: Array[Double], oa: Array[Double]): Array[Double] = {
         val l = a.length
         require(oa.length == l, "arrays of unequal length (" + oa.length + " != " + l)
-        
+
         val o = new Array[Double](l)
         var i = l - 1
         while (i > -1) {
@@ -83,14 +83,14 @@ object Util {
         }
         o
       }
-      
+
       var i = 0
       var s = new Array[Double](n)
-      
+
       // can't just say s = s + efforts(i).get because array math stuff hasn't been declared 
       // and can't move Concurrent stuff after it because of dependencies 
       while (i < efforts.length) {
-        s = arrayPlus(s,efforts(i).get)
+        s = arrayPlus(s, efforts(i).get)
         i += 1
       }
       s
@@ -792,6 +792,16 @@ object Util {
       math.sqrt(sumSqr / l - (avg * avg))
     }
 
+    def toDouble(els: Array[Int]): Array[Double] = {
+      val l = els.length
+      val el = new Array[Double](l)
+      var i = 0
+      while (i < l) {
+        el(i) = els(i)
+        i += 1
+      }
+      el
+    }
   }
   object ArrayUtil {
     def fill(a: Array[Double], v: Double) {

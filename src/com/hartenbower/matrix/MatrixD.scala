@@ -370,6 +370,7 @@ object MatrixD {
     this(els, cols, null, transpose)
   }
 
+
   def same(o: MatrixD, maxError: Double = 0): Boolean = {
     if (nCols == o.nCols) {
       val l = elements.length
@@ -858,13 +859,13 @@ object MatrixD {
     elements(0)
   }
   
-  def columnSubset(indices: List[Int]) = {
+  def columnSubset(indices: Array[Int]) = {
     // delay precomputing tx until matrix is complete
     var i = 0
-    var res: MatrixD = null
+    var res: MatrixD = MatrixD.zeros(0,0)
     while (i < indices.size) {
       val cVec = columnVector(indices(i))
-      if (res == null) {
+      if (res.dims == (0,0)) {
         res = cVec
       } else {
         res = res ++ cVec
@@ -900,10 +901,10 @@ object MatrixD {
 
   def rowSubset(indices: Array[Int]) = {
     var i = 0
-    var res: MatrixD = null
+    var res: MatrixD = MatrixD.zeros(0,0)
     while (i < indices.size) {
       val rVec = rowVector(indices(i))
-      if (res == null) {
+      if (res.dims() == (0,0)) {
         res = rVec
       } else {
         res = res +/ rVec
@@ -989,6 +990,34 @@ object MatrixD {
     out
   }
   
+  val df = new java.text.DecimalFormat("0.0000E00")
+
+  def octStr(): String = {
+    if (verbose || (nRows < 11 && nCols < 11)) {
+      val sb = new java.lang.StringBuilder
+      var l = List[String]()
+      var row = 0
+      var col = 0
+      var off = 0
+      while (row < nRows) {
+        col = 0
+        sb.setLength(0)
+        off = row * nCols
+        while(col < nCols) {
+          sb.append(df.format(elements(off+col)))
+          if(col < nCols-1) {
+            sb.append("  ")
+          }
+          col+=1
+        } 
+        l = l :+ sb.toString()
+        row += 1
+      }
+      l.mkString("", "\n", "\n")
+    } else {
+      "MatrixD[" + nRows + "," + nCols + "]"
+    }
+  }
 
   override def toString(): String = {
     if (verbose || (nRows < 11 && nCols < 11)) {
@@ -1005,7 +1034,7 @@ object MatrixD {
       "MatrixD[" + nRows + "," + nCols + "]"
     }
   }
-
+  
   def rightConcatenate(other: MatrixD, transpose: Boolean = false): MatrixD = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
     val newCols = nCols + other.nCols

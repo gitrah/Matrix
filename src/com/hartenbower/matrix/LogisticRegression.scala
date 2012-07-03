@@ -32,15 +32,6 @@ object LogisticRegression {
 
   def logF(z: Float) = math.log(z).asInstanceOf[Float]
 
-  def from_ex3data1_txt() = {
-    val m = Io.parseOctaveDataFile("ex3data1.txt")
-    val x: MatrixD = m.get("X").get.asInstanceOf[MatrixD]
-    val y: MatrixD = m.get("y").get.asInstanceOf[MatrixD]
-    val num_labels: Int = m.get("num_labels").get.asInstanceOf[Double].asInstanceOf[Int]
-    val input_layer_size: Int = m.get("input_layer_size").get.asInstanceOf[Double].asInstanceOf[Int]
-    (x, y, num_labels, input_layer_size)
-  }
-
   def gradientApprox(
     @desc("partial funct with just theta as param") costFn: MatrixD => Double,
     @desc("parameters, weights") theta: MatrixD,
@@ -62,7 +53,7 @@ object LogisticRegression {
   }
 
   import MatrixD._
-
+  
   def sigmoidGradientSlow(z: MatrixD) = {
     val a = z.elementOp(sigmoidD)
     a ** (1 - a)
@@ -79,6 +70,24 @@ object LogisticRegression {
     }
     res
   }
+  
+  def sigmoidGradientChunk(el: Array[Double])(range:(Long,Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var sig = 0d
+    while (i <= end) {
+      sig = sigmoidD(el(i))
+      el(i) = sig * (1 - sig)
+      i += 1
+    }
+    i
+  }
+  
+  def sigmoidGradientDc(z: MatrixD) = {
+    val res = z.clone
+    Concurrent.combine(Concurrent.distribute(z.elements.length, sigmoidGradientChunk(res.elements)))
+    res
+  }
 
   def costFunction(
     @desc("predictions") a: MatrixD,
@@ -91,7 +100,7 @@ object LogisticRegression {
     if (lambda != 0) {
       var i = 0
       while (i < thetas.length) {
-        val thetaCopy = thetas(i).columnSubset((2 to thetas(i).nCols).toList)
+        val thetaCopy = thetas(i).dropFirst()
         val jdeldel = lambda / (2. * m) * Math.sum(thetaCopy.elementOp(math.pow(_, 2)).elements)
         //println(i + " jdeldel: " + jdeldel)
         jDel += jdeldel
