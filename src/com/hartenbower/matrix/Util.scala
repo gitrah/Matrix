@@ -767,7 +767,54 @@ object Util {
       }
       i
     }
-
+    def addSqrChunk(v: Array[Double])(range: (Long, Long))() = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var el = 0d
+      var s = 0d
+      while (i <= end) {
+        el = v(i)
+        s += el*el
+        i += 1
+      }
+      s
+    }
+    def negateChunk(v: Array[Double])(range: (Long, Long))() = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var el = 0d
+      var s = 0d
+      while (i <= end) {
+        v(i) = -v(i)
+        i += 1
+      }
+      i
+    }
+    
+    def maxColIdxChunk(a:Array[Double], n: Int, idxs : Array[Double])(range:(Long,Long))() = {
+      val end = range._2.asInstanceOf[Int]
+      var i = range._1.asInstanceOf[Int]
+      var j = 0
+      var offset = 0
+      var max = 0d
+      var curr = 0d
+      while(i <= end) {
+        j = 0
+        max = -Double.MaxValue
+        offset = i * n
+        while(j < n) {
+          curr = a(offset + j)
+          if(curr > max) {
+            max = curr
+            idxs(i) = j
+          }
+          j+=1
+        }
+        i+=1
+      }
+      i
+    }
+    
     def unitVDc(v: Array[Double]): (Double, Array[Double]) = {
       val ov = v.clone
       val l = math.sqrt(lengthSquaredDc(v))

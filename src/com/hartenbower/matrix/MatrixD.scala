@@ -6,6 +6,7 @@ import Util.Math._
 object MatrixD {
   var txpsCreateCount = 0l
   var txpsUseCount = 0l
+  var verbose = false
 
   implicit def log(m : MatrixD) = m.log()
   implicit def scalarOp(d: Double) = new ScalarOp(d)
@@ -359,8 +360,8 @@ object MatrixD {
 /*
  * The array backed,  double precision version
  */
+import MatrixD.verbose
 @SerialVersionUID(1l) case class MatrixD(val elements: Array[Double], var nCols: Int, val txpM: MatrixD, transpose: Boolean) {
-  var verbose = false
   if (nCols != 0) require(elements.length % nCols == 0, "length " + elements.length + " not integrally divisible by col spec " + nCols)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
@@ -596,7 +597,7 @@ object MatrixD {
     this
   }
 
-  @inline def negateN = {
+  @inline def negateNSlow = {
     val cl = elements.clone
     var txcl = if (txp != null) txp.get.elements else null
     var i = elements.length - 1
@@ -606,6 +607,16 @@ object MatrixD {
       i -= 1
     }
     new MatrixD(cl, nCols, new MatrixD(txcl, nRows, false), txcl == null)
+  } 
+  
+  def negateN = {
+    val cl = elements.clone
+    Concurrent.combine(Concurrent.distribute(cl.length, Math.negateChunk(cl)))
+    var txcl = if (txp != null) txp.get.elements.clone else null
+    if(txcl != null) {
+      Concurrent.combine(Concurrent.distribute(cl.length, Math.negateChunk(txcl)))
+    }
+    new MatrixD(cl, nCols, if(txcl != null) new MatrixD(txcl, nRows, false) else null, txcl == null)
   }
     
   @inline def sumDc() = Math.sumDc(elements)
@@ -625,8 +636,9 @@ object MatrixD {
     math.sqrt(s)
   }
 
+  
   def unitV = {
-    var s = length
+    val s = lengthDc
     val el = elements.clone
     var v = 0d
     var i = elements.length - 1
@@ -636,6 +648,21 @@ object MatrixD {
     new MatrixD(el, nCols, txp != null)
   }
 
+  def unitVdc() = {
+    val s = lengthDc
+    val el = elements.clone
+    Concurrent.combine(Concurrent.distribute(el.length,Math.divChunk(el, s)))
+    new MatrixD(el, nCols, txp != null)
+  }
+  
+  def autoDot() = Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.addSqrChunk(elements)))
+
+  def maxColIdxs() : MatrixD = {
+    val a = MatrixD.zeros(nRows,1)
+    Concurrent.combine(Concurrent.distribute(nRows, Math.maxColIdxChunk(elements, nCols, a.elements)))
+    a
+  }
+  
   @inline def apply(row: Int, col: Int): Double = {
     validIndicesQ(row, col)
     elements(deref(row, col))
@@ -782,7 +809,7 @@ object MatrixD {
   def <(o: MatrixD) = binBoolOpDc( (a,b) => a < b, o)
   def `>=`(o: MatrixD) = binBoolOpDc( (a,b) => a >= b, o)
   def `<=`(o: MatrixD) = binBoolOpDc( (a,b) => a <= b, o)
-  def equals(o:MatrixD) = binBoolOpDc( (a,b) => a == b, o)
+  def equals(o:MatrixD) = if(o != null) binBoolOpDc( (a,b) => a == b, o) else false
   def almostEquals(o:MatrixD, epsilon : Double ) = binBoolOpDc( (a,b) => math.abs(b-a) <= epsilon, o)
   def ==(o:MatrixD) = equals(o)
   

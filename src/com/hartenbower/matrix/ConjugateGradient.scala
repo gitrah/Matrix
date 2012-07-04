@@ -1,6 +1,12 @@
 package com.hartenbower.matrix
 
 import MatrixD._
+import LogisticRegression._
+
+/**
+ * Port of fmincg.m (Octave function)
+ *
+ */
 object ConjugateGradient {
   def isReal(d: Double) = (!d.isNaN() && !d.isInfinite())
   val rho = 0.01d
@@ -9,7 +15,7 @@ object ConjugateGradient {
   val ext = 3.0d
   val max = 20
   val ratio = 100
-  def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 100, red: Int = 1) : (MatrixD, MatrixD, Int) = {
+  def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 50, red: Int = 1) : (MatrixD, MatrixD, Int) = {
     var x: MatrixD = xin.clone()
     var a = 0d
     var b = 0d
@@ -38,16 +44,18 @@ object ConjugateGradient {
     var fX: MatrixD = null
     tup = f(x); f1 = tup._1; df1 = tup._2
     i += (if (length > 0) 1 else 0)
-    println("df1 " + df1)
-    s = df1 * (-1)
-    d1 = (s.tN * s * (-1d)).toScalar()
+    //println("df1 " + df1)
+    s = df1.negateN
+    d1 = -s.autoDot()
     z1 = red / (1 - d1)
 
     while (outerLoop && i < math.abs(length)) {
-      i = i + (if (length < 0) 1 else 0)
+      i = i + (if (length > 0) 1 else 0)
       x0 = x.clone()
       f0 = f1
       df0 = df1.clone()
+      //println("x dims " + x.dims())
+      //println("s dims " + s.dims())
       x = x + z1 * s
       tup = f(x); f2 = tup._1; df2 = tup._2
       i = i + (if (length < 0) 1 else 0)
@@ -79,7 +87,7 @@ object ConjugateGradient {
           m = m - 1;
           i = i + (if (length < 0) 1 else 0)
           d2 = (df2.tN * s).toScalar()
-          z3 = z3 - z2
+          z3 -= z2
         }
         if ((f2 > f1 + z1 * rho * d1) || (d2 > -sig * d1)) {
           innerLoop = false
@@ -116,15 +124,15 @@ object ConjugateGradient {
       }
       if (success) { // if line search succeeded
         f1 = f2
-        if (fX == null) {
-          fX = (MatrixD.ones(1, 1) * f1)
+        if (null == fX ) {
+          fX = MatrixD.ones(1, 1) * f1
         } else {
-          fX = fX.tN() ++ (MatrixD.ones(1, 1) * f1)
+          fX = (fX.tN() ++ (MatrixD.ones(1, 1) * f1)).tN
         }
 
-        println("%s %4i | Cost: %4.6e\r".format(s, i, f1));
+        println("%s %4d | Cost: %4.6e\r".format(s, i, f1));
 
-        s = (df2.tN() * df2 - df1.tN() * df2) / ((df1.tN * df1) * s).toScalar() - df2 // Polack-Ribiere direction
+        s = s* (df2.autoDot() - (df1.tN() * df2).toScalar()) / (df1.autoDot) - df2 // Polack-Ribiere direction
         val tmp = df1; df1 = df2; df2 = tmp // swap derivatives
         d2 = (df1.tN * s).toScalar()
         if (d2 > 0) { // new slope must be negative

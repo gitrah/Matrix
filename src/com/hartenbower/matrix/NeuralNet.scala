@@ -27,18 +27,18 @@ object NeuralNet {
 
     // 
     var j = (-1d / m * (yb ** log(a3) + (1d - yb) ** (log(1d - a3)))).sumDc()
-    println("j initial " + j)
+    //println("j initial " + j)
     //temp = Theta2(:,2:end); % skip bias
     var tempTheta2 = theta2.dropFirst
     //jreg3 =sum(sum((lambda / (2 * m) * temp.^2)));
     val jreg3 = ((tempTheta2 ^ 2d) * (lambda / (2d * m))).sumDc()
-    println("jreg3 " + jreg3)
+    //println("jreg3 " + jreg3)
     j += jreg3
     //temp = Theta1(:,2:end); % skip bias
     val tempTheta1 = theta1.dropFirst()
     //jreg2 =sum(sum((lambda / (2 * m) * temp.^2))); 
     val jreg2 = ((tempTheta1 ^ 2d) * (lambda / (2d * m))).sumDc()
-    println("jreg2 " + jreg2)
+    //println("jreg2 " + jreg2)
     j += jreg2
 
     val delta_3 = a3 - yb
@@ -79,7 +79,7 @@ object NeuralNet {
     // We generate some 'random' test data
     val theta1 = sin(hidden_layer_size, input_layer_size)
     val theta2 = sin(num_labels, hidden_layer_size)
-    val nn_params = theta1.poseAsRow ++ theta2.poseAsRow
+    val nn_params = theta1.poseAsCol +/ theta2.poseAsCol
     theta1.unPose()
     theta2.unPose()
     // Reusing debugInitializeWeights to generate X
@@ -89,8 +89,8 @@ object NeuralNet {
     val epsilon = 1e-4
     val tup = nnCostFunction(nn_params, input_layer_size,  hidden_layer_size,  num_labels, x, y, lambda)
     val numgrad =gradientApprox(nnCostFunctionSanGradient(_, input_layer_size,  hidden_layer_size,  num_labels, x, y, lambda), nn_params, epsilon)
-    println("grad\n" + tup._2)
-    println("numgrad\n" + numgrad)
+    println("grad\n" + tup._2.octStr())
+    println("numgrad\n" + numgrad.octStr())
     (numgrad - tup._2).length / (numgrad + tup._2).length
   }
 
@@ -265,6 +265,19 @@ object NeuralNet {
       } while (lastI == i)
     }
     (j, thetas)
+  }
+  def predictCg(theta1:MatrixD, theta2:MatrixD, x:MatrixD) = {
+    val m = x.nRows
+    val num_labels = theta2.nRows
+
+    // You need to return the following variables correctly 
+    val p = MatrixD.zeros(m, 1)
+    //h1 = sigmoid([ones(m, 1) X] * Theta1');
+    val h1 = (x.addBiasCol * theta1.tN()).elementOpDc(sigmoidD)
+    //h2 = sigmoid([ones(m, 1) h1] * Theta2');
+    val h2 = ( h1.addBiasCol() * theta2.tN).elementOpDc(sigmoidD)
+    h2
+
   }
 
   def predict(weights: Array[MatrixD], inputs: MatrixD): (MatrixD, Array[MatrixD], Array[MatrixD]) = {
