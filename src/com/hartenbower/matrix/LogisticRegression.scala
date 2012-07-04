@@ -32,7 +32,7 @@ object LogisticRegression {
 
   def logF(z: Float) = math.log(z).asInstanceOf[Float]
 
-  def gradientApprox(
+  def bad_gradientApprox(
     @desc("partial funct with just theta as param") costFn: MatrixD => Double,
     @desc("parameters, weights") theta: MatrixD,
     epsilon: Double): MatrixD = {
@@ -50,6 +50,26 @@ object LogisticRegression {
       i += 1
     }
     new MatrixD(gradApprox, 1)
+  }
+
+  def gradientApprox(
+    @desc("partial funct with just theta as param") costFn: MatrixD => Double,
+    @desc("parameters, weights") theta: MatrixD,
+    epsilon: Double): MatrixD = {
+    val l = theta.elements.length
+    var i = 0
+    val perturb = MatrixD.zeros(theta.dims())
+    val gradApprox = MatrixD.zeros(theta.dims())
+    var jMinus, jPlus = 0d
+    while (i < l) {
+      perturb.elements(i) = epsilon
+      jMinus = costFn( theta - perturb)
+      jPlus = costFn(theta+perturb)
+      gradApprox.elements(i) = (jPlus-jMinus)/ (2 * epsilon)
+      perturb.elements(i) = 0d
+      i += 1
+    }
+    gradApprox
   }
 
   import MatrixD._

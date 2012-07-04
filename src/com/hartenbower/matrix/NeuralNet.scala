@@ -4,34 +4,13 @@ import LogisticRegression._
 import MatrixD._
 
 object NeuralNet {
-  
-  def checkNnGradients(lambda : Double = 0d) {
-	  def sin(m:Int,n:Int) : MatrixD = {
-	    val l = m*n
-	    val mat = MatrixD.zeros(m,n +1)
-	    var i = 0
-	    while(i < l) {
-	      mat.elements(i) = math.sin(i+1)/10
-	      i+=1
-	    }
-	    mat
-	  }
-	  val input_layer_size = 3
-		val hidden_layer_size = 5
-		val num_labels = 3
-		val m = 5
-		
-		// We generate some 'random' test data
-		val theta1 = sin(hidden_layer_size, input_layer_size)
-		val theta2 = sin(num_labels, hidden_layer_size)
-		// Reusing debugInitializeWeights to generate X
-		val x  = sin(m, input_layer_size - 1)
-		val y  = new MatrixD(Util.Math.toDouble((1 to m).toArray), num_labels).elementOp( _ % num_labels) + 1 
-		
 
-  }
-  
-
+  def nnCostFunctionSanGradient(nn_params: MatrixD, input_layer_size: Int,
+    hidden_layer_size: Int,
+    num_labels: Int,
+    _x: MatrixD, y: MatrixD, lambda: Double) : Double = 
+      nnCostFunction(nn_params, input_layer_size,hidden_layer_size,num_labels, _x, y, lambda)._1
+      
   def nnCostFunction(nn_params: MatrixD, input_layer_size: Int,
     hidden_layer_size: Int,
     num_labels: Int,
@@ -47,7 +26,7 @@ object NeuralNet {
     val a3 = z3.elementOpDc(sigmoid)
 
     // 
-    var j = (-1d / m * (yb ** log(a3) + (1d - yb) ** ( log(1d - a3)))).sumDc()
+    var j = (-1d / m * (yb ** log(a3) + (1d - yb) ** (log(1d - a3)))).sumDc()
     println("j initial " + j)
     //temp = Theta2(:,2:end); % skip bias
     var tempTheta2 = theta2.dropFirst
@@ -75,8 +54,44 @@ object NeuralNet {
     temp = MatrixD.zeros(theta1.nRows, 1) ++ tempTheta1
     val theta1_grad = 1d / m * (bigDelta1 + lambda * temp)
 
-    val grad = theta1_grad.makeRowVector ++ theta2_grad.makeRowVector
+    val grad = theta1_grad.poseAsCol +/ theta2_grad.poseAsCol
+    theta1.unPose()
+    theta2.unPose()
     (j, grad)
+  }
+  
+  def checkNnGradients(lambda: Double = 0d) : Double = {
+    def sin(m: Int, n: Int): MatrixD = {
+      val l = m * n
+      val mat = MatrixD.zeros(m, n + 1)
+      var i = 0
+      while (i < l) {
+        mat.elements(i) = math.sin(i + 1) / 10
+        i += 1
+      }
+      mat
+    }
+    val input_layer_size = 3
+    val hidden_layer_size = 5
+    val num_labels = 3
+    val m = 5
+
+    // We generate some 'random' test data
+    val theta1 = sin(hidden_layer_size, input_layer_size)
+    val theta2 = sin(num_labels, hidden_layer_size)
+    val nn_params = theta1.poseAsRow ++ theta2.poseAsRow
+    theta1.unPose()
+    theta2.unPose()
+    // Reusing debugInitializeWeights to generate X
+    val x = sin(m, input_layer_size - 1)
+    val y = (new MatrixD(Util.Math.toDouble((1 to m).toArray), 1).elementOp(_ % num_labels) + 1)
+ 
+    val epsilon = 1e-4
+    val tup = nnCostFunction(nn_params, input_layer_size,  hidden_layer_size,  num_labels, x, y, lambda)
+    val numgrad =gradientApprox(nnCostFunctionSanGradient(_, input_layer_size,  hidden_layer_size,  num_labels, x, y, lambda), nn_params, epsilon)
+    println("grad\n" + tup._2)
+    println("numgrad\n" + numgrad)
+    (numgrad - tup._2).length / (numgrad + tup._2).length
   }
 
   def forwardAndBack(x: MatrixD, y: MatrixD, thetas: Array[MatrixD], lambda: Double) = {

@@ -681,7 +681,7 @@ object Util {
       d
     }
 
-    private def lengthSquaredChunk(v: Array[Double])(range: (Long, Long))(): Double = {
+    def lengthSquaredChunk(v: Array[Double])(range: (Long, Long))(): Double = {
       var d = 0d
       var vi = 0d
       var i = range._1.asInstanceOf[Int]

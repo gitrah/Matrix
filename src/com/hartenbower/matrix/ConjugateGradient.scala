@@ -9,7 +9,7 @@ object ConjugateGradient {
   val ext = 3.0d
   val max = 20
   val ratio = 100
-  def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 100, red: Int = 1) {
+  def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 100, red: Int = 1) : (MatrixD, MatrixD, Int) = {
     var x: MatrixD = xin.clone()
     var a = 0d
     var b = 0d
@@ -38,6 +38,7 @@ object ConjugateGradient {
     var fX: MatrixD = null
     tup = f(x); f1 = tup._1; df1 = tup._2
     i += (if (length > 0) 1 else 0)
+    println("df1 " + df1)
     s = df1 * (-1)
     d1 = (s.tN * s * (-1d)).toScalar()
     z1 = red / (1 - d1)

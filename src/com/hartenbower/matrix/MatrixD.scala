@@ -147,7 +147,9 @@ object MatrixD {
     sum
   }
 
+  val MaxDim = math.sqrt(Int.MaxValue)
   def diagonalM(dim: Int, d: Double = 1.0): MatrixD = {
+    require(dim <= MaxDim, "dim exceeds sqrt(Int.MaxValue) or " + MaxDim)
     val l = dim * dim
     val c = new Array[Double](l)
     var i = 0
@@ -359,7 +361,7 @@ object MatrixD {
  */
 @SerialVersionUID(1l) case class MatrixD(val elements: Array[Double], var nCols: Int, val txpM: MatrixD, transpose: Boolean) {
   var verbose = false
-  if (nCols != 0) require(elements.length % nCols == 0)
+  if (nCols != 0) require(elements.length % nCols == 0, "length " + elements.length + " not integrally divisible by col spec " + nCols)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
   @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
@@ -414,7 +416,7 @@ object MatrixD {
   }
 
   override def clone = {
-    new MatrixD(elements.clone(), nCols, txp.get, true)
+    new MatrixD(elements.clone(), nCols, if(txp != null) txp.get else null, true)
   }
 
   //     Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f, elements, o.elements, l, c, nRows)))
@@ -609,6 +611,8 @@ object MatrixD {
   @inline def sumDc() = Math.sumDc(elements)
   @inline def sum() = { var s = 0d; var i = 0; while (i < elements.length) { s += elements(i); i += 1 }; s }
 
+  def lengthDc = math.sqrt(Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.lengthSquaredChunk(elements))))
+  
   def length = {
     var s = 0d
     var v = 0d
@@ -616,7 +620,7 @@ object MatrixD {
     while (i > -1) {
       v = elements(i)
       s += v * v
-      i += i
+      i -= 1
     }
     math.sqrt(s)
   }
@@ -639,7 +643,7 @@ object MatrixD {
 
   def update(row: Int, col: Int, v: Double) { elements(deref(row, col)) = v }
 
-  def addBiasCol() = MatrixD.ones(nRows, 1).rightConcatenate(this, true)
+  def addBiasCol() = MatrixD.ones(nRows, 1) ++ this
 
   def hasBiasCol() = nCols > 1 && !columnVector(1).elements.exists(_ != 1)
 
@@ -661,33 +665,33 @@ object MatrixD {
 
   def isBinaryCategoryMatrix = !elements.exists(x => x != 0 && x != 1)
   
-  def makeRowVector() = {
+  def poseAsRow() = {
     oldRows = nRows
     nRows = 1
     nCols *= oldRows
     this
   }
 
-  def revertRowVector() = {
-    nRows = oldRows
-    nCols /= oldRows
-    oldRows = -1
-    this
-  }
-
-  def makeColVector() = {
+  def poseAsCol() = {
     oldCols = nCols
     nCols = 1
     nRows *= oldCols
     this
   }
 
-  def revertColVector() = {
-    nCols = oldCols 
-    nRows /= oldCols
-    oldCols = -1
+  def unPose() = {
+    if(oldRows != -1 && oldCols == -1)  {
+	    nRows = oldRows
+	    nCols /= oldRows
+	    oldRows = -1
+    } else if(oldRows == -1 && oldCols != -1)  {
+	    nCols = oldCols 
+	    nRows /= oldCols
+	    oldCols = -1
+    }
     this
   }
+
   
   def reshape(rows: Int, cols: Int, offset : Long = 0) : MatrixD = {
     val l = rows*cols
@@ -850,12 +854,12 @@ object MatrixD {
 
   def columnVectorQ = nCols == 1
 
-  def toRowVector = if (columnVectorQ) tN else this
+  def toRowVector = new MatrixD(elements, elements.length)
 
-  def toColumnVector = if (rowVectorQ) tN else this
+  def toColumnVector = new MatrixD(elements, 1)
 
   def toScalar() = {
-    require(nCols == nRows && nRows == 1)
+    require(nCols == nRows && nRows == 1, "ill-formed scalar with dims " + dims)
     elements(0)
   }
   
@@ -1035,7 +1039,7 @@ object MatrixD {
     }
   }
   
-  def rightConcatenate(other: MatrixD, transpose: Boolean = false): MatrixD = {
+  def rightConcatenate(other: MatrixD): MatrixD = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
     val newCols = nCols + other.nCols
     val c = new Array[Double](nRows * newCols)
@@ -1045,7 +1049,7 @@ object MatrixD {
       other.rowCopy(c, row, (row - 1) * newCols + nCols)
       row -= 1
     }
-    new MatrixD(c, newCols, transpose)
+    new MatrixD(c, newCols)
   }
 
   def ++(other: MatrixD) = rightConcatenate(other)
