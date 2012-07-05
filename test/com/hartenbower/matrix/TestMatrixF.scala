@@ -17,78 +17,75 @@ class TestMatrixF {
   val m5 = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25), 5)
   val m5b = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30), 5)
 
-  def print4by4(arry : Array[Float],off:Int) {
-		val sb = new StringBuffer()
-		var i = 0
-		var j = 0
-		while( i < 4) {
-			sb.append("[");
-			j= 0
-			while(j < 4) {
-				sb.append(arry(off + j * 4 + i));
-				sb.append(",");
-				j +=1
-			}
-			sb.setLength(sb.length()-1);
-			sb.append("]\n");
-			i += 1
-		}
-		print(sb.toString());
-	}
+  def print4by4(arry: Array[Float], off: Int) {
+    val sb = new StringBuffer()
+    var i = 0
+    var j = 0
+    while (i < 4) {
+      sb.append("[");
+      j = 0
+      while (j < 4) {
+        sb.append(arry(off + j * 4 + i));
+        sb.append(",");
+        j += 1
+      }
+      sb.setLength(sb.length() - 1);
+      sb.append("]\n");
+      i += 1
+    }
+    print(sb.toString());
+  }
 
-  
   @Test
   def testActorPerformance() = {
-      val size =2000000 
-	  val i4 = MatrixF.diagonalM(4, 1f)
-	  val z4 = MatrixF.diagonalM(4, 0f)
-	
-	  val res = Array.fill(size * 16)(0f)
-	  val res2 = Array.fill(size * 16)(0f)
-	  val m4 = MatrixF.randn(4, 4)
-	  println("m4")
-	  print4by4(m4.elements,0)
-	  val v4 = MatrixF.randn(4, 1)
-	  val targ = new Array[Float](size * 16)
-	  MatrixF.fill(m4, targ)
-	
-	  var l = List[Tuple2[Int,Long]]()
-	  println("mulregular with count " + res.length/16);
-      var start = System.currentTimeMillis()
-	  time("mulreg", MatrixF.mult4by4Range(res.length / 16, i4.elements, 0, targ, 0, res, 0), 100)
-	  (1 to 15).map( 
-	      (i) => l = l :+ time("mulwork " + i, MatrixF.mult4by4Worker(i4.elements, targ, res2,i)))
-	  println("last res")
-	  print4by4(res, size * 16 -16)
-	  MatrixF.fill(z4, res)
+    val size = 2000000
+    val i4 = MatrixF.diagonalM(4, 1f)
+    val z4 = MatrixF.diagonalM(4, 0f)
 
-	  (1 to (15, 5)).map( 
-	      (i) => l = l :+ time("multhread Same " + i, MatrixF.mult4by4Threaded(i4.elements, targ, res2,i)))
-	  (1 to 20).map( 
-	      (i) => l = l :+ time("multhread Pool " + i, MatrixF.mult4by4Threaded(i4.elements, targ, res2,i)(ThreadPoolStrategy)))
-	  println("last targ")
-	  print4by4(targ, size * 16 -16)
-	  println("first res2")
-	  print4by4(res2,0)
-	  println("last res2")
-	  print4by4(res2, size * 16 -16)
-	  println("bef last res2")
-	  print4by4(res2, size * 16 -32)
-	  MatrixF.fill(z4, res2)
+    val res = Array.fill(size * 16)(0f)
+    val res2 = Array.fill(size * 16)(0f)
+    val m4 = MatrixF.randn(4, 4)
+    println("m4")
+    print4by4(m4.elements, 0)
+    val v4 = MatrixF.randn(4, 1)
+    val targ = new Array[Float](size * 16)
+    MatrixF.fill(m4, targ)
 
-	  MatrixF.fill(v4, targ)
-	  
-	  (1 to 20).map( 
-	      (i) => l = l :+ time("multhread vec Pool " + i, MatrixF.mult4by4VecThreaded(i4.elements, targ, res2,i)(ThreadPoolStrategy),100))
-	  
-	  	      
-	  println("\n" + l.mkString("\n"))
-	  ()
+    var l = List[Tuple2[Int, Long]]()
+    println("mulregular with count " + res.length / 16);
+    var start = System.currentTimeMillis()
+    time("mulreg", MatrixF.mult4by4Range(res.length / 16, i4.elements, 0, targ, 0, res, 0), 100)
+    (1 to 15).map(
+      (i) => l = l :+ time("mulwork " + i, MatrixF.mult4by4Worker(i4.elements, targ, res2, i)))
+    println("last res")
+    print4by4(res, size * 16 - 16)
+    MatrixF.fill(z4, res)
+
+    (1 to (15, 5)).map(
+      (i) => l = l :+ time("multhread Same " + i, MatrixF.mult4by4Threaded(i4.elements, targ, res2, i)))
+    (1 to 20).map(
+      (i) => l = l :+ time("multhread Pool " + i, MatrixF.mult4by4Threaded(i4.elements, targ, res2, i)(ThreadPoolStrategy)))
+    println("last targ")
+    print4by4(targ, size * 16 - 16)
+    println("first res2")
+    print4by4(res2, 0)
+    println("last res2")
+    print4by4(res2, size * 16 - 16)
+    println("bef last res2")
+    print4by4(res2, size * 16 - 32)
+    MatrixF.fill(z4, res2)
+
+    MatrixF.fill(v4, targ)
+
+    (1 to 20).map(
+      (i) => l = l :+ time("multhread vec Pool " + i, MatrixF.mult4by4VecThreaded(i4.elements, targ, res2, i)(ThreadPoolStrategy), 100))
+
+    println("\n" + l.mkString("\n"))
+    ()
   }
 
   //MatrixF.mult4by4Range(res.length / 16, i4.elements, 0, targ, 0, res, 0)
   //MatrixF.mult4by4Worker(i4.elements, targ, res2)
-
 
   def timeTransposition(total: Long) = {
     val m3b = new MatrixF(Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 3)

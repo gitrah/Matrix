@@ -42,82 +42,87 @@ object AnomalyDetection {
     }
     pc
   }
-  def p(x: Array[Double], params: (Array[Double], Array[Double])) = probabilityDensityFunction(x,params)
+  def p(x: Array[Double], params: (Array[Double], Array[Double])) = probabilityDensityFunction(x, params)
 
-  def sigma(x:MatrixD, mus: Array[Double]) : MatrixD = {
-    val (m,n) = x.dims
-    var sigma = MatrixD.zeros(n,n)
-    var i = m-1
-    var mat : MatrixD = MatrixD.zeros(n,1)
-    while(i > -1) {
-      Array.copy(x.elements,i*n, mat.elements, 0, n )
-      Array.copy(mat.elements - mus,0, mat.elements,0,n)
+  def sigma(x: MatrixD, mus: Array[Double]): MatrixD = {
+    val (m, n) = x.dims
+    var sigma = MatrixD.zeros(n, n)
+    var i = m - 1
+    var mat: MatrixD = MatrixD.zeros(n, 1)
+    while (i > -1) {
+      Array.copy(x.elements, i * n, mat.elements, 0, n)
+      Array.copy(mat.elements - mus, 0, mat.elements, 0, n)
       sigma = sigma + mat * mat.tN
-      i-=1
+      i -= 1
     }
     sigma / m
   }
-  
-  def sigmaChunk(xElems : Array[Double], mus: Array[Double], m : Int, n : Int)(range : (Long,Long))(): Array[Double] = {
-    var sigma = Array.fill(n*n)(0d)
+
+  def sigmaChunk(xElems: Array[Double], mus: Array[Double], m: Int, n: Int)(range: (Long, Long))(): Array[Double] = {
+    var sigma = Array.fill(n * n)(0d)
     var i = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     var mat = new Array[Double](n)
-    while(i <= end) {
-      Array.copy(xElems,i*n, mat, 0, n )
-      Array.copy(mat - mus,0, mat,0,n)
+    while (i <= end) {
+      Array.copy(xElems, i * n, mat, 0, n)
+      Array.copy(mat - mus, 0, mat, 0, n)
       sigma = sigma + Math.transposeDot(mat)
-      i+=1
+      i += 1
     }
     sigma
   }
-  
-  def sigmaDc(x:MatrixD, mus: Array[Double]) : MatrixD = {
-    val (m,n) = x.dims
-    val sigma = Concurrent.aggregateDA(n*n,Concurrent.distribute(m, sigmaChunk(x.elements, mus, m, n)))
-    new MatrixD(sigma, n)/m
+
+  def sigmaDc(x: MatrixD, mus: Array[Double]): MatrixD = {
+    val (m, n) = x.dims
+    val sigma = Concurrent.aggregateDA(n * n, Concurrent.distribute(m, sigmaChunk(x.elements, mus, m, n)))
+    new MatrixD(sigma, n) / m
   }
-  
+
   // multiply a 1 by N matrix by its transpose
-  def transMultOneByN(a : Array[Double])  {
+  def transMultOneByN(a: Array[Double]) {
     var s = 0d
-    var i = a.length-1
-    while(i > -1) {
+    var i = a.length - 1
+    while (i > -1) {
       s += a(i) * a(i)
-      i -=1
+      i -= 1
     }
     s
   }
-  
+
   // multiply an N by 1 matrix (as row major array) by its transpose
-  def addTransMultNByOne(a : Array[Double], out: Array[Double])  {
+  def addTransMultNByOne(a: Array[Double], out: Array[Double]) {
     val n = a.length
     val l = n * n
     var i = 0
-    while(i < l) {
+    while (i < l) {
       out(i) += a(i / n) * a(i % n)
-      i +=1
+      i += 1
     }
   }
-  
-  def sigmaTm(x:MatrixD, mus: Array[Double]) : MatrixD = {
-    val (m,n) = x.dims
-    var sigma = MatrixD.zeros(n,n)
+
+  def sigmaTm(x: MatrixD, mus: Array[Double]): MatrixD = {
+    val (m, n) = x.dims
+    var sigma = MatrixD.zeros(n, n)
     var i = 0
-    var diff : Array[Double] = null
-    while(i < m) {
-      val diff = x.elements.-(mus, i*n,0)
+    var diff: Array[Double] = null
+    while (i < m) {
+      val diff = x.elements.-(mus, i * n, 0)
       addTransMultNByOne(diff, sigma.elements)
       i += 1
     }
     sigma / m
   }
-  
-  def multiVariateProbDensity(x:Array[Double], params : (Array[Double],MatrixD)) = {
-    val (mus, sigma) = params
-    val n = x.length
-    val xminmuArray = x - mus
-    val xMinusMu = new MatrixD(xminmuArray, n)
-    1/(math.pow(twoPi,n/2) * math.sqrt(params._2.determinant)) * math.exp( ( xMinusMu.tN * sigma.inverse * xMinusMu).elements(0) * (-.5)  )
+
+  def multiVariateProbDensity(x: MatrixD, params: (Array[Double], MatrixD)) = {
+    val mus = params._1
+    var  sigma  = params._2
+    if(sigma.nCols == 1 || sigma.nRows == 1 && sigma.elements.length > 1) {
+      sigma = MatrixD.diag(sigma.elements)
+    }
+    val n = mus.length
+    val xMinusMu = x.normalizeWithDc(mus)
+    val fac1 = (math.pow(twoPi, -n / 2d) / math.sqrt(params._2.determinant))
+    println("fac1 " +fac1)
+    (((xMinusMu * sigma.inverse) ** xMinusMu).toColumnSumVector() * (-.5)).elementOp(math.exp) * fac1
   }
 }

@@ -4,7 +4,6 @@ import Util.Math._
 object Clustering {
   val rnd = new java.util.Random(System.currentTimeMillis())
 
-
   def assignment(centroids: Array[Array[Double]], v: Array[Double]): (Double, Int) = {
     var i = centroids.length - 1
     var minLsqr = -5d

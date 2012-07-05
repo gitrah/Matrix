@@ -61,19 +61,18 @@ object TestConjGrad {
   checkNnGradients(lambda)
 
   // def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 100, red: Int = 1) {
-  var tupcg : (MatrixD, MatrixD, Int) = null
-  time("fmincg 50",  tupcg = fmincg(nnCostFunction(_, input_layer_size, hidden_layer_size, num_labels, x, y, lambda), initial_nn_params))
+  var tupcg: (MatrixD, MatrixD, Int) = null
+  time("fmincg 50", tupcg = fmincg(nnCostFunction(_, input_layer_size, hidden_layer_size, num_labels, x, y, lambda), initial_nn_params))
   val nn_parms = tupcg._1
 
   val nn_j = tupcg._2
-  
+
   val nTheta1 = nn_parms.reshape(hidden_layer_size, (input_layer_size + 1))
   val nTheta2 = nn_parms.reshape(num_labels, (hidden_layer_size + 1), hidden_layer_size * (input_layer_size + 1))
-  val p1 = predictCg(nTheta1,nTheta2,x)
+  val p1 = predictCg(nTheta1, nTheta2, x)
   val h1 = p1.maxColIdxs + 1
-  val res = (y - h1).elementOpDc( x => if(x == 0d) 1 else 0).featureAverages
+  val res = (y - h1).elementOpDc(x => if (x == 0d) 1 else 0).featureAverages
   println("accuracy : " + res(0) * 100)
-  val p2 = predict(Array(nTheta1,nTheta2),x)
-  
-  
+  val p2 = predict(Array(nTheta1, nTheta2), x)
+
 }

@@ -8,7 +8,7 @@ object MatrixD {
   var txpsUseCount = 0l
   var verbose = false
 
-  implicit def log(m : MatrixD) = m.log()
+  implicit def log(m: MatrixD) = m.log()
   implicit def scalarOp(d: Double) = new ScalarOp(d)
 
   class ScalarOp(d: Double) {
@@ -120,6 +120,23 @@ object MatrixD {
   def ones(nRows: Int, nCols: Int): MatrixD = new MatrixD(Array.fill(nRows * nCols)(1d), nCols)
   def ones(dims: (Int, Int)): MatrixD = ones(dims._1, dims._2)
 
+  /**
+   * Creates a repeatable psuedo-random matrix based on math.sin function
+   * @param m
+   * @param n
+   * @return
+   */
+  def sin(m: Int, n: Int): MatrixD = {
+    val l = m * n
+    val mat = MatrixD.zeros(m, n + 1)
+    var i = 0
+    while (i < l) {
+      mat.elements(i) = math.sin(i + 1) / 10
+      i += 1
+    }
+    mat
+  }
+
   def dot(v1: Array[Double], range1: Tuple2[Int, Int], v2: Array[Double], range2: Tuple2[Int, Int]): Double = {
     //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
     //require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")
@@ -163,6 +180,19 @@ object MatrixD {
 
   def identityM(dim: Int) = diagonalM(dim)
 
+  def diag(a : Array[Double]) : MatrixD = {
+    val l = a.length
+    val m = MatrixD.zeros(l,l)
+    var i = 0
+    val len = l * l
+    while(i < len) {
+      if( i % l == i / l) {
+        m.elements(i) = a(i % l)
+      }
+      i+=1
+    }
+    m
+  }
   /* could also define one as transpose of other... */
   def rowMatrix(a: Array[Double]) = new MatrixD(a, a.length)
 
@@ -343,18 +373,17 @@ object MatrixD {
     }
     res
   }
-  
-  
+
   def aggregate(m: Int, n: Int, efforts: Array[Future[MatrixD]]): MatrixD = {
     var i = 0
-    var s = MatrixD.zeros(m,n)
+    var s = MatrixD.zeros(m, n)
     while (i < efforts.length) {
       s = s + efforts(i).get
       i += 1
     }
     s
   }
-  
+
 }
 
 /*
@@ -367,12 +396,11 @@ import MatrixD.verbose
 
   @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
   @transient lazy val inv = Concurrent.effort(_inverseDc)
-  var oldCols  = -1
+  var oldCols = -1
   var oldRows = -1
   def this(els: Array[Double], cols: Int, transpose: Boolean = true) {
     this(els, cols, null, transpose)
   }
-
 
   def same(o: MatrixD, maxError: Double = 0): Boolean = {
     if (nCols == o.nCols) {
@@ -417,7 +445,7 @@ import MatrixD.verbose
   }
 
   override def clone = {
-    new MatrixD(elements.clone(), nCols, if(txp != null) txp.get else null, true)
+    new MatrixD(elements.clone(), nCols, if (txp != null) txp.get else null, true)
   }
 
   //     Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f, elements, o.elements, l, c, nRows)))
@@ -503,47 +531,47 @@ import MatrixD.verbose
     }
     sigmas
   }
-  
-  def range() : (Double,Double) = {
+
+  def range(): (Double, Double) = {
     var min = Double.MaxValue
     var max = Double.MinValue
     var s = 0d
     var i = 0
-    while(i < elements.length) {
-      s=elements(i)
-      if(s < min) {
+    while (i < elements.length) {
+      s = elements(i)
+      if (s < min) {
         min = s
       }
-      if(s > max) {
+      if (s > max) {
         max = s
       }
-      i+=1
+      i += 1
     }
-    (min,max)
+    (min, max)
   }
-  
-  def featureMinMax() : Array[(Double,Double)] = {
-    val res =  Array.fill(nCols)((Double.MaxValue, Double.MinValue))
+
+  def featureMinMax(): Array[(Double, Double)] = {
+    val res = Array.fill(nCols)((Double.MaxValue, Double.MinValue))
     var i = 0
     var j = 0
     var s = 0d
     var offset = 0
-    var tup : (Double,Double) = null
-    while(i < nRows) {
+    var tup: (Double, Double) = null
+    while (i < nRows) {
       j = 0
       offset = i * nCols
-      while(j < nCols) {
+      while (j < nCols) {
         s = elements(offset + j)
         tup = res(j)
-        if(s < tup._1) {
+        if (s < tup._1) {
           res(j) = (s, tup._2)
         }
-        if(s > tup._2) {
-          res(j) = (tup._1,s)
+        if (s > tup._2) {
+          res(j) = (tup._1, s)
         }
-        j+=1
+        j += 1
       }
-      i+=1
+      i += 1
     }
     res
   }
@@ -565,13 +593,13 @@ import MatrixD.verbose
     e = e / Math.stdDc(e)
     new MatrixD(e, nCols)
   }
-  
-  private def normalizeChunk(e: Array[Double], mus: Array[Double])(range:(Long,Long))() = {
+
+  private def normalizeChunk(e: Array[Double], mus: Array[Double])(range: (Long, Long))() = {
     var i = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
-    while(i <= end) {
+    while (i <= end) {
       e(i) -= mus(i % nCols)
-      i+=1
+      i += 1
     }
     i
   }
@@ -581,9 +609,17 @@ import MatrixD.verbose
     var i = 0
     val l = elements.length
     var e = elements.clone()
-    Concurrent.combine(Concurrent.distribute(l, normalizeChunk(e,mus)))
+    Concurrent.combine(Concurrent.distribute(l, normalizeChunk(e, mus)))
     val stdDev = Math.stdDc(e)
-    Concurrent.combine(Concurrent.distribute(l, Math.divChunk(e,stdDev)))
+    Concurrent.combine(Concurrent.distribute(l, Math.divChunk(e, stdDev)))
+    new MatrixD(e, nCols)
+  }
+  
+  def normalizeWithDc(mus : Array[Double]): MatrixD = {
+    var i = 0
+    val l = elements.length
+    var e = elements.clone()
+    Concurrent.combine(Concurrent.distribute(l, normalizeChunk(e, mus)))
     new MatrixD(e, nCols)
   }
 
@@ -607,23 +643,23 @@ import MatrixD.verbose
       i -= 1
     }
     new MatrixD(cl, nCols, new MatrixD(txcl, nRows, false), txcl == null)
-  } 
-  
+  }
+
   def negateN = {
     val cl = elements.clone
     Concurrent.combine(Concurrent.distribute(cl.length, Math.negateChunk(cl)))
     var txcl = if (txp != null) txp.get.elements.clone else null
-    if(txcl != null) {
+    if (txcl != null) {
       Concurrent.combine(Concurrent.distribute(cl.length, Math.negateChunk(txcl)))
     }
-    new MatrixD(cl, nCols, if(txcl != null) new MatrixD(txcl, nRows, false) else null, txcl == null)
+    new MatrixD(cl, nCols, if (txcl != null) new MatrixD(txcl, nRows, false) else null, txcl == null)
   }
-    
+
   @inline def sumDc() = Math.sumDc(elements)
   @inline def sum() = { var s = 0d; var i = 0; while (i < elements.length) { s += elements(i); i += 1 }; s }
 
   def lengthDc = math.sqrt(Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.lengthSquaredChunk(elements))))
-  
+
   def length = {
     var s = 0d
     var v = 0d
@@ -636,7 +672,6 @@ import MatrixD.verbose
     math.sqrt(s)
   }
 
-  
   def unitV = {
     val s = lengthDc
     val el = elements.clone
@@ -651,18 +686,19 @@ import MatrixD.verbose
   def unitVdc() = {
     val s = lengthDc
     val el = elements.clone
-    Concurrent.combine(Concurrent.distribute(el.length,Math.divChunk(el, s)))
+    Concurrent.combine(Concurrent.distribute(el.length, Math.divChunk(el, s)))
     new MatrixD(el, nCols, txp != null)
   }
-  
+
   def autoDot() = Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.addSqrChunk(elements)))
 
-  def maxColIdxs() : MatrixD = {
-    val a = MatrixD.zeros(nRows,1)
+  // returns a column matrix where each row contains the index of the largest column 
+  def maxColIdxs(): MatrixD = {
+    val a = MatrixD.zeros(nRows, 1)
     Concurrent.combine(Concurrent.distribute(nRows, Math.maxColIdxChunk(elements, nCols, a.elements)))
     a
   }
-  
+
   @inline def apply(row: Int, col: Int): Double = {
     validIndicesQ(row, col)
     elements(deref(row, col))
@@ -689,9 +725,26 @@ import MatrixD.verbose
     }
     bmat
   }
+  
+  def toColumnSumVector() : MatrixD = {
+    val res = MatrixD.zeros(nRows,1)
+    var i = 0
+    var j = 0
+    var offset = 0
+    while(i<nRows) {
+      j= 0
+      offset =  i * nCols
+      while(j < nCols) {
+        res.elements(i) += elements(offset + j)
+        j+=1
+      }
+      i+=1
+    }
+    res
+  }
 
   def isBinaryCategoryMatrix = !elements.exists(x => x != 0 && x != 1)
-  
+
   def poseAsRow() = {
     oldRows = nRows
     nRows = 1
@@ -707,35 +760,34 @@ import MatrixD.verbose
   }
 
   def unPose() = {
-    if(oldRows != -1 && oldCols == -1)  {
-	    nRows = oldRows
-	    nCols /= oldRows
-	    oldRows = -1
-    } else if(oldRows == -1 && oldCols != -1)  {
-	    nCols = oldCols 
-	    nRows /= oldCols
-	    oldCols = -1
+    if (oldRows != -1 && oldCols == -1) {
+      nRows = oldRows
+      nCols /= oldRows
+      oldRows = -1
+    } else if (oldRows == -1 && oldCols != -1) {
+      nCols = oldCols
+      nRows /= oldCols
+      oldCols = -1
     }
     this
   }
 
-  
-  def reshape(rows: Int, cols: Int, offset : Long = 0) : MatrixD = {
-    val l = rows*cols
+  def reshape(rows: Int, cols: Int, offset: Long = 0): MatrixD = {
+    val l = rows * cols
     val nelems = new Array[Double](l)
     Array.copy(elements, offset.asInstanceOf[Int], nelems, 0, l)
     new MatrixD(nelems, cols)
   }
-  def redimension(dims : (Int,Int), offset : Long = 0) : MatrixD = reshape(dims._1,dims._2, offset)
-  
+  def redimension(dims: (Int, Int), offset: Long = 0): MatrixD = reshape(dims._1, dims._2, offset)
+
   def dropFirst() = {
-     val nelems = new Array[Double](nCols * nRows - nRows)
-     var i =0
-     while(i < nRows) {
-       Array.copy(elements, i * nCols + 1, nelems, i * (nCols-1), nCols -1)
-       i+=1
-     }
-     new MatrixD(nelems, nCols-1)
+    val nelems = new Array[Double](nCols * nRows - nRows)
+    var i = 0
+    while (i < nRows) {
+      Array.copy(elements, i * nCols + 1, nelems, i * (nCols - 1), nCols - 1)
+      i += 1
+    }
+    new MatrixD(nelems, nCols - 1)
   }
 
   private def matrixOpIp(o: MatrixD, f: (Double, Double) => Double): MatrixD = {
@@ -781,38 +833,38 @@ import MatrixD.verbose
     new MatrixD(c, nCols)
   }
 
-  def boolOpChunk(f: (Double,Double) => Boolean, oe:Array[Double])(range : (Long,Long))() = {
-  		var i = range._1.asInstanceOf[Int]
-  		val end = range._2.asInstanceOf[Int]
-  		var test = true
-  		while(test && i <= end) {
-  		  if(!f(elements(i),oe(i))) {
-  		    test = false
-  		  }
-  		  i+=1
-  		}
-  	  test
+  def boolOpChunk(f: (Double, Double) => Boolean, oe: Array[Double])(range: (Long, Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var test = true
+    while (test && i <= end) {
+      if (!f(elements(i), oe(i))) {
+        test = false
+      }
+      i += 1
+    }
+    test
   }
-  
-  def binBoolOpDc(f:(Double,Double) => Boolean, other: MatrixD) : Boolean = {
-    val futs = Concurrent.distribute(elements.length,boolOpChunk(f,other.elements))
+
+  def binBoolOpDc(f: (Double, Double) => Boolean, other: MatrixD): Boolean = {
+    val futs = Concurrent.distribute(elements.length, boolOpChunk(f, other.elements))
     var i = 0
     var greater = true
-    while(i < futs.length) {
+    while (i < futs.length) {
       greater &= futs(i).get()
-      i+=1
+      i += 1
     }
     greater
   }
 
-  def >(o: MatrixD) = binBoolOpDc( (a,b) => a > b, o)
-  def <(o: MatrixD) = binBoolOpDc( (a,b) => a < b, o)
-  def `>=`(o: MatrixD) = binBoolOpDc( (a,b) => a >= b, o)
-  def `<=`(o: MatrixD) = binBoolOpDc( (a,b) => a <= b, o)
-  def equals(o:MatrixD) = if(o != null) binBoolOpDc( (a,b) => a == b, o) else false
-  def almostEquals(o:MatrixD, epsilon : Double ) = binBoolOpDc( (a,b) => math.abs(b-a) <= epsilon, o)
-  def ==(o:MatrixD) = equals(o)
-  
+  def >(o: MatrixD) = binBoolOpDc((a, b) => a > b, o)
+  def <(o: MatrixD) = binBoolOpDc((a, b) => a < b, o)
+  def `>=`(o: MatrixD) = binBoolOpDc((a, b) => a >= b, o)
+  def `<=`(o: MatrixD) = binBoolOpDc((a, b) => a <= b, o)
+  def equals(o: MatrixD) = if (o != null) binBoolOpDc((a, b) => a == b, o) else false
+  def almostEquals(o: MatrixD, epsilon: Double) = binBoolOpDc((a, b) => math.abs(b - a) <= epsilon, o)
+  def ==(o: MatrixD) = equals(o)
+
   def +(other: MatrixD): MatrixD = matrixOpDc(other, _ + _)
   def -(other: MatrixD): MatrixD = matrixOpDc(other, _ - _)
   def hadamardProduct(other: MatrixD) = matrixOpDc(other, _ * _)
@@ -889,14 +941,14 @@ import MatrixD.verbose
     require(nCols == nRows && nRows == 1, "ill-formed scalar with dims " + dims)
     elements(0)
   }
-  
+
   def columnSubset(indices: Array[Int]) = {
     // delay precomputing tx until matrix is complete
     var i = 0
-    var res: MatrixD = MatrixD.zeros(0,0)
+    var res: MatrixD = MatrixD.zeros(0, 0)
     while (i < indices.size) {
       val cVec = columnVector(indices(i))
-      if (res.dims == (0,0)) {
+      if (res.dims == (0, 0)) {
         res = cVec
       } else {
         res = res ++ cVec
@@ -905,37 +957,36 @@ import MatrixD.verbose
     }
     new MatrixD(res.elements, res.nCols, true)
   }
-  
-  def clippedRowSubset (r : Array[Int], colRange : (Int,Int)) = {
+
+  def clippedRowSubset(r: Array[Int], colRange: (Int, Int)) = {
     require(colRange._1 > -1 && colRange._2 < nCols, "bad column range")
     val newM = r.length
-    val res  = MatrixD.zeros(newM,colRange._2 - colRange._1+1)
-    val (m,n) = res.dims()
+    val res = MatrixD.zeros(newM, colRange._2 - colRange._1 + 1)
+    val (m, n) = res.dims()
     val b = res.elements
     var i = 0
     var j = 0
     var boff = 0
     var eoff = 0
-    while(i < newM) {
+    while (i < newM) {
       j = colRange._1
       boff = i * n - colRange._1
       eoff = r(i) * nCols
-      while(j <= colRange._2) {
+      while (j <= colRange._2) {
         b(boff + j) = elements(eoff + j)
-        j+=1
+        j += 1
       }
-      i+=1
+      i += 1
     }
     res
- }
-
+  }
 
   def rowSubset(indices: Array[Int]) = {
     var i = 0
-    var res: MatrixD = MatrixD.zeros(0,0)
+    var res: MatrixD = MatrixD.zeros(0, 0)
     while (i < indices.size) {
       val rVec = rowVector(indices(i))
-      if (res.dims() == (0,0)) {
+      if (res.dims() == (0, 0)) {
         res = rVec
       } else {
         res = res +/ rVec
@@ -945,54 +996,29 @@ import MatrixD.verbose
     res
   }
 
-  def copyRowChunk(e: Array[Double], indices:Array[Int])(range : (Long,Long))() = {
+  def copyRowChunk(e: Array[Double], indices: Array[Int])(range: (Long, Long))() = {
     val end = range._2.asInstanceOf[Int]
     var i = range._1.asInstanceOf[Int]
     var j = 0
     var soff = 0
     var toff = 0
-    while(i <= end) {
+    while (i <= end) {
       j = 0
       soff = indices(i) * nCols
       toff = i * nCols
-      while(j < nCols) {
+      while (j < nCols) {
         e(toff + j) = elements(soff + j)
-        j+=1
+        j += 1
       }
-      i+=1
+      i += 1
     }
   }
-  
+
   def rowSubsetDc(indices: Array[Int]) = {
     var i = 0
     val e = new Array[Double](indices.length * nCols)
-    Concurrent.combine(Concurrent.distribute(indices.length, copyRowChunk(e,indices)))
-    new MatrixD(e,nCols)
-  }
-
-  def toRowMaxIndices() = {
-    val l = new Array[Int](nRows)
-    var idx = 0
-    var jdx = 0
-    var rowMax = 0d
-    var maxIdx = 0
-    var currEl = 0d
-    while (idx < nRows) {
-      jdx = 0
-      rowMax = elements(idx * nCols)
-      maxIdx = 0
-      while (jdx < nCols) {
-        currEl = elements(idx * nCols + jdx)
-        if (currEl > rowMax) {
-          rowMax = currEl
-          maxIdx = jdx
-        }
-        jdx += 1
-      }
-      l(idx) = maxIdx + 1
-      idx += 1
-    }
-    l
+    Concurrent.combine(Concurrent.distribute(indices.length, copyRowChunk(e, indices)))
+    new MatrixD(e, nCols)
   }
 
   def copyRange(src: Array[Double], targ: Array[Double], range: Tuple2[Int, Int], start: Int) {
@@ -1020,7 +1046,7 @@ import MatrixD.verbose
     }
     out
   }
-  
+
   val df = new java.text.DecimalFormat("0.0000E00")
 
   def octStr(): String = {
@@ -1034,13 +1060,13 @@ import MatrixD.verbose
         col = 0
         sb.setLength(0)
         off = row * nCols
-        while(col < nCols) {
-          sb.append(df.format(elements(off+col)))
-          if(col < nCols-1) {
+        while (col < nCols) {
+          sb.append(df.format(elements(off + col)))
+          if (col < nCols - 1) {
             sb.append("  ")
           }
-          col+=1
-        } 
+          col += 1
+        }
         l = l :+ sb.toString()
         row += 1
       }
@@ -1065,7 +1091,7 @@ import MatrixD.verbose
       "MatrixD[" + nRows + "," + nCols + "]"
     }
   }
-  
+
   def rightConcatenate(other: MatrixD): MatrixD = {
     require(other.nRows == nRows, "can only right-concatenate matrices of equal row count")
     val newCols = nCols + other.nCols
@@ -1326,7 +1352,7 @@ import MatrixD.verbose
     new MatrixD(el, nCols, txp != null)
   }
 
-  def elementChunk(el:Array[Double], f: (Double) => Double)(range:(Long,Long))() = {
+  def elementChunk(el: Array[Double], f: (Double) => Double)(range: (Long, Long))() = {
     var l = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     while (l <= end) {
@@ -1338,7 +1364,7 @@ import MatrixD.verbose
   def elementOpDc(f: (Double) => Double): MatrixD = {
     var el = elements.clone
     var l = elements.length
-    Concurrent.combine(Concurrent.distribute(l, elementChunk(el,f)))
+    Concurrent.combine(Concurrent.distribute(l, elementChunk(el, f)))
     new MatrixD(el, nCols, txp != null)
   }
 
@@ -1377,16 +1403,16 @@ import MatrixD.verbose
   def log() = elementOpDc(math.log)
   def clean(σ: Double = .0001) = elementScalarOpDc(σ, (x, y) => if (x * x < y * y) 0. else x)
 
-  def filterElements( f: Double => Double) : MatrixD = {
+  def filterElements(f: Double => Double): MatrixD = {
     val c = elements.clone
-    var i = elements.length-1
-    while(i > -1) {
+    var i = elements.length - 1
+    while (i > -1) {
       c(i) = f(c(i))
-      i-=1
+      i -= 1
     }
     new MatrixD(c, nCols)
   }
-  
+
   def sumSquaredDiffs(other: MatrixD): Double = {
     require(dims() == other.dims(), "this " + dims + " dimly incompat w other: " + other.dims)
     var sum = 0d
@@ -1400,22 +1426,22 @@ import MatrixD.verbose
     }
     sum
   }
-  
-  def sumSqrChunk(range:(Long,Long))() = {
-    val end = range._2.asInstanceOf[Int] 
+
+  def sumSqrChunk(range: (Long, Long))() = {
+    val end = range._2.asInstanceOf[Int]
     var s = 0d
     var c = 0d
     var i = range._1.asInstanceOf[Int]
-    while(i <= end) {
+    while (i <= end) {
       c = elements(i)
       s += c * c
       i += 1
     }
     s
   }
-  
-  def sumSqrsDc() : Double = {
-    Concurrent.aggregateD( Concurrent.distribute(elements.length, sumSqrChunk) )
+
+  def sumSqrsDc(): Double = {
+    Concurrent.aggregateD(Concurrent.distribute(elements.length, sumSqrChunk))
   }
 
   def sgn(row: Int, col: Int): Int = {
@@ -1543,11 +1569,10 @@ import MatrixD.verbose
   }
 
   def cofactorChunk(c: Array[Double])(range: (Long, Long))() = {
-    val c = new Array[Double](elements.length)
     var row = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     var col = 1
-    var i = row * nCols
+    var i = (row-1) * nCols
     while (row <= end) {
       col = 1
       while (col <= nCols) {
@@ -1562,7 +1587,7 @@ import MatrixD.verbose
 
   def cofactorMdc() = {
     val c = new Array[Double](elements.length)
-    Concurrent.combine(Concurrent.distribute(nRows, cofactorChunk(c)))
+    Concurrent.combine(Concurrent.distribute(nRows, cofactorChunk(c),true))
     new MatrixD(c, nCols)
   }
 
@@ -1586,11 +1611,10 @@ import MatrixD.verbose
   }
 
   def _inverseDc(): MatrixD = {
-    val d = determinant
+    val d = determinantDc
     require(d != 0, "not linearly independent")
     val mT = cofactorMdc.transposeN()
     mT / d
-    mT
   }
 
   implicit val matDims = (nRows, nCols)

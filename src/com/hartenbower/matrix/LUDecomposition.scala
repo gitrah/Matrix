@@ -3,10 +3,10 @@ package com.hartenbower.matrix
 class LUDecomposition(x: MatrixD) {
   val lu = x.elements
   val (m, n) = x.dims
-  val pivots = (0 to m-1).toArray
+  val pivots = (0 to m - 1).toArray
 
   var pivsign = 1
-  var luRowi = 0 
+  var luRowi = 0
   val luColj = new Array[Double](m)
 
   compute
@@ -35,11 +35,11 @@ class LUDecomposition(x: MatrixD) {
         s = 0
         k = 0
         while (k < kMax) {
-          s += lu( luRowi + k) * luColj(k)
+          s += lu(luRowi + k) * luColj(k)
           k += 1
         }
         luColj(i) -= s
-        lu(luRowi +j) = luColj(i)
+        lu(luRowi + j) = luColj(i)
         i += 1
       }
       // Find pivot and exchange if necessary.
@@ -68,7 +68,7 @@ class LUDecomposition(x: MatrixD) {
       if (j < m && lu(j * n + j) != 0.0) {
         i = j + 1
         while (i < m) {
-          lu(i * n  + j) /= lu(j * n  + j)
+          lu(i * n + j) /= lu(j * n + j)
           i += 1
         }
       }
@@ -79,7 +79,7 @@ class LUDecomposition(x: MatrixD) {
   def singularQ = {
     var j = 0
     while (j < n) {
-      if (lu(j*n +j) == 0) {
+      if (lu(j * n + j) == 0) {
         true
       }
       j += 1
@@ -110,8 +110,8 @@ class LUDecomposition(x: MatrixD) {
 
     // Copy right hand side with pivoting
     val nx = b.nCols
-    val xm: MatrixD =  b.clippedRowSubset( pivots, (0, nx-1))
-    val(mm,nm) = xm.dims
+    val xm: MatrixD = b.clippedRowSubset(pivots, (0, nx - 1))
+    val (mm, nm) = xm.dims
     val x = xm.elements
 
     // Solve L*Y = B(piv,:)
@@ -142,7 +142,7 @@ class LUDecomposition(x: MatrixD) {
       while (i < k) {
         j = 0
         while (j < nx) {
-          x(i* nm + j) -= x(k* nm + j) * lu(i*n+k)
+          x(i * nm + j) -= x(k * nm + j) * lu(i * n + k)
           j += 1
         }
         i += 1

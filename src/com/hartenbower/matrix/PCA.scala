@@ -6,12 +6,12 @@ object PCA {
     var r = 0d
     if (math.abs(a) > math.abs(b)) {
       r = b / a
-       math.abs(a) * math.sqrt(1 + r * r);
+      math.abs(a) * math.sqrt(1 + r * r);
     } else if (b != 0) {
       r = a / b
-       math.abs(b) * math.sqrt(1 + r * r);
+      math.abs(b) * math.sqrt(1 + r * r);
     } else {
-       r
+      r
     }
   }
 
@@ -41,7 +41,7 @@ object PCA {
   def assignae(k: Int, n: Int, nct: Int, m: Int, a: Array[Double], s: Array[Double], e: Array[Double]) {
     // ass a,e
     var j = k + 1
-    val kn = k*n
+    val kn = k * n
     while (j < n) {
       if ((k < nct) & (s(k) != 0.0)) {
 
@@ -185,7 +185,7 @@ object PCA {
       // ass e, work, a, v
       if (k < nrt) {
         //assigneworkav(e: Array[Double], k: Int, n: Int, m: Int, work: Array[Double], a: Array[Double], wantv: Boolean, v: Array[Double]) {
-        assigneworkav(e,k,n,m,work,a,wantv,v)
+        assigneworkav(e, k, n, m, work, a, wantv, v)
       }
       k += 1
     }
@@ -531,8 +531,7 @@ object PCA {
     }
     (uM, sM, vM)
   }
-  
-  
+
   /*
    *    Copied from Jama/SingularValueDecomp
    */
@@ -580,7 +579,7 @@ object PCA {
       // ass e, work, a, v
       if (k < nrt) {
         //assigneworkav(e: Array[Double], k: Int, n: Int, m: Int, work: Array[Double], a: Array[Double], wantv: Boolean, v: Array[Double]) {
-        assigneworkav(e,k,n,m,work,a,wantv,v)
+        assigneworkav(e, k, n, m, work, a, wantv, v)
       }
       k += 1
     }

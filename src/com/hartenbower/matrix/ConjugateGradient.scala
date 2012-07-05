@@ -15,7 +15,7 @@ object ConjugateGradient {
   val ext = 3.0d
   val max = 20
   val ratio = 100
-  def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 50, red: Int = 1) : (MatrixD, MatrixD, Int) = {
+  def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 50, red: Int = 1): (MatrixD, MatrixD, Int) = {
     var x: MatrixD = xin.clone()
     var a = 0d
     var b = 0d
@@ -124,7 +124,7 @@ object ConjugateGradient {
       }
       if (success) { // if line search succeeded
         f1 = f2
-        if (null == fX ) {
+        if (null == fX) {
           fX = MatrixD.ones(1, 1) * f1
         } else {
           fX = (fX.tN() ++ (MatrixD.ones(1, 1) * f1)).tN
@@ -132,7 +132,7 @@ object ConjugateGradient {
 
         println("%s %4d | Cost: %4.6e\r".format(s, i, f1));
 
-        s = s* (df2.autoDot() - (df1.tN() * df2).toScalar()) / (df1.autoDot) - df2 // Polack-Ribiere direction
+        s = s * (df2.autoDot() - (df1.tN() * df2).toScalar()) / (df1.autoDot) - df2 // Polack-Ribiere direction
         val tmp = df1; df1 = df2; df2 = tmp // swap derivatives
         d2 = (df1.tN * s).toScalar()
         if (d2 > 0) { // new slope must be negative

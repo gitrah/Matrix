@@ -63,9 +63,9 @@ object LogisticRegression {
     var jMinus, jPlus = 0d
     while (i < l) {
       perturb.elements(i) = epsilon
-      jMinus = costFn( theta - perturb)
-      jPlus = costFn(theta+perturb)
-      gradApprox.elements(i) = (jPlus-jMinus)/ (2 * epsilon)
+      jMinus = costFn(theta - perturb)
+      jPlus = costFn(theta + perturb)
+      gradApprox.elements(i) = (jPlus - jMinus) / (2 * epsilon)
       perturb.elements(i) = 0d
       i += 1
     }
@@ -73,7 +73,7 @@ object LogisticRegression {
   }
 
   import MatrixD._
-  
+
   def sigmoidGradientSlow(z: MatrixD) = {
     val a = z.elementOp(sigmoidD)
     a ** (1 - a)
@@ -90,8 +90,8 @@ object LogisticRegression {
     }
     res
   }
-  
-  def sigmoidGradientChunk(el: Array[Double])(range:(Long,Long))() = {
+
+  def sigmoidGradientChunk(el: Array[Double])(range: (Long, Long))() = {
     var i = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     var sig = 0d
@@ -102,7 +102,7 @@ object LogisticRegression {
     }
     i
   }
-  
+
   def sigmoidGradientDc(z: MatrixD) = {
     val res = z.clone
     Concurrent.combine(Concurrent.distribute(z.elements.length, sigmoidGradientChunk(res.elements)))

@@ -35,9 +35,9 @@ import gov.noaa.pmel.sgt.VectorAttribute
 import gov.noaa.pmel.sgt.dm.SimplePoint
 
 object SgtMViewer {
-  
-  def graph(x: MatrixD, y: MatrixD, title : String) {
-    val frame = new SgtMViewer(x,y,title)
+
+  def graph(x: MatrixD, y: MatrixD, title: String) {
+    val frame = new SgtMViewer(x, y, title)
     frame.pack
     val screenSize = Toolkit.getDefaultToolkit().getScreenSize();
     val frameSize = frame.getSize();
@@ -76,12 +76,12 @@ object SgtMViewer {
   }
 
  */
-class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with ActionListener */{
+class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with ActionListener */ {
 
   val page = new Page
   var panelModel = new PanelModel
   val dataModel = new DataModel
-  var mainPane : JPane = null
+  var mainPane: JPane = null
   val graphicPanel = new JPanel(new BorderLayout());
 
   var printMenuItem: JMenuItem = null
@@ -101,7 +101,7 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
    */
   //createGraphic();
   getContentPane().add(graphicPanel, BorderLayout.CENTER);
-  graphicPanel.add(makeGraph(x,y))
+  graphicPanel.add(makeGraph(x, y))
 
   def createGraphic() {
 
@@ -136,17 +136,17 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
     val pointPanel = panelModel.findPanelHolder("PointPanel")
     val pointData = pointPanel.findDataGroup("PointData")
     val pointLegend = pointPanel.findLegend("ColorLegend")
-    
-		val pattr = new PointAttribute(20, Color.red);
-		val pfont = new Font("Helvetica", Font.PLAIN, 12);
-		pattr.setLabelFont(pfont);
-		pattr.setLabelColor(Color.blue);
-		pattr.setLabelHeightP(0.1);
-		//pattr.setDrawLabel(true);    
+
+    val pattr = new PointAttribute(20, Color.red);
+    val pfont = new Font("Helvetica", Font.PLAIN, 12);
+    pattr.setLabelFont(pfont);
+    pattr.setLabelColor(Color.blue);
+    pattr.setLabelHeightP(0.1);
+    //pattr.setDrawLabel(true);    
     /**
      * Add data to PanelHolder, gridPanel, and DataGroup, gridData.
      */
-  //  dataModel.addData(grid, pattr, gridPanel, gridData, gridLegend);
+    //  dataModel.addData(grid, pattr, gridPanel, gridData, gridLegend);
     /**
      * Get a vector from the netCDF file with a stride of 2.
      */
@@ -156,7 +156,7 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
      */
     val blackish = Color.black;
     val vAttr = new VectorAttribute(VectorAttribute.SCALED_HEAD,
-                                                1.0, blackish, 0.3);
+      1.0, blackish, 0.3);
     vAttr.setWidth(1.5f);
     /**
      * Add vector to PanelHolder, gridPanel, and DataGroup, gridData
@@ -164,8 +164,6 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
     //dataModel.addData(vector, vAttr, gridPanel, gridData, null);
   }
 
-  
-  
   def makeGraph(x: MatrixD, y: MatrixD): JPane = {
     /*
          * This example creates a very simple plot from scratch (not using one of
@@ -184,20 +182,20 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
     val ranges: Array[(Double, Double)] = x.featureMinMax()
     val xrange = new Range2D(ranges(0)._1, ranges(0)._2, (ranges(0)._2 - ranges(0)._1) / 25)
     val yrange = new Range2D(ranges(1)._1, ranges(1)._2, (ranges(1)._2 - ranges(1)._1) / 25)
-    println("xrange "+ xrange)
-    println("yrange "+ yrange)
+    println("xrange " + xrange)
+    println("yrange " + yrange)
     val pos = new gov.noaa.pmel.sgt.dm.Collection[SimplePoint]()
     val neg = new gov.noaa.pmel.sgt.dm.Collection[SimplePoint]()
-    val (m,n) = x.dims()
+    val (m, n) = x.dims()
     var i = 0
-    while(i < m) {
-      if(y(i+1,1) == 1d) {
-      	pos.add( new SimplePoint(x(i + 1,1),x(i + 1,2)))
-      }else {
-        neg.add( new SimplePoint(x(i + 1,1),x(i + 1,2)))
+    while (i < m) {
+      if (y(i + 1, 1) == 1d) {
+        pos.add(new SimplePoint(x(i + 1, 1), x(i + 1, 2)))
+      } else {
+        neg.add(new SimplePoint(x(i + 1, 1), x(i + 1, 2)))
       }
-      
-      i+=1
+
+      i += 1
     }
     /*
          * xsize, ysize are the width and height in physical units of the Layer

@@ -8,9 +8,9 @@ object NeuralNet {
   def nnCostFunctionSanGradient(nn_params: MatrixD, input_layer_size: Int,
     hidden_layer_size: Int,
     num_labels: Int,
-    _x: MatrixD, y: MatrixD, lambda: Double) : Double = 
-      nnCostFunction(nn_params, input_layer_size,hidden_layer_size,num_labels, _x, y, lambda)._1
-      
+    _x: MatrixD, y: MatrixD, lambda: Double): Double =
+    nnCostFunction(nn_params, input_layer_size, hidden_layer_size, num_labels, _x, y, lambda)._1
+
   def nnCostFunction(nn_params: MatrixD, input_layer_size: Int,
     hidden_layer_size: Int,
     num_labels: Int,
@@ -59,18 +59,8 @@ object NeuralNet {
     theta2.unPose()
     (j, grad)
   }
-  
-  def checkNnGradients(lambda: Double = 0d) : Double = {
-    def sin(m: Int, n: Int): MatrixD = {
-      val l = m * n
-      val mat = MatrixD.zeros(m, n + 1)
-      var i = 0
-      while (i < l) {
-        mat.elements(i) = math.sin(i + 1) / 10
-        i += 1
-      }
-      mat
-    }
+
+  def checkNnGradients(lambda: Double = 0d): Double = {
     val input_layer_size = 3
     val hidden_layer_size = 5
     val num_labels = 3
@@ -85,10 +75,10 @@ object NeuralNet {
     // Reusing debugInitializeWeights to generate X
     val x = sin(m, input_layer_size - 1)
     val y = (new MatrixD(Util.Math.toDouble((1 to m).toArray), 1).elementOp(_ % num_labels) + 1)
- 
+
     val epsilon = 1e-4
-    val tup = nnCostFunction(nn_params, input_layer_size,  hidden_layer_size,  num_labels, x, y, lambda)
-    val numgrad =gradientApprox(nnCostFunctionSanGradient(_, input_layer_size,  hidden_layer_size,  num_labels, x, y, lambda), nn_params, epsilon)
+    val tup = nnCostFunction(nn_params, input_layer_size, hidden_layer_size, num_labels, x, y, lambda)
+    val numgrad = gradientApprox(nnCostFunctionSanGradient(_, input_layer_size, hidden_layer_size, num_labels, x, y, lambda), nn_params, epsilon)
     println("grad\n" + tup._2.octStr())
     println("numgrad\n" + numgrad.octStr())
     (numgrad - tup._2).length / (numgrad + tup._2).length
@@ -266,7 +256,7 @@ object NeuralNet {
     }
     (j, thetas)
   }
-  def predictCg(theta1:MatrixD, theta2:MatrixD, x:MatrixD) = {
+  def predictCg(theta1: MatrixD, theta2: MatrixD, x: MatrixD) = {
     val m = x.nRows
     val num_labels = theta2.nRows
 
@@ -275,7 +265,7 @@ object NeuralNet {
     //h1 = sigmoid([ones(m, 1) X] * Theta1');
     val h1 = (x.addBiasCol * theta1.tN()).elementOpDc(sigmoidD)
     //h2 = sigmoid([ones(m, 1) h1] * Theta2');
-    val h2 = ( h1.addBiasCol() * theta2.tN).elementOpDc(sigmoidD)
+    val h2 = (h1.addBiasCol() * theta2.tN).elementOpDc(sigmoidD)
     h2
 
   }

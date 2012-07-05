@@ -639,7 +639,7 @@ case class MatrixF(val elements: Array[Float], var nCols: Int, val txpM: MatrixF
     val ret = new MatrixF(b, nRows, this, false)
     ret
   }
-  
+
   def transposeChunk(src: Array[Float], len: Long, trg: Array[Float], rows: Int)(range: Tuple2[Long, Long])(): Long = {
     var i: Long = range._1
     while (i <= range._2) {

@@ -37,5 +37,5 @@ class TestMatrix {
     var delta3 = r._2
     println("ratio is " + (1.0 * delta1 / delta3))
   }
-  
+
 }

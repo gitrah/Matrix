@@ -241,8 +241,9 @@
             <batchtest>
 
                 <fileset
-                    dir="${test.out.dir}"
-                    includes="**/TestMatrixF.class" />
+                    dir="${test.out.dir}">
+                    <filename name="**/TestAnomDet.class"/>
+                </fileset>
             </batchtest>
         </junit>
     </target>

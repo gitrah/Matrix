@@ -60,13 +60,13 @@ class TestLogisticRegression {
     val y = f.get("y").get.asInstanceOf[MatrixD]
     val x1 = x.columnVector(1)
     val x2 = x.columnVector(2)
-    val xm = MatrixD.mapFeature(x1,x2,6)
+    val xm = MatrixD.mapFeature(x1, x2, 6)
     val init_theta = MatrixD.randn(xm.nCols, 1, .25)
     val lambda = 1
-    val (j: Double, grad : MatrixD) = LogisticRegression.costGradFunction(xm,y,init_theta, lambda)
+    val (j: Double, grad: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
     val alpha = .001
     val iters = 1000
-    val (j2: Double, theta : MatrixD) = LogisticRegression.iterativeDescent(xm,y,alpha,iters,lambda,.0001,.00001,0)
+    val (j2: Double, theta: MatrixD) = LogisticRegression.iterativeDescent(xm, y, alpha, iters, lambda, .0001, .00001, 0)
   }
 
   def testCostHandwriting() = {
@@ -81,25 +81,25 @@ class TestLogisticRegression {
     val init_theta = MatrixD.randn(xm.nCols, 1, .25)
     val lambda = 1
     val alpha = 100
-    val iters =5000
+    val iters = 5000
     val epsilon = 2
     val maxErr = 1e-11
     val gradCheckCount = 0
     var res = List[Double]();
-    var thetaRows : MatrixD = null
-    for(i <- 1 to yb.nCols) {
+    var thetaRows: MatrixD = null
+    for (i <- 1 to yb.nCols) {
       println("feature " + i + "\n\n\n")
       val yact = yb.columnVector(i)
       //val (j2: Double, theta : MatrixD) 
-      val tup = LogisticRegression.iterativeDescent(xm,yact,alpha,iters,lambda,epsilon,maxErr,gradCheckCount)
-      thetaRows = if(thetaRows == null) tup._2.toRowVector else thetaRows +/ tup._2.toRowVector
+      val tup = LogisticRegression.iterativeDescent(xm, yact, alpha, iters, lambda, epsilon, maxErr, gradCheckCount)
+      thetaRows = if (thetaRows == null) tup._2.toRowVector else thetaRows +/ tup._2.toRowVector
       res = res :+ tup._1
     }
-    
-    val pred  = NeuralNet.predict(Array(thetaRows), xm)._1.transposeIp().toRowMaxIndices
-    
-    val acc = Math.accuracy(y.elements, pred)
-    
+
+    val pred = NeuralNet.predict(Array(thetaRows), xm)._1.transposeIp().maxColIdxs()
+
+    val acc = Math.accuracy(y.elements, pred.elements)
+
     //val test100 = Util.randperm(m).take(100)
     //val xsubset = xm.rowSubset(test100)
     res

@@ -98,20 +98,28 @@ object Util {
 
     def toSpans(l: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
       val span = l / d
-      //if (span >= threshold) {
-      val ret = new Array[Tuple2[Long, Long]](d)
-      var i = 0
-      while (i < d - 1) {
-        ret(i) = if (oneBased) (i * span + 1, (i + 1) * span) else (i * span, (i + 1) * span - 1)
-        i += 1
+      if (span >= threshold) {
+        val size = math.min(l, d).asInstanceOf[Int]
+        val ret = new Array[Tuple2[Long, Long]](size)
+        var i = 0
+        while (i < size - 1) {
+          if (span > 0) {
+            ret(i) = if (oneBased) (i * span + 1, (i + 1) * span) else (i * span, (i + 1) * span - 1)
+          } else {
+            ret(i) = if (oneBased) (i + 1, i + 1) else (i, i)
+          }
+          i += 1
+        }
+        if (span > 0) {
+          ret(size - 1) = if (oneBased) ((d - 1) * span + 1, l) else ((d - 1) * span, l - 1)
+        } else {
+          ret(size - 1) = if (oneBased) (l, l) else (l - 1, l - 1)
+        }
+        ret
+      } else {
+        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
       }
-      ret(d - 1) = if (oneBased) ((d - 1) * span + 1, l) else ((d - 1) * span, l - 1)
-      ret
-      //      } else {
-      //        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
-      //      }
     }
-
   }
 
   object Timing {
@@ -774,7 +782,7 @@ object Util {
       var s = 0d
       while (i <= end) {
         el = v(i)
-        s += el*el
+        s += el * el
         i += 1
       }
       s
@@ -790,31 +798,31 @@ object Util {
       }
       i
     }
-    
-    def maxColIdxChunk(a:Array[Double], n: Int, idxs : Array[Double])(range:(Long,Long))() = {
+
+    def maxColIdxChunk(a: Array[Double], n: Int, idxs: Array[Double])(range: (Long, Long))() = {
       val end = range._2.asInstanceOf[Int]
       var i = range._1.asInstanceOf[Int]
       var j = 0
       var offset = 0
       var max = 0d
       var curr = 0d
-      while(i <= end) {
+      while (i <= end) {
         j = 0
         max = -Double.MaxValue
         offset = i * n
-        while(j < n) {
+        while (j < n) {
           curr = a(offset + j)
-          if(curr > max) {
+          if (curr > max) {
             max = curr
             idxs(i) = j
           }
-          j+=1
+          j += 1
         }
-        i+=1
+        i += 1
       }
       i
     }
-    
+
     def unitVDc(v: Array[Double]): (Double, Array[Double]) = {
       val ov = v.clone
       val l = math.sqrt(lengthSquaredDc(v))
