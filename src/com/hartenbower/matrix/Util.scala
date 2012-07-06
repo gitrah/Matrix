@@ -69,6 +69,16 @@ object Util {
       s
     }
 
+   def aggregateL[X](efforts: Array[Future[List[X]]]): List[X]= {
+      var i = 0
+      var l = List[X]()
+      while (i < efforts.length) {
+        l = l ++ efforts(i).get
+        i += 1
+      }
+      l
+    }
+
     def aggregateDA(n: Int, efforts: Array[Future[Array[Double]]]): Array[Double] = {
 
       def arrayPlus(a: Array[Double], oa: Array[Double]): Array[Double] = {
@@ -349,6 +359,15 @@ object Util {
   }
 
   object Math {
+    def aboutEq(x:Double,y:Double, eps :Double = 1e-3) = math.abs(y-x) <= eps
+    def aboutEqt(x:(Double,Double),y:(Double,Double), eps :Double = 1e-3) = aboutEq(x._1,y._1,eps) && aboutEq(x._2, y._2, eps)
+    def aboutEqa(x:Array[Double], y:Array[Double], eps : Double = 1e-3) = {
+      if(x.length == y.length) {
+        !(x.toList.zip(y.toList)).exists( x=> !aboutEq(x._1,x._2, eps))
+      } else{
+        false
+      }
+    }
     def sumChunk(a: Array[Double])(range: (Long, Long))(): Double = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
@@ -455,6 +474,19 @@ object Util {
       var delta = 0d
       while (i < len) {
         delta = t(i) - s(i)
+        sum += delta * delta
+        i += 1
+      }
+      sum
+    }
+
+    def sumSquaredDiffs(s: Array[Double], soff:Int, t: Array[Double], toff : Int, n:Int) = {
+      val len = s.length
+      var i = 0
+      var sum = 0d
+      var delta = 0d
+      while (i < n) {
+        delta = t(toff + i) - s(soff + i)
         sum += delta * delta
         i += 1
       }

@@ -197,6 +197,7 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
 
       i += 1
     }
+    println("added " + pos.size() + " positives");
     /*
          * xsize, ysize are the width and height in physical units of the Layer
          * graphics region.
@@ -305,8 +306,12 @@ class SgtMViewer(x: MatrixD, y: MatrixD, title: String) extends JFrame /*with Ac
     /*
          * Associate the attribute and the point Collection with the graph.
          */
-    posGraph.setData(pos, posAttr);
-    negGraph.setData(neg, negAttr);
+    if(!pos.isEmpty()) {
+    	posGraph.setData(pos, posAttr);
+    }
+    if(!neg.isEmpty()) {
+    	negGraph.setData(neg, negAttr);
+    }
 
     mainPane;
   }

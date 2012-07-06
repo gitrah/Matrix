@@ -238,13 +238,9 @@
                 type="brief"
                 usefile="false" />
 
-            <batchtest>
 
-                <fileset
-                    dir="${test.out.dir}">
-                    <filename name="**/TestAnomDet.class"/>
-                </fileset>
-            </batchtest>
+                <test name="com.hartenbower.matrix.TestClustering"/>
+                <test name="com.hartenbower.matrix.TestAnomDet"/>
         </junit>
     </target>
 

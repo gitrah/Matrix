@@ -104,7 +104,11 @@ class LUDecomposition(x: MatrixD) {
     if (b.nRows != m) {
       throw new IllegalArgumentException("Matrix row dimensions must agree.");
     }
-    if (singularQ) {
+    println("n " + n)
+    println("m " + m)
+    println("lu.length " + lu.length)
+    
+    if (m == n && singularQ) {
       throw new RuntimeException("Matrix is singular.");
     }
 

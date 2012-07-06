@@ -67,13 +67,13 @@ object NeuralNet {
     val m = 5
 
     // We generate some 'random' test data
-    val theta1 = sin(hidden_layer_size, input_layer_size)
-    val theta2 = sin(num_labels, hidden_layer_size)
+    val theta1 = sin(hidden_layer_size, input_layer_size+1)
+    val theta2 = sin(num_labels, hidden_layer_size+1)
     val nn_params = theta1.poseAsCol +/ theta2.poseAsCol
     theta1.unPose()
     theta2.unPose()
     // Reusing debugInitializeWeights to generate X
-    val x = sin(m, input_layer_size - 1)
+    val x = sin(m, input_layer_size )
     val y = (new MatrixD(Util.Math.toDouble((1 to m).toArray), 1).elementOp(_ % num_labels) + 1)
 
     val epsilon = 1e-4

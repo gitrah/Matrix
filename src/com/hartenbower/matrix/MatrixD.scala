@@ -128,7 +128,7 @@ object MatrixD {
    */
   def sin(m: Int, n: Int): MatrixD = {
     val l = m * n
-    val mat = MatrixD.zeros(m, n + 1)
+    val mat = MatrixD.zeros(m, n)
     var i = 0
     while (i < l) {
       mat.elements(i) = math.sin(i + 1) / 10
@@ -603,6 +603,18 @@ import MatrixD.verbose
     }
     i
   }
+  
+  private def normalizeSqrChunk(e: Array[Double], mus: Array[Double])(range: (Long, Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var v = 0d
+    while (i <= end) {
+      v = e(i) - mus(i % nCols)
+      e(i) = v*v
+      i += 1
+    }
+    i
+  }
 
   def normalizeDc: MatrixD = {
     val mus = featureAveragesDc
@@ -620,6 +632,14 @@ import MatrixD.verbose
     val l = elements.length
     var e = elements.clone()
     Concurrent.combine(Concurrent.distribute(l, normalizeChunk(e, mus)))
+    new MatrixD(e, nCols)
+  }
+
+  def normalizeSqrWithDc(mus : Array[Double]): MatrixD = {
+    var i = 0
+    val l = elements.length
+    var e = elements.clone()
+    Concurrent.combine(Concurrent.distribute(l, normalizeSqrChunk(e, mus)))
     new MatrixD(e, nCols)
   }
 
@@ -857,6 +877,41 @@ import MatrixD.verbose
     greater
   }
 
+  def countBoolOpChunk(f: (Double) => Boolean)(range: (Long, Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var count = 0
+    while (i <= end) {
+      if (f(elements(i))) {
+        count +=1
+      }
+      i += 1
+    }
+    count
+  }
+
+  
+  def countBoolOpDc(f: (Double) => Boolean) = Concurrent.aggregateD(Concurrent.distribute(elements.length, countBoolOpChunk(f)))
+  
+
+  def rowsWhereChunk(f: (Array[Double] ) => Boolean)(range : (Long,Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    val args = new Array[Double](nCols)
+    var l = List[Int]()
+    while(i <= end) {
+      Array.copy(elements, i * nCols, args,0, nCols)
+      if(f(args)) {
+        l = l :+ i
+      }
+      i+=1
+    }
+    l
+  }
+  
+  def rowsWhere( f: (Array[Double] ) => Boolean) : Array[Int] =
+  		Concurrent.aggregateL(Concurrent.distribute(nRows, rowsWhereChunk(f))).asInstanceOf[List[Int]].toArray
+  
   def >(o: MatrixD) = binBoolOpDc((a, b) => a > b, o)
   def <(o: MatrixD) = binBoolOpDc((a, b) => a < b, o)
   def `>=`(o: MatrixD) = binBoolOpDc((a, b) => a >= b, o)
@@ -867,6 +922,7 @@ import MatrixD.verbose
 
   def +(other: MatrixD): MatrixD = matrixOpDc(other, _ + _)
   def -(other: MatrixD): MatrixD = matrixOpDc(other, _ - _)
+  def &&(other: MatrixD): MatrixD = matrixOpDc(other, (x,y)=> if(x==1d && y==1d) 1d else 0)
   def hadamardProduct(other: MatrixD) = matrixOpDc(other, _ * _)
   def **(other: MatrixD) = hadamardProduct(other)
   def hadamardQuotient(other: MatrixD) = matrixOpDc(other, _ / _)
@@ -940,6 +996,33 @@ import MatrixD.verbose
   def toScalar() = {
     require(nCols == nRows && nRows == 1, "ill-formed scalar with dims " + dims)
     elements(0)
+  }
+  
+  def diagonals() : Array[Double] = {
+    require(squareQ)
+    val ret = new Array[Double](nCols)
+    var i = 0
+    while(i < nCols) {
+      ret(i) = elements(i * nCols + i)
+      i+=1
+    }
+    ret
+  }
+  
+  def setRows(rows: Array[Int], d : Double) = {
+    var i = 0
+    var j = 0
+    var offset = 0
+    while(i < rows.length) {
+      offset = rows(i) * nCols
+      j = 0
+      while(j < nCols) {
+        elements(offset + j) = d
+        j+=1
+      }
+      i+=1
+    }
+    this
   }
 
   def columnSubset(indices: Array[Int]) = {
@@ -1352,7 +1435,7 @@ import MatrixD.verbose
     new MatrixD(el, nCols, txp != null)
   }
 
-  def elementChunk(el: Array[Double], f: (Double) => Double)(range: (Long, Long))() = {
+  def elementOpChunk(el: Array[Double], f: (Double) => Double)(range: (Long, Long))() = {
     var l = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     while (l <= end) {
@@ -1364,7 +1447,7 @@ import MatrixD.verbose
   def elementOpDc(f: (Double) => Double): MatrixD = {
     var el = elements.clone
     var l = elements.length
-    Concurrent.combine(Concurrent.distribute(l, elementChunk(el, f)))
+    Concurrent.combine(Concurrent.distribute(l, elementOpChunk(el, f)))
     new MatrixD(el, nCols, txp != null)
   }
 

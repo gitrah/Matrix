@@ -58,6 +58,11 @@ object AnomalyDetection {
     sigma / m
   }
 
+  def sigmaVector(x: MatrixD, mus: Array[Double]): MatrixD = {
+    val normed = x.normalizeSqrWithDc(mus)
+    new MatrixD(normed.featureAveragesDc, x.nCols) 
+  }
+
   def sigmaChunk(xElems: Array[Double], mus: Array[Double], m: Int, n: Int)(range: (Long, Long))(): Array[Double] = {
     var sigma = Array.fill(n * n)(0d)
     var i = range._1.asInstanceOf[Int]
@@ -121,8 +126,43 @@ object AnomalyDetection {
     }
     val n = mus.length
     val xMinusMu = x.normalizeWithDc(mus)
-    val fac1 = (math.pow(twoPi, -n / 2d) / math.sqrt(params._2.determinant))
+    val fac1 = (math.pow(twoPi, -n / 2d) / math.sqrt(sigma.determinant))
     println("fac1 " +fac1)
-    (((xMinusMu * sigma.inverse) ** xMinusMu).toColumnSumVector() * (-.5)).elementOp(math.exp) * fac1
+    (((xMinusMu * sigma.inverse) ** xMinusMu).toColumnSumVector() * (-.5)).elementOpDc(math.exp) * fac1
+  }
+  
+  def selectThreshold(y : MatrixD, p : MatrixD) : (Double,Double) = {
+    var truePos = y.sum()
+    var falsePos = 0d
+    var falseNeg = 0d
+    val (min,max) = p.featureMinMax()(0)
+    val stepsize = (max - min)/1000d
+    var epsilon = min + stepsize
+    var cvPredictions : MatrixD = null
+    var f1Score = 0d
+    var bestEpsilon = 0d
+    var bestF1 = 0d
+    var precision = 0d
+    var recall = 0d
+    while(epsilon <= max) {
+      cvPredictions = p.elementOpDc( x => if( x < epsilon) 1d else 0d)
+      //tp = sum((cvPredictions == 1) & (yval == 1));
+      truePos = (cvPredictions && y).sumDc
+      //fp = sum((cvPredictions == 1) & (yval == 0));
+      falsePos = (cvPredictions && ( y.elementOpDc( x => if(x== 0) 1d else 0))).sumDc
+      //fn = sum((cvPredictions == 0) & (yval == 1));
+      falseNeg = (cvPredictions.elementOpDc( x => if(x== 0) 1d else 0) && y).sumDc
+      //println("epsilon " + epsilon + ", tp " + truePos + ", fp " + falsePos + ", fN " + falseNeg)
+	    precision = truePos / (truePos + falsePos)
+	    recall = truePos/(truePos + falseNeg)
+	    f1Score = 2 * precision * recall /(precision + recall)
+	    if (f1Score > bestF1) {
+       bestF1 = f1Score
+       bestEpsilon = epsilon
+	    }
+      epsilon += stepsize
+    }
+  
+    (bestEpsilon, bestF1)
   }
 }
