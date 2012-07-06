@@ -18,7 +18,7 @@ class TestClustering {
     val initial_centroids = Array(Array(3d, 3),Array(6d, 2),Array(8d, 5))
     
     val xs = x.toArrayArray
-    val idxs = Clustering.findNearestIdx(xs, initial_centroids)
+    val idxs = Clustering.findNearestIdxDc(xs, initial_centroids)
     assert(idxs(0)==0, "bad first nearest")
     
     assert(idxs(1)==2, "bad 2nd nearest")

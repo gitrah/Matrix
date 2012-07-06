@@ -1,9 +1,12 @@
 package com.hartenbower.matrix
 import Util.Concurrent
 import Util.Math._
+import java.util.concurrent.Future
 object Clustering {
   val rnd = new java.util.Random(System.currentTimeMillis())
 
+  var useDc = true
+  
   def assignment(centroids: Array[Array[Double]], v: Array[Double]): (Double, Int) = {
     var i = centroids.length - 1
     var minLsqr = -5d
@@ -125,7 +128,13 @@ object Clustering {
     i
   }
   
-  def findNearestIdx(x: Array[Array[Double]], cents : Array[Array[Double]]) : Array[Int] = {
+  
+  /**
+   * @param x array of samples, m by n
+   * @param cents array of centroids, k by n
+   * @return array of indices, m by 1, for each sample, the index of the nearest centroid
+   */
+  def findNearestIdxDc(x: Array[Array[Double]], cents : Array[Array[Double]]) : Array[Int] = {
     val ret = new Array[Int](x.length)
   	Concurrent.combine(Concurrent.distribute(x.length, findNearestChunk(x,cents,ret)))
   	ret
@@ -133,7 +142,7 @@ object Clustering {
 
   def randomCentroids(x: Array[Array[Double]], centroids : Int) : Array[Array[Double]] = {
     val cents = new Array[Array[Double]](centroids)
-    val mm = minMax(x)
+    val mm = minMaxRow(x)
     var v1 = mm(0)
     val (v2l, uv2) = unitV(mm(1) - mm(0))
     val epsilon = v2l * rnd.nextDouble()
@@ -206,6 +215,47 @@ object Clustering {
     }
   }
 
+	def distortionChunk(centroids: Int, assignments: Array[(Double, Int)])(range:(Long,Long))() = {
+	    val counts = Array.fill(centroids)(0)
+	    val dists = Array.fill(centroids)(0d)
+	    var i = range._1.asInstanceOf[Int]
+	    val end = range._2.asInstanceOf[Int]
+	    
+	    var idx = -1
+	    var tup: (Double, Int) = null
+	    while (i <= end) {
+	      tup = assignments(i)
+	      counts(tup._2) += 1
+	      dists(tup._2) += tup._1
+	      i += 1
+	    }
+	    (counts,dists)
+	  }
+
+  
+  def distortionDc(centroids: Int, assignments: Array[(Double, Int)]): Double = {
+    import Util.Math._
+    var counts = Array.fill(centroids)(0)
+    var dists = Array.fill(centroids)(0d)
+    val futs = Concurrent.distribute(assignments.length, distortionChunk(centroids, assignments))
+    var i = 0
+    val l = futs.length
+    var f : Future[(Array[Int],Array[Double])] = null
+    while(i < l) {
+      f = futs(i)
+      counts = counts + f.get._1
+      dists = dists + f.get._2
+      i+=1
+    }
+    i=0
+    var total = 0d
+    while (i < centroids) {
+      total += dists(i) / counts(i)
+      i += 1
+    }
+    total
+  }
+  
   def distortion(centroids: Int, assignments: Array[(Double, Int)]): Double = {
     val counts = Array.fill(centroids)(0)
     val dists = Array.fill(centroids)(0d)
@@ -235,7 +285,7 @@ object Clustering {
     val cents = _cents.clone()
     val newCents = Array.fill(centroids, n)(0d)
     var i = 0
-    val mm = minMax(x)
+    val mm = minMaxRowDc(x)
     //println("minMaxed " + mm.deep.mkString)
     var v1 = mm(0)
 

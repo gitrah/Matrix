@@ -7,8 +7,14 @@ import com.hartenbower.util.TimingUtil
 
 object Util {
   val rnd = new java.util.Random(System.currentTimeMillis())
-
+  var verbose = false
+  
   object Concurrent {
+    
+    object FutureStatus extends Enumeration {
+      type FutureStatus = Value
+      val Running, Cancelled, Evaluated = Value
+    }
 
     val defaultSpanThreshold = 1
     var threadCount = 2 * Runtime.getRuntime.availableProcessors
@@ -29,7 +35,7 @@ object Util {
 
     def effort[T](f: () => T): Future[T] = {
       val ft = new FutureTask[T](new Exister(f))
-      //println("making an effort")
+      if(verbose)println("making an effort")
       pool.execute(ft)
       ft
     }
@@ -37,7 +43,7 @@ object Util {
     def distribute[T](indexSpace: Long, f: (Tuple2[Long, Long]) => () => T, oneBased: Boolean = false) = {
       var i = 0
       val spans = toSpans(indexSpace, threadCount, oneBased)
-      //println("spans " + spans.mkString)
+      if(verbose)println("spans " + spans.mkString)
       val efforts = new Array[Future[T]](spans.length)
       spans.length match {
         case 1 =>
@@ -50,14 +56,16 @@ object Util {
       }
       efforts
     }
-
+    
     def combine[T](efforts: Array[Future[T]]) {
       var i = 0
       while (i < efforts.length) {
         efforts(i).get
-        i += 1
+       if(verbose)println("got " + i)
+       i += 1
       }
     }
+
 
     def aggregateD(efforts: Array[Future[Double]]): Double = {
       var i = 0
@@ -708,6 +716,111 @@ object Util {
       }
 
     }
+    
+    implicit def intArrayOp(a: Array[Int]) = new IntArrayOp(a)
+
+    class IntArrayOp(a: Array[Int]) {
+      def +(oa: Array[Int]): Array[Int] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + oa(i)
+          i -= 1
+        }
+        o
+      }
+      def +(d: Int): Array[Int] = {
+        val l = a.length
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + d
+          i -= 1
+        }
+        o
+      }
+      def -(oa: Array[Int]): Array[Int] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) - oa(i)
+          i -= 1
+        }
+        o
+      }
+      def -(oa: Array[Int], sOff: Int = 0, tOff: Int = 0): Array[Int] = {
+        val l = oa.length
+        //require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i + sOff) - oa(i + tOff)
+          i -= 1
+        }
+        o
+      }
+
+      def -(d: Int): Array[Int] = {
+        val l = a.length
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) - d
+          i -= 1
+        }
+        o
+      }
+
+      def /(d: Int): Array[Int] = {
+        val l = a.length
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) / d
+          i -= 1
+        }
+        o
+      }
+
+      def *(d: Int): Array[Int] = {
+        val l = a.length
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * d
+          i -= 1
+        }
+        o
+      }
+      def *(oa: Array[Int]): Array[Int] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Int](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * oa(i)
+          i -= 1
+        }
+        o
+      }
+
+      def dot(oa: Array[Double]): Double = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        var s = 0d
+        var i = l - 1
+        while (i > -1) {
+          s += a(i) * oa(i)
+          i -= 1
+        }
+        s
+      }
+
+    }
 
     def lengthSquared(v: Array[Double]): Double = {
       var d = 0d
@@ -745,8 +858,7 @@ object Util {
       d
     }
 
-    def minMax(x: Array[Array[Double]]): Array[Array[Double]] = {
-      val mm = new Array[Array[Double]](2)
+    def minMaxRow(x: Array[Array[Double]]): Array[Array[Double]] = {
       val innerL = x(0).length
       var min = x(0)
       var minL = 0d
@@ -776,6 +888,75 @@ object Util {
       }
       Array(min, max)
     }
+    
+    
+    def minMaxRowChunk(x: Array[Array[Double]])(range:(Long,Long))(): Array[Array[Double]] = {
+      //val mm = new Array[Array[Double]](2)
+      val innerL = x(0).length
+      var min = x(0)
+      var minL = 0d
+      var maxL = 0d
+      var curr = 0d
+      var currL = 0d
+      var max = x(0)
+      val outerL = range._2.asInstanceOf[Int]
+      var i = range._1.asInstanceOf[Int]
+      var j = 0
+      while (i <= outerL) {
+        j = 0
+        currL = 0
+        while (j < innerL) {
+          curr = x(i)(j)
+          currL += curr * curr
+          j += 1
+        }
+        if (currL > maxL) {
+          max = x(i)
+          maxL = currL
+        } else if (currL < minL) {
+          min = x(i)
+          minL = currL
+        }
+        i += 1
+      }
+      Array(min, max)
+    }
+    
+    def minMaxRowDc(x: Array[Array[Double]]): Array[Array[Double]] = {
+      val futs = Concurrent.distribute(x.length, minMaxRowChunk(x))
+      var i =0
+      var f : Future[Array[Array[Double]]] = null
+      var m : Array[Array[Double]] = null
+      val innerL = x(0).length
+      var min = x(0)
+      var minL = 0d
+      var maxL = 0d
+      var curr = 0d
+      var currL = 0d
+      var max = x(0)
+      var j = 0
+      while (i < futs.length) {
+        f = futs(i)
+        m = f.get()
+        j = 0
+        currL = 0
+        while (j < innerL) {
+          curr = m(i)(j)
+          currL += curr * curr
+          j += 1
+        }
+        if (currL > maxL) {
+          max = x(i)
+          maxL = currL
+        } else if (currL < minL) {
+          min = x(i)
+          minL = currL
+        }
+        i += 1
+      }
+      Array(min, max)
+    }
+
 
     def unitV(v: Array[Double]): (Double, Array[Double]) = {
       val ov = v.clone

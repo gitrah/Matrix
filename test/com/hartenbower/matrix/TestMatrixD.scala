@@ -37,21 +37,29 @@ object TestMatrixD {
     time("transposeChunky ", { m = MatrixD.randn(500, 5000); m = m.transposeDc }, lim)
   }
 
-  // import com.hartenbower.matrix._; import Util._ ; import MatrixD._
+  // import com.hartenbower.matrix._; import Util._ ; import MatrixD._; import Util.Timing._
 
   def compareMult0 = {
     val m1 = new MatrixD(Array(1, 2d, 5, 10), 2)
     val m2 = new MatrixD(Array(10d, 20, 2, 1), 2)
   }
-  def compareMult = {
-    var m1 = MatrixD.randn(50, 5000)
-    var m2 = MatrixD.randn(5000, 50)
+  def compareMult(lim: Int) = {
+    var mats = Array(
+      MatrixD.randn(5, 5, 5),
+      MatrixD.randn(25, 25, 5),
+      MatrixD.randn(50, 50, 5),
+      MatrixD.randn(100, 100, 5),
+      MatrixD.randn(500, 500, 50),
+      MatrixD.randn(1000, 1000, 50),
+      MatrixD.randn(5000, 5000, 50))
+    var m: MatrixD = null
     var i = 0
-    var lim = 1000
-    time("slowMult ", m1 slowMult m2, lim)
-    time("* ", m1 multSequential m2, lim)
-    time("multChunkty ", m1 multDc m2, lim)
-
+    while (i < mats.length) {
+      m = mats(i)
+      time("i: " + i + ", slowMult ", m slowMult m, lim)
+      time("i: " + i + " * ", m multSequential m, lim)
+      time("i: " + i + ", multChunkty ", m multDc m, lim)
+      i += 1
+    }
   }
-
 }
