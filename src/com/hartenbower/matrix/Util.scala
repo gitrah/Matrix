@@ -861,8 +861,8 @@ object Util {
     def minMaxRow(x: Array[Array[Double]]): Array[Array[Double]] = {
       val innerL = x(0).length
       var min = x(0)
-      var minL = 0d
-      var maxL = 0d
+      var minL = Double.MaxValue
+      var maxL = Double.MinValue
       var curr = 0d
       var currL = 0d
       var max = x(0)
@@ -891,11 +891,10 @@ object Util {
     
     
     def minMaxRowChunk(x: Array[Array[Double]])(range:(Long,Long))(): Array[Array[Double]] = {
-      //val mm = new Array[Array[Double]](2)
       val innerL = x(0).length
       var min = x(0)
-      var minL = 0d
-      var maxL = 0d
+      var minL = Double.MaxValue
+      var maxL = Double.MinValue
       var curr = 0d
       var currL = 0d
       var max = x(0)
@@ -929,28 +928,33 @@ object Util {
       var m : Array[Array[Double]] = null
       val innerL = x(0).length
       var min = x(0)
-      var minL = 0d
-      var maxL = 0d
+      var minL = Double.MaxValue
+      var maxL = Double.MinValue
       var curr = 0d
       var currL = 0d
       var max = x(0)
       var j = 0
+      var futmmIdx = 0
       while (i < futs.length) {
         f = futs(i)
+        futmmIdx = 0
         m = f.get()
-        j = 0
-        currL = 0
-        while (j < innerL) {
-          curr = m(i)(j)
-          currL += curr * curr
-          j += 1
-        }
-        if (currL > maxL) {
-          max = x(i)
-          maxL = currL
-        } else if (currL < minL) {
-          min = x(i)
-          minL = currL
+        while(futmmIdx < m.length) {
+          j = 0
+          currL = 0
+          while (j < innerL) {
+            curr = m(futmmIdx)(j)
+            currL += curr * curr
+            j += 1
+          }
+          if (currL > maxL) {
+            max = m(futmmIdx)
+            maxL = currL
+          } else if (currL < minL) {
+            min = m(futmmIdx)
+            minL = currL
+          }
+          futmmIdx +=1
         }
         i += 1
       }

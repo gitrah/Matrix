@@ -6,7 +6,7 @@ object Clustering {
   val rnd = new java.util.Random(System.currentTimeMillis())
 
   var useDc = true
-  
+
   def assignment(centroids: Array[Array[Double]], v: Array[Double]): (Double, Int) = {
     var i = centroids.length - 1
     var minLsqr = -5d
@@ -26,7 +26,6 @@ object Clustering {
   }
 
   def assignChunk(x: Array[Array[Double]], assignments: Array[(Double, Int)], cents: Array[Array[Double]])(range: (Long, Long))() = {
-    // println("chunk " + range)
     var li = range._1
     var i = 0
     while (li <= range._2) {
@@ -101,8 +100,8 @@ object Clustering {
     Concurrent.combine(Concurrent.distribute(x.length, moveChunk(x, assignments, cents, counts)))
     Concurrent.combine(Concurrent.distribute(centroids, avgChunk(cents, counts)))
   }
-  
-  def findNearestChunk(x: Array[Array[Double]], cents: Array[Array[Double]], idxs : Array[Int])(range:(Long,Long))() = {
+
+  def findNearestChunk(x: Array[Array[Double]], cents: Array[Array[Double]], idxs: Array[Int])(range: (Long, Long))() = {
     var i = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
     val xl = x.length
@@ -110,37 +109,36 @@ object Clustering {
     var j = 0
     var currDist = 0d
     var minDist = Double.MaxValue
-    var currCent : Array[Double] = null
-    while(i <= end) {
+    var currCent: Array[Double] = null
+    while (i <= end) {
       j = 0
       minDist = Double.MaxValue
       idxs(i) = -1
-      while(j < centsl) {
-        currDist = Util.Math.sumSquaredDiffs(x(i),cents(j))
-        if(currDist < minDist) {
+      while (j < centsl) {
+        currDist = Util.Math.sumSquaredDiffs(x(i), cents(j))
+        if (currDist < minDist) {
           idxs(i) = j
           minDist = currDist
         }
-        j+=1
+        j += 1
       }
-      i+=1
+      i += 1
     }
     i
   }
-  
-  
+
   /**
    * @param x array of samples, m by n
    * @param cents array of centroids, k by n
    * @return array of indices, m by 1, for each sample, the index of the nearest centroid
    */
-  def findNearestIdxDc(x: Array[Array[Double]], cents : Array[Array[Double]]) : Array[Int] = {
+  def findNearestIdxDc(x: Array[Array[Double]], cents: Array[Array[Double]]): Array[Int] = {
     val ret = new Array[Int](x.length)
-  	Concurrent.combine(Concurrent.distribute(x.length, findNearestChunk(x,cents,ret)))
-  	ret
+    Concurrent.combine(Concurrent.distribute(x.length, findNearestChunk(x, cents, ret)))
+    ret
   }
 
-  def randomCentroids(x: Array[Array[Double]], centroids : Int) : Array[Array[Double]] = {
+  def randomCentroids(x: Array[Array[Double]], centroids: Int): Array[Array[Double]] = {
     val cents = new Array[Array[Double]](centroids)
     val mm = minMaxRow(x)
     var v1 = mm(0)
@@ -153,18 +151,18 @@ object Clustering {
     }
     cents
   }
-  
+
   def kMeans(x: Array[Array[Double]], cents: Array[Array[Double]], threshold: Double) = {
     val xl = x.length
     val centroids = cents.length
     val n = cents(0).length
     val assignments = new Array[(Double, Int)](xl)
     val newCents = new Array[Array[Double]](centroids)
-    
+
     var i = 0
-    while(i < cents.length) {
+    while (i < cents.length) {
       newCents(i) = new Array[Double](n)
-      i+=1
+      i += 1
     }
     var delta = 0d
 
@@ -215,24 +213,23 @@ object Clustering {
     }
   }
 
-	def distortionChunk(centroids: Int, assignments: Array[(Double, Int)])(range:(Long,Long))() = {
-	    val counts = Array.fill(centroids)(0)
-	    val dists = Array.fill(centroids)(0d)
-	    var i = range._1.asInstanceOf[Int]
-	    val end = range._2.asInstanceOf[Int]
-	    
-	    var idx = -1
-	    var tup: (Double, Int) = null
-	    while (i <= end) {
-	      tup = assignments(i)
-	      counts(tup._2) += 1
-	      dists(tup._2) += tup._1
-	      i += 1
-	    }
-	    (counts,dists)
-	  }
+  def distortionChunk(centroids: Int, assignments: Array[(Double, Int)])(range: (Long, Long))() = {
+    val counts = Array.fill(centroids)(0)
+    val dists = Array.fill(centroids)(0d)
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
 
-  
+    var idx = -1
+    var tup: (Double, Int) = null
+    while (i <= end) {
+      tup = assignments(i)
+      counts(tup._2) += 1
+      dists(tup._2) += tup._1
+      i += 1
+    }
+    (counts, dists)
+  }
+
   def distortionDc(centroids: Int, assignments: Array[(Double, Int)]): Double = {
     import Util.Math._
     var counts = Array.fill(centroids)(0)
@@ -240,14 +237,14 @@ object Clustering {
     val futs = Concurrent.distribute(assignments.length, distortionChunk(centroids, assignments))
     var i = 0
     val l = futs.length
-    var f : Future[(Array[Int],Array[Double])] = null
-    while(i < l) {
+    var f: Future[(Array[Int], Array[Double])] = null
+    while (i < l) {
       f = futs(i)
       counts = counts + f.get._1
       dists = dists + f.get._2
-      i+=1
+      i += 1
     }
-    i=0
+    i = 0
     var total = 0d
     while (i < centroids) {
       total += dists(i) / counts(i)
@@ -255,7 +252,7 @@ object Clustering {
     }
     total
   }
-  
+
   def distortion(centroids: Int, assignments: Array[(Double, Int)]): Double = {
     val counts = Array.fill(centroids)(0)
     val dists = Array.fill(centroids)(0d)
@@ -286,7 +283,8 @@ object Clustering {
     val newCents = Array.fill(centroids, n)(0d)
     var i = 0
     val mm = minMaxRowDc(x)
-    //println("minMaxed " + mm.deep.mkString)
+    println("minMaxed " + mm.deep.mkString)
+    println("cents " + cents.deep.mkString)
     var v1 = mm(0)
 
     val (v2l, uv2) = unitV(mm(1) - mm(0))
@@ -316,7 +314,7 @@ object Clustering {
           println("got a bad centroid, re-randomizing")
           randInitCentroids
         }
-        if(iter % 100 == 0)print(".")
+        if (iter % 100 == 0) print(".")
       } while (currDistortion.isNaN())
       zero(newCents, n)
       // update centroids
@@ -333,6 +331,7 @@ object Clustering {
     var res: (Double, Array[Array[Double]]) = null
     var repeats = 0
     var cents = randomCentroids(x, centroids)
+    println("cents\n" + cents.deep.mkString)
     while (i > 0 && repeats < stopAfterXrepetitions) {
       val curr = kMeansDc(x, cents)
       if (res == null || res._1 > curr._1) {

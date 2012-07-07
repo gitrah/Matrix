@@ -19,7 +19,13 @@ class TestClustering {
     
     val xs = x.toArrayArray
     val idxs = Clustering.findNearestIdxDc(xs, initial_centroids)
+    println("found idxs " + idxs.length)
     assert(idxs(0)==0, "bad first nearest")
+    val mm = Math.minMaxRow(xs)
+    val mmDc= Math.minMaxRowDc(xs)
+    assert( aboutEqa(mm(0), mmDc(0)))
+    assert( aboutEqa(mm(1), mmDc(1)))
+    
     
     assert(idxs(1)==2, "bad 2nd nearest")
     assert(idxs(2)==1, "bad 3rd nearest")
@@ -29,6 +35,8 @@ class TestClustering {
     assert( aboutEqa(cents(1), Array(5.813503,2.633656)))
     assert( aboutEqa(cents(2), Array(7.119387,3.616684)))
     val mus = x.featureAverages
+    println("found mus " + mus)
+    var cents2 = Clustering.kMeansDc(xs, initial_centroids)
     
     val tup = Clustering.kMeansTrials(xs,3,10)
     val kmCents = tup._2
