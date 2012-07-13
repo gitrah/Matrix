@@ -710,7 +710,7 @@ import MatrixD.verbose
     new MatrixD(el, nCols, txp != null)
   }
 
-  def autoDot() = Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.addSqrChunk(elements)))
+  def autoDot() = Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.sumSqrChunk(elements)))
 
   // returns a column matrix where each row contains the index of the largest column 
   def maxColIdxs(): MatrixD = {
@@ -1371,6 +1371,39 @@ import MatrixD.verbose
     new MatrixD(c, o.nCols)
   }
 
+  
+  def multSeqNoTn(o: MatrixD): MatrixD = {
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for multiplication")
+    val c = new Array[Double](nRows * o.nCols)
+    var i = 0
+    var j = 0
+    var k = 0
+    var sum = 0d
+    var a = 0d
+    var b = 0d
+    var ioff = 0
+    var oioff = 0
+    while (i < nRows) {
+      j = 0
+      ioff = i * nCols
+      oioff = i * o.nCols
+      while (j < o.nCols) {
+        k = 0
+        sum = 0
+        while(k < nCols) {
+        	a = elements(ioff + k)
+        	b = o.elements(k * o.nCols + j)
+        	sum += a *b
+        	k +=1
+        }
+        c(oioff + j ) = sum
+        j +=1
+      }
+      i += 1
+    }
+    new MatrixD(c, o.nCols)
+  }
+
   def multChunk(src1: Array[Double], cols1: Int, src2: Array[Double], rows2: Int, cols2: Int, trg: Array[Double])(range: Tuple2[Long, Long])(): Long = {
     @inline def rowIndices(row: Int, cols: Int) = {
       val start = (row - 1) * cols
@@ -1508,23 +1541,6 @@ import MatrixD.verbose
       i += 1
     }
     sum
-  }
-
-  def sumSqrChunk(range: (Long, Long))() = {
-    val end = range._2.asInstanceOf[Int]
-    var s = 0d
-    var c = 0d
-    var i = range._1.asInstanceOf[Int]
-    while (i <= end) {
-      c = elements(i)
-      s += c * c
-      i += 1
-    }
-    s
-  }
-
-  def sumSqrsDc(): Double = {
-    Concurrent.aggregateD(Concurrent.distribute(elements.length, sumSqrChunk))
   }
 
   def sgn(row: Int, col: Int): Int = {

@@ -3,19 +3,36 @@ package com.hartenbower.matrix
 import Util._
 
 object LogisticRegressionF {
-
-  @inline def sigmoidF(z: Float) = 1.f / (1.f + math.exp(-z).asInstanceOf[Float])
-
-  def from_ex3data1_txt() = {
-    val m = Io.parseOctaveDataFile("ex3data1.txt", false)
-    val x: MatrixF = m.get("X").get.asInstanceOf[MatrixF]
-    val y: MatrixF = m.get("y").get.asInstanceOf[MatrixF]
-    val num_labels: Int = m.get("num_labels").get.asInstanceOf[Float].asInstanceOf[Int]
-    val input_layer_size: Int = m.get("input_layer_size").get.asInstanceOf[Float].asInstanceOf[Int]
-    (x, y, num_labels, input_layer_size)
+  def sigmoid[@specialized(Double, Float, Int) N](z: N)(implicit numeric: Numeric[N]): N = {
+    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
+    numeric match {
+      case i: Integral[N] =>
+        (math.round(g)).asInstanceOf[N]
+      case fr: Fractional[N] =>
+        g.asInstanceOf[N]
+    }
   }
 
-  def gradientApprox(
+  def sigmoidNs[N](z: N)(implicit numeric: Numeric[N]): N = {
+    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
+    numeric match {
+      case i: Integral[N] =>
+        numeric.fromInt((math.round(g)).asInstanceOf[Int])
+      case fr: Fractional[N] =>
+        if (numeric == Numeric.DoubleIsFractional)
+          g.asInstanceOf[N]
+        else
+          g.asInstanceOf[Float].asInstanceOf[N]
+    }
+  }
+  val Limit = 50000000
+
+  @inline def sigmoidF(z: Float) = 1.f / (1.f + math.exp(-z).asInstanceOf[Float])
+  @inline def sigmoidD(z: Double) = 1. / (1. + math.exp(-z))
+
+  def logF(z: Float) = math.log(z).asInstanceOf[Float]
+
+  def bad_gradientApprox(
     @desc("partial funct with just theta as param") costFn: MatrixF => Float,
     @desc("parameters, weights") theta: MatrixF,
     epsilon: Float): MatrixF = {
@@ -35,6 +52,26 @@ object LogisticRegressionF {
     new MatrixF(gradApprox, 1)
   }
 
+  def gradientApprox(
+    @desc("partial funct with just theta as param") costFn: MatrixF => Float,
+    @desc("parameters, weights") theta: MatrixF,
+    epsilon: Float): MatrixF = {
+    val l = theta.elements.length
+    var i = 0
+    val perturb = MatrixF.zeros(theta.dims())
+    val gradApprox = MatrixF.zeros(theta.dims())
+    var jMinus, jPlus = 0f
+    while (i < l) {
+      perturb.elements(i) = epsilon
+      jMinus = costFn(theta - perturb)
+      jPlus = costFn(theta + perturb)
+      gradApprox.elements(i) = (jPlus - jMinus) / (2f * epsilon)
+      perturb.elements(i) = 0f
+      i += 1
+    }
+    gradApprox
+  }
+
   import MatrixF._
 
   def sigmoidGradientSlow(z: MatrixF) = {
@@ -45,12 +82,30 @@ object LogisticRegressionF {
   def sigmoidGradient(z: MatrixF) = {
     val res = z.clone
     var i = 0
-    var sig = 0d
+    var sig = 0f
     while (i < z.elements.length) {
       sig = sigmoidF(res.elements(i))
-      res.elements(i) = (sig * (1 - sig)).asInstanceOf[Float]
+      res.elements(i) = sig * (1 - sig)
       i += 1
     }
+    res
+  }
+
+  def sigmoidGradientChunk(el: Array[Float])(range: (Long, Long))() = {
+    var i = range._1.asInstanceOf[Int]
+    val end = range._2.asInstanceOf[Int]
+    var sig = 0f
+    while (i <= end) {
+      sig = sigmoidF(el(i))
+      el(i) = sig * (1 - sig)
+      i += 1
+    }
+    i
+  }
+
+  def sigmoidGradientDc(z: MatrixF) = {
+    val res = z.clone
+    Concurrent.combine(Concurrent.distribute(z.elements.length, sigmoidGradientChunk(res.elements)))
     res
   }
 
@@ -65,8 +120,8 @@ object LogisticRegressionF {
     if (lambda != 0) {
       var i = 0
       while (i < thetas.length) {
-        val thetaCopy = thetas(i).columnSubset((2 to thetas(i).nCols).toList)
-        val jdeldel = (lambda / (2.f * m) * Math.sumF(thetaCopy.elementOp(Math.powF(_, 2)).elements))
+        val thetaCopy = thetas(i).dropFirst()
+        val jdeldel = lambda / (2.f * m) * Math.sumFdc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
         //println(i + " jdeldel: " + jdeldel)
         jDel += jdeldel
         i += 1
@@ -78,7 +133,7 @@ object LogisticRegressionF {
   }
 
   def costFunctionNoReg(hThetaT: MatrixF, yT: MatrixF, m: Int): Float = {
-    ((-1.f / m) * (yT ** hThetaT.elOp(Math.logF) + (1 - yT) ** ((1 - hThetaT).elOp(Math.logF))).sum()).asInstanceOf[Float]
+    (-1.f / m) * (yT ** hThetaT.elOp(math.log(_).asInstanceOf[Float]) + (1f - yT) ** ((1f - hThetaT).elOp(math.log(_).asInstanceOf[Float]))).sum()
   }
   /*
    *  tThetaX = theta' * X';
@@ -101,7 +156,7 @@ object LogisticRegressionF {
     val thetaCopy = theta.clone()
     thetaCopy.elements(0) = 0
     val gradDel = lambda * thetaCopy.tN() / m
-    val jDel = (lambda / (2 * m) * Math.sumF(thetaCopy.elementOp(Math.powF(_, 2)).elements)).asInstanceOf[Float]
+    val jDel = lambda / (2f * m) * Math.sumFdc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
     (j + jDel, (grad + gradDel).transposeIp())
   }
 
@@ -110,7 +165,7 @@ object LogisticRegressionF {
     @desc("outputs, targets, actual values") y: MatrixF,
     @desc("learning rate") alpha: Float,
     maxIters: Int,
-    @desc("regularization factor") lambda: Float = 0,
+    @desc("regularization factor") lambda: Float = 0f,
     @desc("randomization magnitude") epsilon: Float = .25f,
     @desc("max error") delta: Float = .25f,
     gradCheckCount: Int) = {

@@ -10,7 +10,7 @@ object CollaborativeFiltering {
    * @return
    */
   def cost(x: MatrixD, theta: MatrixD, y: MatrixD, r: MatrixD, lambda: Double): Double = {
-    .5 * ((((x * theta.tN - y) ** r) ^ 2).sum + (x.sumSqrsDc() + theta.sumSqrsDc()) * lambda)
+    .5 * ((((x * theta.tN - y) ** r) ^ 2).sum + (x.autoDot() + theta.autoDot()) * lambda)
   }
   def grad(x: MatrixD, theta: MatrixD, y: MatrixD, r: MatrixD, lambda: Double): (MatrixD, MatrixD) = {
     val x_grad = (x * theta.tN - y) ** r * theta + lambda * x

@@ -77,6 +77,16 @@ object Util {
       s
     }
 
+    def aggregateF(efforts: Array[Future[Float]]): Float = {
+      var i = 0
+      var s = 0f
+      while (i < efforts.length) {
+        s += efforts(i).get
+        i += 1
+      }
+      s
+    }
+
    def aggregateL[X](efforts: Array[Future[List[X]]]): List[X]= {
       var i = 0
       var l = List[X]()
@@ -368,6 +378,7 @@ object Util {
 
   object Math {
     def aboutEq(x:Double,y:Double, eps :Double = 1e-3) = math.abs(y-x) <= eps
+    def aboutEqF(x:Float,y:Float, eps :Float= .001f) = math.abs(y-x) <= eps
     def aboutEqt(x:(Double,Double),y:(Double,Double), eps :Double = 1e-3) = aboutEq(x._1,y._1,eps) && aboutEq(x._2, y._2, eps)
     def aboutEqa(x:Array[Double], y:Array[Double], eps : Double = 1e-3) = {
       if(x.length == y.length) {
@@ -387,11 +398,35 @@ object Util {
       s
     }
 
+    def sumFchunk(a: Array[Float])(range: (Long, Long))(): Float = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var s = 0f
+      while (i <= end) {
+        s += a(i)
+        i += 1
+      }
+      s
+    }
+
     def sumSqrChunk(a: Array[Double])(range: (Long, Long))(): Double = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
       var s = 0d
       var t = 0d
+      while (i <= end) {
+        t = a(i)
+        s += t * t
+        i += 1
+      }
+      s
+    }
+
+    def sumSqrFchunk(a: Array[Float])(range: (Long, Long))(): Float = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var s = 0f
+      var t = 0f
       while (i <= end) {
         t = a(i)
         s += t * t
@@ -436,8 +471,16 @@ object Util {
       aggregateD(distribute(a.length, sumChunk(a)))
     }
 
+    def sumFdc(a: Array[Float]): Float = {
+      aggregateF(distribute(a.length, sumFchunk(a)))
+    }
+
     def sumSqrDc(a: Array[Double]): Double = {
       aggregateD(distribute(a.length, sumSqrChunk(a)))
+    }
+
+    def sumSqrFdc(a: Array[Float]): Float = {
+      aggregateF(distribute(a.length, sumSqrFchunk(a)))
     }
 
     def sumF(a: Array[Float]): Float = {
@@ -456,6 +499,9 @@ object Util {
 
     def averageDc(a: Array[Double]): Double = {
       sumDc(a) / a.length
+    }
+    def averageFdc(a: Array[Float]): Double = {
+      sumFdc(a) / a.length
     }
 
     def powF(f: Float, exp: Float) = {
@@ -501,7 +547,7 @@ object Util {
       sum
     }
 
-    private def sumSquaredDiffsChunk(s: Array[Double], t: Array[Double])(range: (Long, Long))() = {
+    private def sumSqrDiffsChunk(s: Array[Double], t: Array[Double])(range: (Long, Long))() = {
       val end = range._2.asInstanceOf[Int]
       var i = range._1.asInstanceOf[Int]
       var sum = 0d
@@ -516,7 +562,25 @@ object Util {
 
     def sumSquaredDiffsDc(s: Array[Double], t: Array[Double]) = {
       val len = s.length
-      aggregateD(distribute(len, sumSquaredDiffsChunk(s, t)))
+      aggregateD(distribute(len, sumSqrDiffsChunk(s, t)))
+    }
+
+    private def sumSqrFdiffsChunk(s: Array[Float], t: Array[Float])(range: (Long, Long))() = {
+      val end = range._2.asInstanceOf[Int]
+      var i = range._1.asInstanceOf[Int]
+      var sum = 0f
+      var delta = 0f
+      while (i <= end) {
+        delta = t(i) - s(i)
+        sum += delta * delta
+        i += 1
+      }
+      sum
+    }
+
+    def sumSquaredFdiffsDc(s: Array[Float], t: Array[Float]) = {
+      val len = s.length
+      aggregateF(distribute(len, sumSqrFdiffsChunk(s, t)))
     }
 
     def meanSquaredError(s: Array[Double], t: Array[Double]) = sumSquaredDiffs(s, t) / s.length
@@ -606,6 +670,51 @@ object Util {
         var i = l - 1
         while (i > -1) {
           o(i) = a(i) * d
+          i -= 1
+        }
+        o
+      }
+    }
+
+    implicit def scalarOpF(f: Float) = new ScalarOpF(f)
+
+    class ScalarOpF(f: Float) {
+      def +(a: Array[Float]): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + f
+          i -= 1
+        }
+        o
+      }
+      def -(a: Array[Float]): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = f- a(i)
+          i -= 1
+        }
+        o
+      }
+      def /(a: Array[Float]): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) / f
+          i -= 1
+        }
+        o
+      }
+      def *(a: Array[Float]): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * f
           i -= 1
         }
         o
@@ -717,9 +826,9 @@ object Util {
 
     }
     
-    implicit def intArrayOp(a: Array[Int]) = new IntArrayOp(a)
+    implicit def arrayOpI(a: Array[Int]) = new ArrayOpI(a)
 
-    class IntArrayOp(a: Array[Int]) {
+    class ArrayOpI(a: Array[Int]) {
       def +(oa: Array[Int]): Array[Int] = {
         val l = a.length
         require(oa.length == l, "arrays of unequal length")
@@ -819,9 +928,113 @@ object Util {
         }
         s
       }
-
     }
+    
+    
+   implicit def arrayOpF(a: Array[Float]) = new ArrayOpF(a)
 
+    class ArrayOpF(a: Array[Float]) {
+      def +(oa: Array[Float]): Array[Float] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + oa(i)
+          i -= 1
+        }
+        o
+      }
+      def +(f: Float): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) + f
+          i -= 1
+        }
+        o
+      }
+      def -(oa: Array[Float]): Array[Float] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) - oa(i)
+          i -= 1
+        }
+        o
+      }
+      def -(oa: Array[Float], sOff: Int = 0, tOff: Int = 0): Array[Float] = {
+        val l = oa.length
+        //require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i + sOff) - oa(i + tOff)
+          i -= 1
+        }
+        o
+      }
+
+      def -(d: Float): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) - d
+          i -= 1
+        }
+        o
+      }
+
+      def /(d: Float): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) / d
+          i -= 1
+        }
+        o
+      }
+
+      def *(d: Float): Array[Float] = {
+        val l = a.length
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * d
+          i -= 1
+        }
+        o
+      }
+      def *(oa: Array[Float]): Array[Float] = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        val o = new Array[Float](l)
+        var i = l - 1
+        while (i > -1) {
+          o(i) = a(i) * oa(i)
+          i -= 1
+        }
+        o
+      }
+
+      def dot(oa: Array[Float]): Float = {
+        val l = a.length
+        require(oa.length == l, "arrays of unequal length")
+        var s = 0f
+        var i = l - 1
+        while (i > -1) {
+          s += a(i) * oa(i)
+          i -= 1
+        }
+        s
+      }
+    }
+    
     def lengthSquared(v: Array[Double]): Double = {
       var d = 0d
       var vi = 0d
@@ -847,6 +1060,20 @@ object Util {
       d
     }
     def lengthSquaredDc(v: Array[Double]): Double = aggregateD(distribute(v.length, lengthSquaredChunk(v)))
+
+    def lengthFsquaredChunk(v: Array[Float])(range: (Long, Long))(): Float = {
+      var d = 0f
+      var vi = 0f
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      while (i <= end) {
+        vi = v(i)
+        d += vi * vi
+        i += 1
+      }
+      d
+    }
+    def lengthFsquaredDc(v: Array[Float]): Float = aggregateF(distribute(v.length, lengthFsquaredChunk(v)))
 
     def lengthSquared2(v: Array[Double]): Double = {
       var d = 0d
@@ -973,7 +1200,28 @@ object Util {
       (l, ov)
     }
 
+    def unitFv(v: Array[Float]): (Float, Array[Float]) = {
+      val ov = v.clone
+      val l = math.sqrt(lengthFsquaredDc(v)).asInstanceOf[Float]
+      var i = ov.length - 1
+      while (i > -1) {
+        ov(i) /= l
+        i -= 1
+      }
+      (l, ov)
+    }
+
     def divChunk(v: Array[Double], divisor: Double)(range: (Long, Long))() = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      while (i <= end) {
+        v(i) /= divisor
+        i += 1
+      }
+      i
+    }
+
+    def divFchunk(v: Array[Float], divisor: Float)(range: (Long, Long))() = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
       while (i <= end) {
@@ -992,23 +1240,31 @@ object Util {
       }
       i
     }
-    def addSqrChunk(v: Array[Double])(range: (Long, Long))() = {
+   def addFchunk(v: Array[Float], add: Float)(range: (Long, Long))() = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
-      var el = 0d
-      var s = 0d
       while (i <= end) {
-        el = v(i)
-        s += el * el
+        v(i) += add
         i += 1
       }
-      s
+      i
     }
     def negateChunk(v: Array[Double])(range: (Long, Long))() = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
       var el = 0d
       var s = 0d
+      while (i <= end) {
+        v(i) = -v(i)
+        i += 1
+      }
+      i
+    }
+    def negateFchunk(v: Array[Float])(range: (Long, Long))() = {
+      var i = range._1.asInstanceOf[Int]
+      val end = range._2.asInstanceOf[Int]
+      var el = 0f
+      var s = 0f
       while (i <= end) {
         v(i) = -v(i)
         i += 1
@@ -1040,10 +1296,41 @@ object Util {
       i
     }
 
+    def maxColFidxChunk(a: Array[Float], n: Int, idxs: Array[Float])(range: (Long, Long))() = {
+      val end = range._2.asInstanceOf[Int]
+      var i = range._1.asInstanceOf[Int]
+      var j = 0
+      var offset = 0
+      var max = 0f
+      var curr = 0f
+      while (i <= end) {
+        j = 0
+        max = -Float.MaxValue
+        offset = i * n
+        while (j < n) {
+          curr = a(offset + j)
+          if (curr > max) {
+            max = curr
+            idxs(i) = j
+          }
+          j += 1
+        }
+        i += 1
+      }
+      i
+    }
+
     def unitVDc(v: Array[Double]): (Double, Array[Double]) = {
       val ov = v.clone
       val l = math.sqrt(lengthSquaredDc(v))
       combine(distribute(ov.length, divChunk(ov, l)))
+      (l, ov)
+    }
+
+    def unitVfDc(v: Array[Float]): (Float, Array[Float]) = {
+      val ov = v.clone
+      val l = math.sqrt(lengthFsquaredDc(v)).asInstanceOf[Float]
+      combine(distribute(ov.length, divFchunk(ov, l)))
       (l, ov)
     }
 
@@ -1064,9 +1351,26 @@ object Util {
       math.sqrt(sumSqr / l - (avg * avg))
     }
 
+    def stdFDc(a: Array[Float]) = {
+      val l = a.length
+      val sumSqr = sumSqrFdc(a)
+      val avg = averageFdc(a)
+      math.sqrt(sumSqr / l - (avg * avg)).asInstanceOf[Float]
+    }
+
     def toDouble(els: Array[Int]): Array[Double] = {
       val l = els.length
       val el = new Array[Double](l)
+      var i = 0
+      while (i < l) {
+        el(i) = els(i)
+        i += 1
+      }
+      el
+    }
+    def toFloat(els: Array[Int]): Array[Float] = {
+      val l = els.length
+      val el = new Array[Float](l)
       var i = 0
       while (i < l) {
         el(i) = els(i)

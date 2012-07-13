@@ -112,4 +112,24 @@ class TestMatrixF {
     println("ratio is " + (1.0 * delta1 / delta2))
   }
 
+  def compareMult(lim: Int) = {
+    var mats = Array(
+      MatrixF.randn(5, 5, 5),
+      MatrixF.randn(25, 25, 5),
+      MatrixF.randn(50, 50, 5),
+      MatrixF.randn(100, 100, 5),
+      MatrixF.randn(500, 500, 50),
+      MatrixF.randn(1000, 1000, 50),
+      MatrixF.randn(5000, 5000, 50))
+    var m: MatrixF = null
+    var i = 0
+    while (i < mats.length-1) {
+      m = mats(i)
+      time("i: " + i + ", slowMult ", m slowMult m, lim)
+      time("i: " + i + " * ", m multSequential m, lim)
+      time("i: " + i + ", multChunkty ", m multDc m, lim)
+      i += 1
+    }
+  }
+  
 }

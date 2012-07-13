@@ -13,8 +13,8 @@ object TestIo {
     val theta2 = f2.get("Theta2").get.asInstanceOf[MatrixF]
     val thetas = Array(theta1, theta2)
     val (hTheta, zs, as) = NeuralNetF.predict(thetas, x)
-    val preds = hTheta.toRowMaxIndices
-    val acc = Math.accuracy(y.elements, preds)
+    val preds = hTheta.maxColIdxs
+    val acc = Math.accuracy(y.elements, preds.elements)
 
     val ff = Io.parseOctaveDataFile("all_theta.txt")
     val all_theta: MatrixD = ff.get("all_theta").get.asInstanceOf[MatrixD]
@@ -38,8 +38,8 @@ object TestIo {
     Util.Timing.time("desc", tup = NeuralNetF.descend(x, y, descThetas, 1000, epsilon, lambda, alpha, delta), 1)
     descThetas = tup._2
     val (hTheta2, zs2, as2) = NeuralNetF.predict(descThetas, x)
-    val preds2 = hTheta2.toRowMaxIndices
-    val acc2 = Math.accuracy(y.elements, preds2)
+    val preds2 = hTheta2.maxColIdxs
+    val acc2 = Math.accuracy(y.elements, preds2.elements)
 
   }
 }

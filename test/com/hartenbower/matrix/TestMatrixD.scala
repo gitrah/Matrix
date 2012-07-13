@@ -54,7 +54,7 @@ object TestMatrixD {
       MatrixD.randn(5000, 5000, 50))
     var m: MatrixD = null
     var i = 0
-    while (i < mats.length) {
+    while (i < mats.length-1) {
       m = mats(i)
       time("i: " + i + ", slowMult ", m slowMult m, lim)
       time("i: " + i + " * ", m multSequential m, lim)
