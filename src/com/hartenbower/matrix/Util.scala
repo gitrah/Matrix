@@ -17,7 +17,7 @@ object Util {
     }
 
     val defaultSpanThreshold = 1
-    var threadCount = 2 * Runtime.getRuntime.availableProcessors
+    var threadCount =2 * Runtime.getRuntime.availableProcessors
     println("starting with a " + threadCount + "-thread pool")
     val pool = Executors.newFixedThreadPool(threadCount)
 
@@ -1139,7 +1139,8 @@ object Util {
         if (currL > maxL) {
           max = x(i)
           maxL = currL
-        } else if (currL < minL) {
+        } 
+        if (currL < minL) {
           min = x(i)
           minL = currL
         }
@@ -1177,7 +1178,8 @@ object Util {
           if (currL > maxL) {
             max = m(futmmIdx)
             maxL = currL
-          } else if (currL < minL) {
+          } 
+          if (currL < minL) {
             min = m(futmmIdx)
             minL = currL
           }
