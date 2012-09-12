@@ -12,9 +12,7 @@ object Clustering {
     var minLsqr = -5d
     var currL = 0d
     var idx = -1
-    var vc: Array[Double] = null
     while (i > -1) {
-      vc = centroids(i) - v
       currL = lengthSquared(centroids(i) - v)
       if (currL < minLsqr || minLsqr < 0) {
         minLsqr = currL
@@ -36,18 +34,26 @@ object Clustering {
     li
   }
 
-  def newCentroids(x: Array[Array[Double]], assignments: Array[(Double, Int)], centroids: Int, cents: Array[Array[Double]]): Double = {
+  /**
+ * @param x array of samples * features
+ * @param assignments array of samples index * (length to, nearest centroid)
+ * @param centroids count of centroids
+ * @param cents array of centroids * features
+ * @return cost (distortion) from previous centroids
+ */
+def newCentroids(x: Array[Array[Double]], assignments: Array[(Double, Int)], centroids: Int, cents: Array[Array[Double]]): Double = {
     val xl = x.length
     val counts = new Array[Int](centroids)
     var i = xl - 1
     var idx = 0
     var cost = 0d
     var tup: Tuple2[Double, Int] = null
+    zero(cents, cents(0).length)
     while (i > -1) {
       tup = assignments(i)
       idx = tup._2
       cost += tup._1
-      cents(idx) = cents(idx) + x(i)
+      cents(idx) = cents(idx) + x(i)  // should implement += for more clarity?
       counts(idx) += 1
       i -= 1
     }
@@ -60,26 +66,40 @@ object Clustering {
     cost // of previous centroids
   }
 
-  def moveChunk(x: Array[Array[Double]],
-    assignments: Array[(Double, Int)], cents: Array[Array[Double]],
-    counts: Array[Int])(range: Tuple2[Long, Long])() = {
-    // println("range " + range)
+  /**
+ * @param x array of samples * features
+ * @param assignments array of samples index * (length to, nearest centroid)
+ * @param centroids count of centroids
+ * @param features count of features
+ * @param range range of indices into x
+ * @return Tuple of ( Tuple of (Array of cenroids * features, Array of centroid * counts ), cost of previous centroids)
+ */
+def moveChunk(x: Array[Array[Double]],
+    assignments: Array[(Double, Int)], 
+    centroids: Int,
+    features: Int)(range: Tuple2[Long, Long])() = {
     var li = range._2
     var idx = 0
     var i = 0
     var tup: Tuple2[Double, Int] = null
     var cost = 0d
     val centL = x(0).length
+    val centCounts = (new Array[Array[Double]](centroids), new Array[Int](centroids))
+    var cent : Array[Double] = null
     while (li >= range._1) {
       i = li.asInstanceOf[Int]
       tup = assignments(i)
       idx = tup._2
       cost += tup._1
-      cents(idx) = cents(idx) + x(i.asInstanceOf[Int])
-      counts(idx) += 1
+      
+      if(centCounts._1(idx) == null) {
+        centCounts._1(idx) = new Array[Double](features)
+      }
+      centCounts._1(idx) = centCounts._1(idx) + x(i)
+      centCounts._2(idx) += 1
       li -= 1
     }
-    cost
+    (centCounts,cost)
   }
 
   def avgChunk(cents: Array[Array[Double]], counts: Array[Int])(range: (Long, Long))() = {
@@ -91,15 +111,49 @@ object Clustering {
       li += 1
     }
   }
+   def aggregateCentroidsD(cents: Array[Array[Double]], counts: Array[Int], efforts: Array[Future[( (Array[Array[Double]],Array[Int]), Double)]]) : Double = {
+      var i = 0
+      var j = 0
+      val centroids = cents.length
+      var totalCost = 0d
+      var curr : ( (Array[Array[Double]], Array[Int]), Double) = null
+      var currCents : Array[Array[Double]] = null
+      var currCounts : Array[Int] = null
+      
+      while (i < efforts.length) {
+        curr = efforts(i).get
+        currCents = curr._1._1
+        currCounts = curr._1._2
+        j = 0
+        while(j < centroids) {
+          if(currCents(j) != null) {
+        	  cents(j) = cents(j) + currCents(j)
+          } 
+          counts(j) = counts(j) + currCounts(j)
+          j += 1
+        }
+        totalCost += curr._2
+        i += 1
+      }
+      j = 0
+      while(j < centroids) {
+        j+=1
+      }
+      totalCost
+    }
+
 
   def newCentroidsDc(x: Array[Array[Double]], assignments: Array[(Double, Int)], centroids: Int, cents: Array[Array[Double]]) = {
     val xl = x.length
     val counts = new Array[Int](centroids)
     var i = xl - 1
     var idx = 0
-    Concurrent.combine(Concurrent.distribute(x.length, moveChunk(x, assignments, cents, counts)))
+    val totalCost = aggregateCentroidsD(cents, counts, Concurrent.distribute(x.length, moveChunk(x, assignments, cents.length, cents(0).length )))
     Concurrent.combine(Concurrent.distribute(centroids, avgChunk(cents, counts)))
+    totalCost
   }
+  
+  
 
   def findNearestChunk(x: Array[Array[Double]], cents: Array[Array[Double]], idxs: Array[Int])(range: (Long, Long))() = {
     var i = range._1.asInstanceOf[Int]
@@ -154,11 +208,11 @@ object Clustering {
 
   def kMeans(x: Array[Array[Double]], cents: Array[Array[Double]], threshold: Double) = {
     val xl = x.length
-    val centroids = cents.length
+    val centroidCount = cents.length
     val n = cents(0).length
     val assignments = new Array[(Double, Int)](xl)
-    val newCents = new Array[Array[Double]](centroids)
-
+    val newCents = new Array[Array[Double]](centroidCount)
+    val centsCopy = cents.clone
     var i = 0
     while (i < cents.length) {
       newCents(i) = new Array[Double](n)
@@ -169,18 +223,18 @@ object Clustering {
     do {
       i = 0
       while (i < xl) {
-        assignments(i) = assignment(cents, x(i))
+        assignments(i) = assignment(centsCopy, x(i))
         i += 1
       }
-      newCentroids(x, assignments, centroids, newCents)
+      newCentroids(x, assignments, centroidCount, newCents)
 
       i = 0
       delta = 0
-      while (i < centroids) {
-        delta += lengthSquared(newCents(i) - cents(i))
+      while (i < centroidCount) {
+        delta += lengthSquared(newCents(i) - centsCopy(i))
         i += 1
       }
-      Array.copy(newCents, 0, cents, 0, centroids)
+      Array.copy(newCents, 0, centsCopy, 0, centroidCount)
     } while (delta < threshold)
     newCents
   }
@@ -315,6 +369,10 @@ object Clustering {
           randInitCentroids
         }
         if (iter % 100 == 0) print(".")
+        if (iter % 500 == 0) new Thread {
+          override def run {print("*")}
+          
+        }.start
       } while (currDistortion.isNaN())
       zero(newCents, n)
       // update centroids

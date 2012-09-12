@@ -13,6 +13,7 @@ class TestClustering {
 
     // import com.hartenbower.matrix._; import LogisticRegression._ ; import NeuralNet._; import Util._;import java.io._; import Util.Io.RichFile.enrichFile;import Util.Math._
     val f = Io.parseOctaveDataFile("ex7data2.txt")
+  	println("loaded ex7data2.txt")
     val x = f.get("X").get.asInstanceOf[MatrixD]
     
     val initial_centroids = Array(Array(3d, 3),Array(6d, 2),Array(8d, 5))
@@ -23,6 +24,8 @@ class TestClustering {
     assert(idxs(0)==0, "bad first nearest")
     val mm = Math.minMaxRow(xs)
     val mmDc= Math.minMaxRowDc(xs)
+    //for(r <- 1 to 300) println(r + ": " + x.rowVector(r))
+
     assert( aboutEqa(mm(0), mmDc(0)))
     assert( aboutEqa(mm(1), mmDc(1)))
     
