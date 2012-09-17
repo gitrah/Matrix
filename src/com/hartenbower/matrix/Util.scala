@@ -8,16 +8,16 @@ import com.hartenbower.util.TimingUtil
 object Util {
   val rnd = new java.util.Random(System.currentTimeMillis())
   var verbose = false
-  
+
   object Concurrent {
-    
+
     object FutureStatus extends Enumeration {
       type FutureStatus = Value
       val Running, Cancelled, Evaluated = Value
     }
 
     val defaultSpanThreshold = 1
-    var threadCount =2 * Runtime.getRuntime.availableProcessors
+    var threadCount = 2 * Runtime.getRuntime.availableProcessors
     println("starting with a " + threadCount + "-thread pool")
     val pool = Executors.newFixedThreadPool(threadCount)
 
@@ -35,7 +35,7 @@ object Util {
 
     def effort[T](f: () => T): Future[T] = {
       val ft = new FutureTask[T](new Exister(f))
-      if(verbose)println("making an effort")
+      if (verbose) println("making an effort")
       pool.execute(ft)
       ft
     }
@@ -43,7 +43,7 @@ object Util {
     def distribute[T](indexSpace: Long, f: (Tuple2[Long, Long]) => () => T, oneBased: Boolean = false) = {
       var i = 0
       val spans = toSpans(indexSpace, threadCount, oneBased)
-      if(verbose)println("spans " + spans.mkString)
+      if (verbose) println("spans " + spans.mkString)
       val efforts = new Array[Future[T]](spans.length)
       spans.length match {
         case 1 =>
@@ -56,16 +56,15 @@ object Util {
       }
       efforts
     }
-    
+
     def combine[T](efforts: Array[Future[T]]) {
       var i = 0
       while (i < efforts.length) {
         efforts(i).get
-       if(verbose)println("got " + i)
-       i += 1
+        if (verbose) println("got " + i)
+        i += 1
       }
     }
-
 
     def aggregateD(efforts: Array[Future[Double]]): Double = {
       var i = 0
@@ -87,7 +86,7 @@ object Util {
       s
     }
 
-   def aggregateL[X](efforts: Array[Future[List[X]]]): List[X]= {
+    def aggregateL[X](efforts: Array[Future[List[X]]]): List[X] = {
       var i = 0
       var l = List[X]()
       while (i < efforts.length) {
@@ -377,13 +376,22 @@ object Util {
   }
 
   object Math {
-    def aboutEq(x:Double,y:Double, eps :Double = 1e-3) = math.abs(y-x) <= eps
-    def aboutEqF(x:Float,y:Float, eps :Float= .001f) = math.abs(y-x) <= eps
-    def aboutEqt(x:(Double,Double),y:(Double,Double), eps :Double = 1e-3) = aboutEq(x._1,y._1,eps) && aboutEq(x._2, y._2, eps)
-    def aboutEqa(x:Array[Double], y:Array[Double], eps : Double = 1e-3) = {
-      if(x.length == y.length) {
-        !(x.toList.zip(y.toList)).exists( x=> !aboutEq(x._1,x._2, eps))
-      } else{
+    def nextPowerOf2(n: Int) = {
+      var x = n - 1
+      x |= x >> 1
+      x |= x >> 2
+      x |= x >> 4
+      x |= x >> 8
+      x |= x >> 16
+      x + 1
+    }
+    def aboutEq(x: Double, y: Double, eps: Double = 1e-3) = math.abs(y - x) <= eps
+    def aboutEqF(x: Float, y: Float, eps: Float = .001f) = math.abs(y - x) <= eps
+    def aboutEqt(x: (Double, Double), y: (Double, Double), eps: Double = 1e-3) = aboutEq(x._1, y._1, eps) && aboutEq(x._2, y._2, eps)
+    def aboutEqa(x: Array[Double], y: Array[Double], eps: Double = 1e-3) = {
+      if (x.length == y.length) {
+        !(x.toList.zip(y.toList)).exists(x => !aboutEq(x._1, x._2, eps))
+      } else {
         false
       }
     }
@@ -534,7 +542,7 @@ object Util {
       sum
     }
 
-    def sumSquaredDiffs(s: Array[Double], soff:Int, t: Array[Double], toff : Int, n:Int) = {
+    def sumSquaredDiffs(s: Array[Double], soff: Int, t: Array[Double], toff: Int, n: Int) = {
       val len = s.length
       var i = 0
       var sum = 0d
@@ -694,7 +702,7 @@ object Util {
         val o = new Array[Float](l)
         var i = l - 1
         while (i > -1) {
-          o(i) = f- a(i)
+          o(i) = f - a(i)
           i -= 1
         }
         o
@@ -825,7 +833,7 @@ object Util {
       }
 
     }
-    
+
     implicit def arrayOpI(a: Array[Int]) = new ArrayOpI(a)
 
     class ArrayOpI(a: Array[Int]) {
@@ -929,9 +937,8 @@ object Util {
         s
       }
     }
-    
-    
-   implicit def arrayOpF(a: Array[Float]) = new ArrayOpF(a)
+
+    implicit def arrayOpF(a: Array[Float]) = new ArrayOpF(a)
 
     class ArrayOpF(a: Array[Float]) {
       def +(oa: Array[Float]): Array[Float] = {
@@ -1034,7 +1041,7 @@ object Util {
         s
       }
     }
-    
+
     def lengthSquared(v: Array[Double]): Double = {
       var d = 0d
       var vi = 0d
@@ -1115,9 +1122,8 @@ object Util {
       }
       Array(min, max)
     }
-    
-    
-    def minMaxRowChunk(x: Array[Array[Double]])(range:(Long,Long))(): Array[Array[Double]] = {
+
+    def minMaxRowChunk(x: Array[Array[Double]])(range: (Long, Long))(): Array[Array[Double]] = {
       val innerL = x(0).length
       var min = x(0)
       var minL = Double.MaxValue
@@ -1139,7 +1145,7 @@ object Util {
         if (currL > maxL) {
           max = x(i)
           maxL = currL
-        } 
+        }
         if (currL < minL) {
           min = x(i)
           minL = currL
@@ -1148,12 +1154,12 @@ object Util {
       }
       Array(min, max)
     }
-    
+
     def minMaxRowDc(x: Array[Array[Double]]): Array[Array[Double]] = {
       val futs = Concurrent.distribute(x.length, minMaxRowChunk(x))
-      var i =0
-      var f : Future[Array[Array[Double]]] = null
-      var m : Array[Array[Double]] = null
+      var i = 0
+      var f: Future[Array[Array[Double]]] = null
+      var m: Array[Array[Double]] = null
       val innerL = x(0).length
       var min = x(0)
       var minL = Double.MaxValue
@@ -1167,7 +1173,7 @@ object Util {
         f = futs(i)
         futmmIdx = 0
         m = f.get()
-        while(futmmIdx < m.length) {
+        while (futmmIdx < m.length) {
           j = 0
           currL = 0
           while (j < innerL) {
@@ -1178,18 +1184,17 @@ object Util {
           if (currL > maxL) {
             max = m(futmmIdx)
             maxL = currL
-          } 
+          }
           if (currL < minL) {
             min = m(futmmIdx)
             minL = currL
           }
-          futmmIdx +=1
+          futmmIdx += 1
         }
         i += 1
       }
       Array(min, max)
     }
-
 
     def unitV(v: Array[Double]): (Double, Array[Double]) = {
       val ov = v.clone
@@ -1242,7 +1247,7 @@ object Util {
       }
       i
     }
-   def addFchunk(v: Array[Float], add: Float)(range: (Long, Long))() = {
+    def addFchunk(v: Array[Float], add: Float)(range: (Long, Long))() = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
       while (i <= end) {

@@ -1644,7 +1644,7 @@ import MatrixD.verbose
         elements(0) * elements(3) - elements(1) * elements(2)
       case _ =>
         // cofactor expansion along the first column
-        Concurrent.aggregateD(Concurrent.distribute(nRows, determinantChunk))
+        Concurrent.aggregateD(Concurrent.distribute(nRows, determinantChunk, true))
     }
   }
 
