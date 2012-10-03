@@ -150,9 +150,8 @@ object LogisticRegression {
     val tThetaX = theta.tN() * x.tN()
     val hTheta = tThetaX.elOp(sigmoidD)
     val yT = y.tN()
-    val j = costFunctionNoReg(hTheta.tN, yT, m)
-    val grad = 1 / m * ((hTheta - yT) * x)
-
+    val j = costFunctionNoReg(hTheta, yT, m)
+    val grad = ((hTheta - yT) * x)/m
     val thetaCopy = theta.clone()
     thetaCopy.elements(0) = 0
     val gradDel = lambda * thetaCopy.tN() / m

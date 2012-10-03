@@ -52,10 +52,28 @@ class TestLogisticRegression {
     Util.Timing.time("spec sigmoid", testSigmoid)
   }
 
-  def testCostFn() {
-    // import com.hartenbower.matrix._
+  def testCostFnNoReg() {
+    // import com.hartenbower.matrix._; import Util._; import  LogisticRegression.{ Limit, sigmoidNs, sigmoid }
 
-    val f = Io.parseOctaveDataFile("ex2data2m.txt")
+    val f = Io.parseOctaveDataFile("ex2data1.txt")
+    val x = f.get("X").get.asInstanceOf[MatrixD]
+    val y = f.get("y").get.asInstanceOf[MatrixD]
+    val xm = x.addBiasCol
+    var init_theta = MatrixD.zeros(xm.nCols, 1)
+    var lambda = 0
+    val (j: Double, grad: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
+    //init_theta = MatrixD.randn(xm.nCols, 1, .25)
+    lambda = 1
+    val (j1: Double, grad1: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
+    val alpha = .001
+    val iters = 1000
+    val (j2: Double, theta: MatrixD) = LogisticRegression.iterativeDescent(xm, y, alpha, iters, lambda, .0001, .00001, 0)
+  }
+
+ def testCostFn() {
+    // import com.hartenbower.matrix._; import Util._; import  LogisticRegression.{ Limit, sigmoidNs, sigmoid }
+
+    val f = Io.parseOctaveDataFile("ex2data1.txt")
     val x = f.get("X").get.asInstanceOf[MatrixD]
     val y = f.get("y").get.asInstanceOf[MatrixD]
     val x1 = x.columnVector(1)
