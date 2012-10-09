@@ -62,7 +62,7 @@ class TestLogisticRegression {
     var init_theta = MatrixD.zeros(xm.nCols, 1)
     var lambda = 0
     val (j: Double, grad: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
-    //init_theta = MatrixD.randn(xm.nCols, 1, .25)
+    init_theta = MatrixD.ones(xm.nCols, 1) * .25
     lambda = 1
     val (j1: Double, grad1: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
     val alpha = .001

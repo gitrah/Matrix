@@ -1433,6 +1433,12 @@ import MatrixF.verbose
     new MatrixF(c, o.nCols)
   }
 
+  def multDc(o: MatrixF, c: Array[Float]) = {
+    require(nCols == o.nRows, "matrices " + dims() + " and " + o.dims() + " of incompatible shape for multiplication")
+    val oT = o.transposeN
+    Concurrent.combine(Concurrent.distribute(nRows, multChunk(elements, nCols, oT.elements, oT.nRows, oT.nCols, c), true))
+  }
+
   def slowMult(o: MatrixF): MatrixF = {
     val rRows = nRows
     val rCols = o.nCols
@@ -1541,6 +1547,11 @@ import MatrixF.verbose
       i += 1
     }
     sum
+  }
+  
+  def sumSquaredDiffsDc(other: MatrixF): Float = {
+    require(dims() == other.dims(), "this " + dims + " dimly incompat w other: " + other.dims)
+    ((this - other) ^ 2).sum();
   }
 
   def sgn(row: Int, col: Int): Int = {

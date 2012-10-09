@@ -1,4 +1,5 @@
 package com.hartenbower.matrix
+
 import org.junit.Test
 import Util._
 import Util.Timing._
@@ -131,5 +132,30 @@ class TestMatrixF {
       i += 1
     }
   }
-  
+
+  def testSumSqrDiff() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
+	val m1 = MatrixF.ones(1000,1000)
+	val m2 = MatrixF.ones(1000,1000)*2
+	var s = 0f
+	time("100000", s += m1.sumSquaredDiffs(m2), 100000)
+	println("s " + s)
+ 
+  }
+  def testSumSqrDiffDc() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
+	val m1 = MatrixF.ones(1000,1000)
+	val m2 = MatrixF.ones(1000,1000)*2
+	var s = 0f
+	time("100000", s += m1.sumSquaredDiffsDc(m2), 100000)
+	println("s " + s)
+ 
+  }
+  def testMultDc() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
+	val m1 = MatrixF.ones(1000,1000)
+	val m2 = MatrixF.ones(1000,1000)*2
+	val c = new Array[Float](m1.nRows * m2.nCols);
+	time("100000", m1.multDc(m2,c), 1000)
+	val m3 = new MatrixF(c, m2.nCols);
+	println("m3.sum " + m3.sum());
+ 
+  }
 }
