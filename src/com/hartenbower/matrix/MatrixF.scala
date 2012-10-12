@@ -128,13 +128,24 @@ object MatrixF {
    */
   def sin(m: Int, n: Int): MatrixF = {
     val l = m * n
-    val mat = MatrixF.zeros(m, n)
+    val c = new Array[Float](l)
     var i = 0
     while (i < l) {
-      mat.elements(i) = (math.sin(i + 1) / 10d).asInstanceOf[Float]
+      c(i) = (math.sin(i + 1) / 10d).asInstanceOf[Float]
       i += 1
     }
-    mat
+    new MatrixF(c, n)
+  }
+
+  def cos(m: Int, n: Int): MatrixF = {
+    val l = m * n
+    val c = new Array[Float](l)
+    var i = 0
+    while (i < l) {
+      c(i) = (math.cos(i + 1) / 10d).asInstanceOf[Float]
+      i += 1
+    }
+    new MatrixF(c, n)
   }
 
   def dot(v1: Array[Float], range1: Tuple2[Int, Int], v2: Array[Float], range2: Tuple2[Int, Int]): Float = {

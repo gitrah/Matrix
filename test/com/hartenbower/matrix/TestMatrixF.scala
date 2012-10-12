@@ -158,4 +158,10 @@ class TestMatrixF {
 	println("m3.sum " + m3.sum());
  
   }
+  def testMult() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
+	val m1 = MatrixF.sin(400,400)
+	val m2 = MatrixF.cos(400,400)
+	val m3 = m1 * m2;
+	println("m3.sum " + m3.sum());
+  }
 }
