@@ -743,7 +743,6 @@ import MatrixF.verbose
 
   def toBinaryCategoryMatrix(): MatrixF = {
     val s = elements.toSet
-    val max = s.max
     val newCols = s.size
     val bmat = MatrixF.zeros(nRows, newCols)
     var i = 0

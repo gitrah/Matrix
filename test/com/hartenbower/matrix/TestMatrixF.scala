@@ -159,9 +159,17 @@ class TestMatrixF {
  
   }
   def testMult() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
-	val m1 = MatrixF.sin(400,400)
-	val m2 = MatrixF.cos(400,400)
-	val m3 = m1 * m2;
-	println("m3.sum " + m3.sum());
+    val m1 = MatrixF.sin(400,400)
+    val m2 = MatrixF.cos(400,400)
+    val m3 = m1 * m2;
+    println("m3.sum " + m3.sum());
+  }
+  def testCg() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
+    val m400 = MatrixD.sin(400,400)
+  
+    val  i400 = MatrixD.identityM(400);
+    val lu400 = new LUDecomposition(m400);
+     val inv400 = lu400.solve(i400);
+
   }
 }
