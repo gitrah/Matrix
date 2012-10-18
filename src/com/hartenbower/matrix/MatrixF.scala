@@ -976,6 +976,17 @@ import MatrixF.verbose
     c
   }
 
+  def copyOfRow(row: Int, c: Array[Float]) {
+    validRowQ(row)
+    require(c.length == nCols)
+    var l = nCols - 1
+    while (l >= 0) {
+      c(l) = elements((row - 1) * nCols + l)
+      l -= 1
+    }
+    c
+  }
+
   def copyOfCol(col: Int) = {
     validColQ(col)
     val c = new Array[Float](nRows)
@@ -1030,6 +1041,18 @@ import MatrixF.verbose
         elements(offset + j) = d
         j+=1
       }
+      i+=1
+    }
+    this
+  }
+
+  def setRow(row: Int, r : Array[Float]) = {
+    validRowQ(row)
+    require(r.length <= nCols)
+    var offset = (row - 1) * nCols
+    var i = 0
+    while(i < r.length) {
+      elements(offset + i) = r(i)
       i+=1
     }
     this
