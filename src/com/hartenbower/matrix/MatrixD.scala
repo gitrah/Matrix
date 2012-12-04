@@ -137,6 +137,17 @@ object MatrixD {
     mat
   }
 
+  def cos(m: Int, n: Int): MatrixD = {
+    val l = m * n
+    val mat = MatrixD.zeros(m, n)
+    var i = 0
+    while (i < l) {
+      mat.elements(i) = math.cos(i + 1) / 10
+      i += 1
+    }
+    mat
+  }
+
   def dot(v1: Array[Double], range1: Tuple2[Int, Int], v2: Array[Double], range2: Tuple2[Int, Int]): Double = {
     //require(range1._1 >= 0 && range1._2 < v1.length, "range1 outside v1")
     //require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")

@@ -9,7 +9,7 @@
 <project
     name="Matrix"
     basedir="."
-    default="build" >
+    default="build-test" >
 
     <property environment="env" />
 
@@ -213,9 +213,9 @@
         <touch file="${basedir}/Matrix.tag" />
         
         
-    </target>    
-    <target
-        name="test-project"
+    </target>   
+   <target
+        name="build-test"
         depends="build-project" >
 
         <echo message="${ant.project.name}: ${ant.file}" />
@@ -229,7 +229,12 @@
 
             <classpath refid="Matrix.testClasspath" />
         </scalac>
+     </target>
+    <target
+        name="test-project"
+        depends="build-test" >
 
+ 
         <junit maxmemory="4000m" >
 
             <classpath refid="Matrix.testClasspath" />
