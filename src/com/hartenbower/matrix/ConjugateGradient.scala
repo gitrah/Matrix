@@ -44,7 +44,7 @@ object ConjugateGradient {
     var fX: MatrixD = null
     tup = f(x); f1 = tup._1; df1 = tup._2
     i += (if (length > 0) 1 else 0)
-    //println("df1 " + df1)
+    println("df1 " + df1)
     s = df1.negateN
     d1 = -s.autoDot()
     z1 = red / (1 - d1)
@@ -54,12 +54,15 @@ object ConjugateGradient {
       x0 = x.clone()
       f0 = f1
       df0 = df1.clone()
-      //println("x dims " + x.dims())
-      //println("s dims " + s.dims())
+      print("i " + i)
+      print(" x dims " + x.dims())
+      print (" s dims " + s.dims())
+      println (" z1 " + z1)
       x = x + z1 * s
       tup = f(x); f2 = tup._1; df2 = tup._2
       i = i + (if (length < 0) 1 else 0)
       d2 = (df2.tN() * s).toScalar()
+      println("d2 " + d2);
       f3 = f1
       d3 = d1
       z3 = -z1
@@ -72,12 +75,15 @@ object ConjugateGradient {
           limit = z1
           if (f2 > f1) {
             z2 = z3 - .5 * d3 * z3 * z3 / (d3 * z3 + f2 - f3)
-          } else {
+            println("f2 > f1, z2 " + z2);
+         } else {
             a = 6d * (f2 - f3) / z3 + 3d * (d2 + d3)
             b = 3d * (f3 - f2) - z3 * (d3 + 2d * d2)
             z2 = (math.sqrt(b * b - a * d2 * z3 * z3) - b) / a
+            println("f2 <= f1, a " + a + ", b " +b + ", z2 " + z2);
           }
           if (z2.isNaN() || z2.isInfinite()) {
+            println("bad z2");
             z2 = z3 / 2d
           }
           z2 = math.max(math.min(z2, int0 * z3), (1d - int0) * z3)
@@ -88,18 +94,23 @@ object ConjugateGradient {
           i = i + (if (length < 0) 1 else 0)
           d2 = (df2.tN * s).toScalar()
           z3 -= z2
+          println("d2 " + d2 + ", z3 " + z3);
         }
         if ((f2 > f1 + z1 * rho * d1) || (d2 > -sig * d1)) {
+          println("f2 > f1 + z1 * rho * d1) || (d2 > -sig * d1)")
           innerLoop = false
         } else if (d2 > sig * d1) {
+          println("d2 > sig * d1")
           success = true
           innerLoop = false
         } else if (m == 0) {
+          println("m==0")
           innerLoop = false
         } else {
           a = 6 * (f2 - f3) / z3 + 3 * (d2 + d3) // make cubic extrapolation
           b = 3 * (f3 - f2) - z3 * (d3 + 2 * d2)
           z2 = -d2 * z3 * z3 / (b + math.sqrt(b * b - a * d2 * z3 * z3)) // num. error possible - ok!
+          println("a " + a + ", b" + b + ", z2 " + z2)
 
           if (!isReal(z2) || z2 < 0) // num prob or wrong sign?
             if (limit < -0.5) // if we have no upper limit
@@ -114,12 +125,20 @@ object ConjugateGradient {
             z2 = -z3 * int0
           else if ((limit > -0.5) && (z2 < (limit - z1) * (1.0 - int0))) // too close to limit?
             z2 = (limit - z1) * (1.0 - int0)
+         
+          println("z2b " + z2);
+          println("f3 "   +  f3 + " f2 " + f2  +  " d3 "  + d3 );
+          println(" d2 "  +  d2 + " z3 " +  z3  +  " z2 "  + z2);
           f3 = f2; d3 = d2; z3 = -z2 // set point 3 equal to point 2
           z1 = z1 + z2
+          println("z1 = z1 + z2 " + z1);
           x = x + z2 * s // update current estimates
+          println("x.sum " + x.sum());
           tup = f(x); f2 = tup._1; df2 = tup._2
+          println("f2 " + f2)
           m = m - 1; i = i + (if (length < 0) 1 else 0) // count epochs?!
           d2 = (df2.tN() * s).toScalar()
+          println("d2 " + d2)
         }
       }
       if (success) { // if line search succeeded

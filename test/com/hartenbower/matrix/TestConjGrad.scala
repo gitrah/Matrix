@@ -24,7 +24,7 @@ class TestConjGrad {
     val hidden_layer_size = 25 //   25 hidden units
     val num_labels = 10 // 10 labels, from 1 to 10   
     var nfeatures = theta1.nCols
-    assert(num_labels == nfeatures, "feature mismatch")
+   // assert(num_labels == nfeatures, "feature mismatch")
 
     val thetas = theta1.poseAsRow() ++ theta2.poseAsRow()
     theta1.unPose()
@@ -50,8 +50,11 @@ class TestConjGrad {
     time("sigmoidGradientDc1", gdc1 = sigmoidGradientDc(sigTest1), 5000)
     //time("sigmoidGradientDc2", gdc2= sigmoidGradientDc(sigTest2),100)
 
-    val initial_Theta1 = MatrixD.randn(hidden_layer_size, input_layer_size).addBiasCol()
-    val initial_Theta2 = MatrixD.randn(num_labels, hidden_layer_size).addBiasCol()
+   // val initial_Theta1 = MatrixD.randn(hidden_layer_size, input_layer_size).addBiasCol()
+    //val initial_Theta2 = MatrixD.randn(num_labels, hidden_layer_size).addBiasCol()
+
+    val initial_Theta1 = MatrixD.sin(hidden_layer_size, input_layer_size).addBiasCol()
+    val initial_Theta2 = MatrixD.cos(num_labels, hidden_layer_size).addBiasCol()
 
     // Unroll parameters
     val initial_nn_params = initial_Theta1.poseAsCol +/ initial_Theta2.poseAsCol
