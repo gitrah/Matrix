@@ -67,6 +67,7 @@ object LogisticRegression {
       jPlus = costFn(theta + perturb)
       gradApprox.elements(i) = (jPlus - jMinus) / (2 * epsilon)
       perturb.elements(i) = 0d
+	  println(i + " jMin " + jMinus + ", jPlus " + jPlus + " gradApprox(i) " + gradApprox.elements(i))
       i += 1
     }
     gradApprox

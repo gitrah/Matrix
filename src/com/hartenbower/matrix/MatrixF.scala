@@ -1165,6 +1165,7 @@ import MatrixF.verbose
 
   val df = new java.text.DecimalFormat("0.0000E00")
 
+  // octave string
   def octStr(): String = {
     if (verbose || (nRows < 11 && nCols < 11)) {
       val sb = new java.lang.StringBuilder
@@ -1649,7 +1650,7 @@ import MatrixF.verbose
 
   def minor(row: Int, col: Int): Float = minorM(row, col).determinant
 
-  def determinant: Float = {
+  def determinant(): Float = {
     require(nCols == nRows, "not square")
     nCols match {
       case 1 =>

@@ -1,7 +1,7 @@
 package com.hartenbower.matrix
 
 class LUDecomposition(x: MatrixD) {
-  val lu = x.elements
+  val lu = x.elements.clone
   val (m, n) = x.dims
   val pivots = (0 to m - 1).toArray
 
@@ -16,6 +16,8 @@ class LUDecomposition(x: MatrixD) {
     var i = 0
     var k = 0
     var p = 0
+    var pidx = 0
+    var jidx = 0
     var s = 0d
     var kMax = 0
     var t = 0d
@@ -54,9 +56,11 @@ class LUDecomposition(x: MatrixD) {
       if (p != j) {
         k = 0
         while (k < n) {
-          t = lu(p * n + k)
-          lu(p * n + k) = lu(j * n + k)
-          lu(j * n + k) = t
+	  pidx = p * n + k
+	  jidx = j * n + k
+          t = lu(pidx)
+          lu(pidx) = lu(jidx)
+          lu(jidx) = t
           k += 1
         }
 
@@ -65,10 +69,11 @@ class LUDecomposition(x: MatrixD) {
       }
 
       // Compute multipliers.
-      if (j < m && lu(j * n + j) != 0.0) {
+      jidx = j * n + j
+      if (j < m & lu(jidx) != 0.0) {
         i = j + 1
         while (i < m) {
-          lu(i * n + j) /= lu(j * n + j)
+          lu(i * n + j) /= lu(jidx)
           i += 1
         }
       }

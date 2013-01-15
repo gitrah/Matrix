@@ -124,7 +124,7 @@ class TestMatrixF {
       MatrixF.randn(5000, 5000, 50))
     var m: MatrixF = null
     var i = 0
-    while (i < mats.length-1) {
+    while (i < mats.length - 1) {
       m = mats(i)
       time("i: " + i + ", slowMult ", m slowMult m, lim)
       time("i: " + i + " * ", m multSequential m, lim)
@@ -134,42 +134,42 @@ class TestMatrixF {
   }
 
   def testSumSqrDiff() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
-	val m1 = MatrixF.ones(1000,1000)
-	val m2 = MatrixF.ones(1000,1000)*2
-	var s = 0f
-	time("100000", s += m1.sumSquaredDiffs(m2), 100000)
-	println("s " + s)
- 
+    val m1 = MatrixF.ones(1000, 1000)
+    val m2 = MatrixF.ones(1000, 1000) * 2
+    var s = 0f
+    time("100000", s += m1.sumSquaredDiffs(m2), 100000)
+    println("s " + s)
+
   }
   def testSumSqrDiffDc() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
-	val m1 = MatrixF.ones(1000,1000)
-	val m2 = MatrixF.ones(1000,1000)*2
-	var s = 0f
-	time("100000", s += m1.sumSquaredDiffsDc(m2), 100000)
-	println("s " + s)
- 
+    val m1 = MatrixF.ones(1000, 1000)
+    val m2 = MatrixF.ones(1000, 1000) * 2
+    var s = 0f
+    time("100000", s += m1.sumSquaredDiffsDc(m2), 100000)
+    println("s " + s)
+
   }
   def testMultDc() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
-	val m1 = MatrixF.ones(1000,1000)
-	val m2 = MatrixF.ones(1000,1000)*2
-	val c = new Array[Float](m1.nRows * m2.nCols);
-	time("100000", m1.multDc(m2,c), 1000)
-	val m3 = new MatrixF(c, m2.nCols);
-	println("m3.sum " + m3.sum());
- 
+    val m1 = MatrixF.ones(1000, 1000)
+    val m2 = MatrixF.ones(1000, 1000) * 2
+    val c = new Array[Float](m1.nRows * m2.nCols);
+    time("100000", m1.multDc(m2, c), 1000)
+    val m3 = new MatrixF(c, m2.nCols);
+    println("m3.sum " + m3.sum());
+
   }
   def testMult() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
-    val m1 = MatrixF.sin(400,400)
-    val m2 = MatrixF.cos(400,400)
+    val m1 = MatrixF.sin(400, 400)
+    val m2 = MatrixF.cos(400, 400)
     val m3 = m1 * m2;
     println("m3.sum " + m3.sum());
   }
   def testCg() { // import com.hartenbower.matrix._; import Util._;  import Util.Timing._
-    val m400 = MatrixD.sin(400,400)
-  
-    val  i400 = MatrixD.identityM(400);
+    val m400 = MatrixD.sin(400, 400)
+
+    val i400 = MatrixD.identityM(400);
     val lu400 = new LUDecomposition(m400);
-     val inv400 = lu400.solve(i400);
+    val inv400 = lu400.solve(i400);
 
   }
 }

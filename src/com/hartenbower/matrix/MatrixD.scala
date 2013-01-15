@@ -745,6 +745,8 @@ import MatrixD.verbose
     val s = elements.toSet
     val max = s.max
     val newCols = s.size
+    //println("oneBased " + s.contains(0))
+   // println("binCat found " + newCols + " distinct values")
     val bmat = MatrixD.zeros(nRows, newCols)
     var i = 0
     var off = 0

@@ -19,12 +19,25 @@ object NeuralNet {
     val theta2 = nn_params.reshape(num_labels, hidden_layer_size + 1, (hidden_layer_size * (input_layer_size + 1)))
     val m = _x.nRows
     var x = if (!_x.hasBiasCol) _x.addBiasCol else _x
+    //println("x " + x);
     val yb = y.toBinaryCategoryMatrix
-    val z2 = (theta1 * x.tN()).tN()
+    //println("yb " + yb);
+    //val z2 = (theta1 * x.tN()).tN()
+    //println("z2 " + z2);
+    val xt = x.tN();
+    //println("xt\n" + xt);
+    val z2a = theta1 * xt;
+   // println("z2a\n" + z2a);
+    val z2b = z2a.tN();
+   // println("z2b\n" + z2b);
+    val z2 = z2b;
     val a2 = MatrixD.ones(m, 1) ++ z2.elementOpDc(sigmoid)
+  //  println("a2 " + a2);
     val z3 = (theta2 * a2.tN()).tN()
+  //  println("z3 " + z3);
     val a3 = z3.elementOpDc(sigmoid)
-
+  //  println("a3 " + a3);
+    
     // 
     var j = (-1d / m * (yb ** log(a3) + (1d - yb) ** (log(1d - a3)))).sumDc()
     //println("j initial " + j)
@@ -38,7 +51,7 @@ object NeuralNet {
     val tempTheta1 = theta1.dropFirst()
     //jreg2 =sum(sum((lambda / (2 * m) * temp.^2))); 
     val jreg2 = ((tempTheta1 ^ 2d) * (lambda / (2d * m))).sumDc()
-    //println("jreg2 " + jreg2)
+    //println("j init " + j + ", jreg 3 " + jreg3 + ", jreg2 " + jreg2)
     j += jreg2
 
     val delta_3 = a3 - yb
@@ -68,8 +81,11 @@ object NeuralNet {
 
     // We generate some 'random' test data
     val theta1 = sin(hidden_layer_size, input_layer_size+1)
+    println("theta1\n" + theta1);
     val theta2 = sin(num_labels, hidden_layer_size+1)
+    println("theta2\n" + theta1);
     val nn_params = theta1.poseAsCol +/ theta2.poseAsCol
+    println("nn_params\n" + nn_params);
     theta1.unPose()
     theta2.unPose()
     // Reusing debugInitializeWeights to generate X
@@ -79,8 +95,7 @@ object NeuralNet {
     val epsilon = 1e-4
     val tup = nnCostFunction(nn_params, input_layer_size, hidden_layer_size, num_labels, x, y, lambda)
     val numgrad = gradientApprox(nnCostFunctionSanGradient(_, input_layer_size, hidden_layer_size, num_labels, x, y, lambda), nn_params, epsilon)
-    println("grad\n" + tup._2.octStr())
-    println("numgrad\n" + numgrad.octStr())
+    println("grad/numgrad \n" + (tup._2 ++ numgrad).octStr())
     (numgrad - tup._2).length / (numgrad + tup._2).length
   }
 
