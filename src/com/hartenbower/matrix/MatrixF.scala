@@ -447,6 +447,7 @@ import MatrixF.verbose
   @inline def validRowQ(row: Int) = require(row > 0 && row <= nRows, "row " + row + " must be 1 to " + nRows)
 
   @inline def deref(row: Int, col: Int) = (row - 1) * nCols + col - 1
+  @inline def zbDeref(row: Int, col: Int) = row * nCols + col 
   @inline def enref(idx: Int): (Int, Int) = {
     if (idx >= nCols) {
       (idx / nCols + 1, idx % nCols + 1)
@@ -1205,7 +1206,79 @@ import MatrixF.verbose
       }
       l.reverse.mkString("", "\n", "\n")
     } else {
-      "MatrixF[" + nRows + "," + nCols + "]"
+    	val sb = new StringBuffer
+    	var i2 = 0
+		while ( i2 < 12 && i2 < nRows) {
+			if (i2 == 11) {
+				sb.append(".\n.\n.\n");
+			} else {
+				var j2 = 0
+				while (j2 < 12 && j2 < nCols) {
+					if (j2 == 11) {
+						sb.append ( "...");
+					} else {
+					    sb.append(df.format(elements(zbDeref(i2,j2))))
+						if (j2 < nCols - 1) {
+							sb.append(  " ")
+						}
+					}
+					j2 += 1
+				}
+				sb.append("\n");
+			}
+			i2 += 1;
+		}
+		if (nRows > 10) {
+			var i3 = nRows - 10
+			while(i3 < nRows) {
+				if (nCols > 11) {
+				    var j3 = nCols - 11
+					while (j3 < nCols ) {
+						if (j3 == nCols - 11) {
+							sb.append( "...")
+						} else {
+						    sb.append(df.format( elements(zbDeref(i3, j3))))
+							if (j3 < nCols - 1) {
+								sb.append(" ")
+							}
+						}
+						j3 +=1
+					}
+				} else {
+				  var j4 = 0
+					while (j4 < nCols) {
+						sb.append(df.format( elements(zbDeref(i3, j4))))
+						if (j4 < nCols - 1) {
+							sb.append(" ")
+						}
+						j4 += 1
+					}
+
+				}
+				sb.append ("\n")
+				i3 += 1
+			}
+		} else { //if(m > 10) -> n > 10
+		   var i5 = 0
+			while(i5 < 12 && i5 < nRows) {
+				var j5 = nCols - 11
+				while (j5 < nCols) {
+					if (j5 == nCols - 11) {
+						sb.append( "...")
+					}
+					else {
+						sb.append(df.format( elements(zbDeref(i5, j5))))
+						if (j5 < nCols - 1) {
+							sb.append(" ")
+						}
+					}
+					j5 += 1
+				}
+				sb.append ("\n")
+				i5 += 1
+			}
+		}
+		return sb.toString()
     }
   }
 

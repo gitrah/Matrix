@@ -54,7 +54,9 @@ class TestConjGrad {
     //val initial_Theta2 = MatrixD.randn(num_labels, hidden_layer_size).addBiasCol()
 
     val initial_Theta1 = MatrixD.sin(hidden_layer_size, input_layer_size).addBiasCol()
+    println("initial_Theta1 " + initial_Theta1)
     val initial_Theta2 = MatrixD.cos(num_labels, hidden_layer_size).addBiasCol()
+    println("initial_Theta2 " + initial_Theta2)
 
     // Unroll parameters
     val initial_nn_params = initial_Theta1.poseAsCol +/ initial_Theta2.poseAsCol

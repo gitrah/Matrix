@@ -17,6 +17,8 @@ object NeuralNet {
     _x: MatrixD, y: MatrixD, lambda: Double): (Double, MatrixD) = {
     val theta1 = nn_params.reshape(hidden_layer_size, input_layer_size + 1)
     val theta2 = nn_params.reshape(num_labels, hidden_layer_size + 1, (hidden_layer_size * (input_layer_size + 1)))
+    println("theta1.sum " + theta1.sum)
+    println("theta2.sum " + theta2.sum)
     val m = _x.nRows
     var x = if (!_x.hasBiasCol) _x.addBiasCol else _x
     //println("x " + x);
