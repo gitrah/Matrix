@@ -23,7 +23,7 @@ object Matrix {
     new Matrix(
       (1 to dim).map(i =>
         (1 to dim).map(j =>
-          if (i == j) d else 0.)))
+          if (i == j) d else 0.0)))
 
   def identityM(dim: Int) = diagonalM(dim)
 
@@ -58,7 +58,7 @@ object Matrix {
     var l = a.length
     require(l == b.length)
     l -= 1
-    var sum = 0.
+    var sum = 0.0
     while (l >= 0) {
       sum += a(l) * b(l)
       l -= 1
@@ -71,7 +71,7 @@ object Matrix {
     var l = a.length
     require(l == b.length)
     l -= 1
-    var sum = 0.
+    var sum = 0.0
     while (l >= 0) {
       sum += a(l) * b(l)
       l -= 1
@@ -81,13 +81,13 @@ object Matrix {
 
   // warning: invoking this method will make you sad
   def time(total: Long) = {
-    val v1 = List(0.1, .5, 2, 5, 6)
+    val v1 = List(0.1, 0.5, 2, 5, 6)
     val a1 = v1.toArray
-    val v2 = List(0.5, 8, 81, 5, .7)
+    val v2 = List(0.5, 8, 81, 5, 0.7)
     val a2 = v2.toArray
     var count = total
     var l = System.currentTimeMillis
-    var res = 0.
+    var res = 0.0
     while (count > 0) {
       res = Matrix.dotVectors(v1, v2)
       count -= 1
@@ -244,7 +244,7 @@ case class Matrix(val elements: List[List[Double]]) {
   def /(s: Double) = elementScalarOp(s, _ / _)
 
   def ^(exp: Double) = elementScalarOp(exp, (x, y) => scala.math.pow(x, y))
-  def clean(σ: Double = .0001) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0. else x)
+  def clean(σ: Double = 0.0001) = elementScalarOp(σ, (x, y) => if (x * x < y * y) 0.0 else x)
 
   // elementwise operations
   //  def elementElementOp( other : Matrix, f : (Tuple2[Double,Double])=>Double ) : Matrix = {
@@ -342,8 +342,8 @@ case class Matrix(val elements: List[List[Double]]) {
 
 /*
  * 
-val m = new Matrix(List(List(1.,2,3),List(1,4,8),List(3,9,.5)))
-val m = new Matrix(List(List(1.,2,3),List(4,5,6),List(7,8,9)))
+val m = new Matrix(List(List(1.0,2,3),List(1,4,8),List(3,9,.5)))
+val m = new Matrix(List(List(1.0,2,3),List(4,5,6),List(7,8,9)))
 
-val a = new Matrix(List(List(1,2),List(3,4),List(5.,6)))
+val a = new Matrix(List(List(1,2),List(3,4),List(5.0,6)))
 */

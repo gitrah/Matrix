@@ -4,9 +4,9 @@ import Util.Timing._
 
 class TestMatrix {
   def timeMatrixDot(total: Long) = {
-    val v1 = List(0.1, .5, 2, 5, 6)
+    val v1 = List(0.1,0.5, 2, 5, 6)
     val a1 = v1.toArray
-    val v2 = List(0.5, 8, 81, 5, .7)
+    val v2 = List(0.5, 8, 81, 5,0.7)
     val a2 = v2.toArray
     var count = total
     var l = System.currentTimeMillis

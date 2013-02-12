@@ -10,7 +10,6 @@ import java.util.Date;
 import org.apache.log4j.Logger;
 
 import scala.Tuple2;
-import scala.actors.threadpool.TimeUnit;
 
 /**
  * @author reid
@@ -19,19 +18,19 @@ import scala.actors.threadpool.TimeUnit;
 public class TimingUtil {
     static Logger log = Logger.getLogger(TimingUtil.class.getSimpleName());
     
-    public final static long SECOND_MS = TimeUnit.SECONDS.toMillis(1l);
+    public final static long SECOND_MS = 1000l;
 
-    public final static long MINUTE_S = TimeUnit.MINUTES.toSeconds(1l);
+    public final static long MINUTE_S = 60l;
 
-    public final static long MINUTE_MS = TimeUnit.MINUTES.toMillis(1l);
+    public final static long MINUTE_MS = MINUTE_S * SECOND_MS;
    
-    public final static long HOUR_S =  TimeUnit.HOURS.toSeconds(1l);
+    public final static long HOUR_S = 60 * MINUTE_S;
 
-    public final static long HOUR_MS = TimeUnit.HOURS.toMillis(1l);
+    public final static long HOUR_MS = HOUR_S * MINUTE_MS;
 
-    public final static long DAY_S = TimeUnit.DAYS.toSeconds(1l);
+    public final static long DAY_S = 24 * HOUR_S;
 
-    public final static long DAY_MS = TimeUnit.DAYS.toMillis(1l);
+    public final static long DAY_MS = DAY_S * SECOND_MS;
 
     public final static float F_DAY_MS = DAY_MS * 1.f;
     

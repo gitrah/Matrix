@@ -165,7 +165,7 @@ object Util {
         idx -= 1
       }
       val delta = (System.currentTimeMillis - l)
-      println("\n" + msg + " took " + TimingUtil.fromMillis(delta) + " or " + (count * 1000. / delta) + "evals/s")
+      println("\n" + msg + " took " + TimingUtil.fromMillis(delta) + " or " + (count * 1000.0/ delta) + "evals/s")
       (count, delta)
     }
   }
@@ -301,8 +301,8 @@ object Util {
                 if (currRow % 100 == 0) {
                   val now = System.currentTimeMillis()
                   if (lastChunk != 0) {
-                    val delta = ((now - lastChunk) / 1000.).asInstanceOf[Int]
-                    println("on " + currRow + "/" + rows + " at " + delta / 100.f + " s/row")
+                    val delta = ((now - lastChunk) / 1000.0).asInstanceOf[Int]
+                    println("on " + currRow + "/" + rows + " at " + delta / 100.0f + " s/row")
                   } else {
                     println("on " + currRow + "/" + rows)
                   }
@@ -318,8 +318,8 @@ object Util {
                 if (currRow % 100 == 0) {
                   val now = System.currentTimeMillis()
                   if (lastChunk != 0) {
-                    val delta = ((now - lastChunk) / 1000.).asInstanceOf[Int]
-                    println("on " + currRow + "/" + rows + " at " + delta / 100.f + " s/row")
+                    val delta = ((now - lastChunk) / 1000.0).asInstanceOf[Int]
+                    println("on " + currRow + "/" + rows + " at " + delta / 100.0f + " s/row")
                   } else {
                     println("on " + currRow + "/" + rows)
                   }

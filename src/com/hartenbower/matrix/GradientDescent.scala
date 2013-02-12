@@ -28,7 +28,7 @@ object GradientDescent {
   }
 
   def iterate(α: Double, data: Array[(Double, Double)], σ: Double): (Double, Double) = {
-    var θ = (0., 0.)
+    var θ = (0.0, 0.0)
     var oldθ = θ
     var ctr = 0
     do {
@@ -57,19 +57,19 @@ object GradientDescent {
      * θ = (X X)  X y
      */
     val designMatrix = new MatrixD(features, nCols).prependColumnNew(
-      Array.fill[Double](values.length)(1.))
+      Array.fill[Double](values.length)(1.0))
     val dmTxp = designMatrix.transposeN()
     // without determinant check, just return
     //     (xTxp * x).inverse * xTxp * Matrix.columnMatrix(values)
     val prod = dmTxp * designMatrix
-    require(prod.determinant != 0., "features matrix is singular")
+    require(prod.determinant != 0.0, "features matrix is singular")
     prod.inverse() * dmTxp * MatrixD.columnMatrix(values)
   }
 
   def hLinReg(theta: MatrixD, x: MatrixD) = theta.tN * x
 
   def cost(h: (MatrixD, MatrixD) => MatrixD)(x: MatrixD, theta: MatrixD, y: MatrixD): Double = {
-    (.5 * (h(x, theta) - y) ^ 2).sum
+    (0.5 * (h(x, theta) - y) ^ 2).sum
   }
 
   type HypothFn = (MatrixD, MatrixD) => MatrixD
@@ -108,14 +108,14 @@ object GradientDescent {
 /*
 
 val features = Array(
-    2104, 5, 1, 45.,
+    2104, 5, 1, 45.0,
     1416, 3, 2, 40,
     1534, 3, 2, 30,
     852, 2, 1, 36 )
-val values = Array(460., 232, 315, 178)
+val values = Array(460.0, 232, 315, 178)
 
 val data : Array[(Double,Double)]= Array( 
-          (800.,180.),
+          (800.0,180.0),
           (1000,170),
           (1100,250),
           (1250,200),

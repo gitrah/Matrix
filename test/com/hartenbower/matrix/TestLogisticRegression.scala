@@ -62,12 +62,12 @@ class TestLogisticRegression {
     var init_theta = MatrixD.zeros(xm.nCols, 1)
     var lambda = 0
     val (j: Double, grad: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
-    init_theta = MatrixD.ones(xm.nCols, 1) * .25
+    init_theta = MatrixD.ones(xm.nCols, 1) *0.25
     lambda = 1
     val (j1: Double, grad1: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
-    val alpha = .001
+    val alpha = 0.001
     val iters = 1000
-    val (j2: Double, theta: MatrixD) = LogisticRegression.iterativeDescent(xm, y, alpha, iters, lambda, .0001, .00001, 0)
+    val (j2: Double, theta: MatrixD) = LogisticRegression.iterativeDescent(xm, y, alpha, iters, lambda, 0.0001, 0.00001, 0)
   }
 
  def testCostFn() {
@@ -79,12 +79,12 @@ class TestLogisticRegression {
     val x1 = x.columnVector(1)
     val x2 = x.columnVector(2)
     val xm = MatrixD.mapFeature(x1, x2, 6)
-    val init_theta = MatrixD.randn(xm.nCols, 1, .25)
+    val init_theta = MatrixD.randn(xm.nCols, 1,0.25)
     val lambda = 1
     val (j: Double, grad: MatrixD) = LogisticRegression.costGradFunction(xm, y, init_theta, lambda)
-    val alpha = .001
+    val alpha = 0.001
     val iters = 1000
-    val (j2: Double, theta: MatrixD) = LogisticRegression.iterativeDescent(xm, y, alpha, iters, lambda, .0001, .00001, 0)
+    val (j2: Double, theta: MatrixD) = LogisticRegression.iterativeDescent(xm, y, alpha, iters, lambda, 0.0001, 0.00001, 0)
   }
 
   def testCostHandwriting() = {
@@ -96,7 +96,7 @@ class TestLogisticRegression {
     val y = f.get("y").get.asInstanceOf[MatrixD]
     val yb = y.toBinaryCategoryMatrix
     val xm = x.addBiasCol
-    val init_theta = MatrixD.randn(xm.nCols, 1, .25)
+    val init_theta = MatrixD.randn(xm.nCols, 1,0.25)
     val lambda = 1
     val alpha = 100
     val iters = 5000

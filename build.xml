@@ -29,6 +29,14 @@
         </fileset>
     </path>
 
+    <path id="scala.jars" >
+
+        <fileset dir="tools" >
+
+            <include name="scala*.jar" />
+        </fileset>
+    </path>
+
     <property
         name="debuglevel"
         value="source,lines,vars" />
@@ -53,12 +61,6 @@
         name="test.out.dir"
         value="./test-classes" />
 
-    <path id="Scala Library [2.9.0.1].libraryclasspath" >
-
-        <pathelement location="./tools/scala-library.jar" />
-        <pathelement location="./tools/scala-swing.jar" />
-        </path>
-
     <path id="JUnit.classpath" >
 
         <pathelement location="./tools/junit-4.8.1.jar" />
@@ -73,7 +75,7 @@
 
         <pathelement location="classes" />
 
-        <path refid="Scala Library [2.9.0.1].libraryclasspath" />
+        <path refid="scala.jars" />
 
         <path refid="Log4j.classpath" />
 
@@ -92,7 +94,7 @@
     </path>
 
     <taskdef
-        classpath="tools/scala-compiler.jar:tools/scala-library.jar"
+        classpathref="scala.jars"
         resource="scala/tools/ant/antlib.xml" />
 
     <taskdef

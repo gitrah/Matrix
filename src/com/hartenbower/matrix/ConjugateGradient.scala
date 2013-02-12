@@ -59,7 +59,7 @@ object ConjugateGradient {
       print("i " + i)
       println (" z1 " + z1)
       x = x + z1 * s
-	  println("0 x.sum " + x.sum())
+	  println("0.1 x.sum " + x.sum())
       tup = f(x); f2 = tup._1; df2 = tup._2
       println("f2 " + f2 + ", df2.sum " + df2.sum());
       i = i + (if (length < 0) 1 else 0)
@@ -146,8 +146,10 @@ object ConjugateGradient {
         }
         println("repeat while (innerLoop)")
       }
+      println("done innerLoop")
       if (success) { // if line search succeeded
-        f1 = f2
+       println("success f1 " + f1)
+       f1 = f2
         if (null == fX) {
           fX = MatrixD.ones(1, 1) * f1
           println("simple fX " + fX)

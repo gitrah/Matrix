@@ -5,18 +5,18 @@ import Util._
 import Util.Timing._
 
 class TestMatrixF {
-  val ma = new MatrixF(Array(1.f, 2, 3, 1, 4, 8, 3, 9, .5f), 3)
-  val m1 = new MatrixF(Array(1.f, 2, 3, 4.f), 2)
-  val m2 = new MatrixF(Array(3.f, 4, 5, 6), 2)
-  val m2b = new MatrixF(Array(1.f, 2, 3, 4, 5, 6), 3)
-  val m2c = new MatrixF(Array(1.f, 2, 3, 4, 5, 6), 2)
-  val m3 = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9), 3)
-  val m3b = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 3)
-  val m3c = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 4)
-  val m4 = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16), 4)
-  val m4b = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20), 4)
-  val m5 = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25), 5)
-  val m5b = new MatrixF(Array(1.f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30), 5)
+  val ma = new MatrixF(Array(1.0f, 2, 3, 1, 4, 8, 3, 9,0.5f), 3)
+  val m1 = new MatrixF(Array(1.0f, 2, 3, 4.0f), 2)
+  val m2 = new MatrixF(Array(3.0f, 4, 5, 6), 2)
+  val m2b = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6), 3)
+  val m2c = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6), 2)
+  val m3 = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9), 3)
+  val m3b = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 3)
+  val m3c = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 4)
+  val m4 = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16), 4)
+  val m4b = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20), 4)
+  val m5 = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25), 5)
+  val m5b = new MatrixF(Array(1.0f, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30), 5)
 
   def print4by4(arry: Array[Float], off: Int) {
     val sb = new StringBuffer()
@@ -93,7 +93,7 @@ class TestMatrixF {
     val m3c = new MatrixF(Array(1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12), 4)
     var count = total
     var l = System.currentTimeMillis
-    var res = 0.
+    var res = 0.0
     while (count > 0) {
       m3b.transposeN()
       count -= 1

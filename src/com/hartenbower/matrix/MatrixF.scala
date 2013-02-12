@@ -153,7 +153,7 @@ object MatrixF {
     //require(range2._1 >= 0 && range2._2 < v2.length, "range2 outside v2")
     var l = range1._2 - range1._1
     //require(l == range2._2 - range2._1, "vectors of unequal length")
-    var sum = 0.f
+    var sum = 0.0f
     while (l >= 0) {
       sum += v1(range1._1 + l) * v2(range2._1 + l)
       l -= 1
@@ -168,7 +168,7 @@ object MatrixF {
     val s1 = range1._1
     val s2 = range2._1
     //require(l == range2._2 - range2._1, "vectors of unequal length")
-    var sum = 0.f
+    var sum = 0.0f
     while (l >= 0) {
       sum += v1(s1 + l) * v2(s2 + l)
       l -= 1
@@ -1413,7 +1413,7 @@ import MatrixF.verbose
   def transposeSquareIp(): MatrixF = {
     val l = elements.length - 1
     var idx = 1 // can skip first and last elements
-    var temp = 0.f
+    var temp = 0.0f
     var imod = 0
     var idiv = 1
     var oppIdx = 0
@@ -1630,7 +1630,7 @@ import MatrixF.verbose
 
   def ^(exp: Float) = elementScalarOpDc(exp, (x, y) => scala.math.pow(x, y).asInstanceOf[Float])
   def log() = elementOpDc(math.log(_).asInstanceOf[Float])
-  def clean(σ: Float = .0001f) = elementScalarOpDc(σ, (x, y) => if (x * x < y * y) 0f else x)
+  def clean(σ: Float =0.0001f) = elementScalarOpDc(σ, (x, y) => if (x * x < y * y) 0f else x)
 
   def filterElements(f: Float => Float): MatrixF = {
     val c = elements.clone
@@ -1733,7 +1733,7 @@ import MatrixF.verbose
       case _ =>
         // cofactor expansion along the first column
         var row = 1
-        var sum = 0.f
+        var sum = 0.0f
         while (row <= nRows) {
           sum += elements((row - 1) * nCols) * cofactor(row, 1)
           row += 1
@@ -1745,7 +1745,7 @@ import MatrixF.verbose
   def determinantChunk(range: (Long, Long))(): Float = {
     var row = range._1.asInstanceOf[Int]
     val end = range._2.asInstanceOf[Int]
-    var sum = 0.f
+    var sum = 0.0f
     while (row <= end) {
       sum += elements((row - 1) * nCols) * cofactor(row, 1)
       row += 1

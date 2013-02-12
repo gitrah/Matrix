@@ -4,7 +4,7 @@ import Util._
 
 object LogisticRegressionF {
   def sigmoid[@specialized(Double, Float, Int) N](z: N)(implicit numeric: Numeric[N]): N = {
-    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
+    val g: Double = 1.0 / (1.0 + math.exp(-numeric.toDouble(z)))
     numeric match {
       case i: Integral[N] =>
         (math.round(g)).asInstanceOf[N]
@@ -14,7 +14,7 @@ object LogisticRegressionF {
   }
 
   def sigmoidNs[N](z: N)(implicit numeric: Numeric[N]): N = {
-    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
+    val g: Double = 1.0 / (1.0 + math.exp(-numeric.toDouble(z)))
     numeric match {
       case i: Integral[N] =>
         numeric.fromInt((math.round(g)).asInstanceOf[Int])
@@ -27,8 +27,8 @@ object LogisticRegressionF {
   }
   val Limit = 50000000
 
-  @inline def sigmoidF(z: Float) = 1.f / (1.f + math.exp(-z).asInstanceOf[Float])
-  @inline def sigmoidD(z: Double) = 1. / (1. + math.exp(-z))
+  @inline def sigmoidF(z: Float) = 1.0f / (1.0f + math.exp(-z).asInstanceOf[Float])
+  @inline def sigmoidD(z: Double) = 1.0 / (1.0 + math.exp(-z))
 
   def logF(z: Float) = math.log(z).asInstanceOf[Float]
 
@@ -121,7 +121,7 @@ object LogisticRegressionF {
       var i = 0
       while (i < thetas.length) {
         val thetaCopy = thetas(i).dropFirst()
-        val jdeldel = lambda / (2.f * m) * Math.sumFdc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
+        val jdeldel = lambda / (2.0f * m) * Math.sumFdc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
         //println(i + " jdeldel: " + jdeldel)
         jDel += jdeldel
         i += 1
@@ -133,7 +133,7 @@ object LogisticRegressionF {
   }
 
   def costFunctionNoReg(hThetaT: MatrixF, yT: MatrixF, m: Int): Float = {
-    (-1.f / m) * (yT ** hThetaT.elOp(math.log(_).asInstanceOf[Float]) + (1f - yT) ** ((1f - hThetaT).elOp(math.log(_).asInstanceOf[Float]))).sum()
+    (-1.0f / m) * (yT ** hThetaT.elOp(math.log(_).asInstanceOf[Float]) + (1f - yT) ** ((1f - hThetaT).elOp(math.log(_).asInstanceOf[Float]))).sum()
   }
   /*
    *  tThetaX = theta' * X';

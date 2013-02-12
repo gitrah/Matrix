@@ -42,17 +42,18 @@ object NeuralNet {
     
     // 
     var j = (-1d / m * (yb ** log(a3) + (1d - yb) ** (log(1d - a3)))).sumDc()
-    //println("j initial " + j)
+    println("j initial " + j)
     //temp = Theta2(:,2:end); % skip bias
     var tempTheta2 = theta2.dropFirst
     //jreg3 =sum(sum((lambda / (2 * m) * temp.^2)));
     val jreg3 = ((tempTheta2 ^ 2d) * (lambda / (2d * m))).sumDc()
-    //println("jreg3 " + jreg3)
+    println("jreg3 " + jreg3)
     j += jreg3
     //temp = Theta1(:,2:end); % skip bias
     val tempTheta1 = theta1.dropFirst()
     //jreg2 =sum(sum((lambda / (2 * m) * temp.^2))); 
     val jreg2 = ((tempTheta1 ^ 2d) * (lambda / (2d * m))).sumDc()
+    println("jreg2 " + jreg2)
     //println("j init " + j + ", jreg 3 " + jreg3 + ", jreg2 " + jreg2)
     j += jreg2
 
@@ -62,14 +63,13 @@ object NeuralNet {
     val bigDelta2 = delta_3.tN() * a2
     val bigDelta1 = delta_2.tN() * x
 
-    //temp = [zeros(size(Theta2,1),1) Theta2(:,2:end)];
     var temp = MatrixD.zeros(theta2.nRows, 1) ++ tempTheta2
     val theta2_grad = (bigDelta2 + (temp * lambda)) / m
-    // temp = [zeros(size(Theta1,1),1) Theta1(:,2:end)];
     temp = MatrixD.zeros(theta1.nRows, 1) ++ tempTheta1
     val theta1_grad = 1d / m * (bigDelta1 + lambda * temp)
 
     val grad = theta1_grad.poseAsCol +/ theta2_grad.poseAsCol
+    println("grad.sum " + grad.sum)
     theta1.unPose()
     theta2.unPose()
     (j, grad)

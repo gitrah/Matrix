@@ -14,6 +14,7 @@ class TestConjGrad {
     val f = Io.parseOctaveDataFile("ex4data1.txt")
     val fw = Io.parseOctaveDataFile("ex4weights.txt")
     val x = f.get("X").get.asInstanceOf[MatrixD]
+    println("0x.sum " + x.sum)
     val y = f.get("y").get.asInstanceOf[MatrixD]
     val theta1 = fw.get("Theta1").get.asInstanceOf[MatrixD]
     val theta2 = fw.get("Theta2").get.asInstanceOf[MatrixD]
@@ -27,6 +28,7 @@ class TestConjGrad {
    // assert(num_labels == nfeatures, "feature mismatch")
 
     val thetas = theta1.poseAsRow() ++ theta2.poseAsRow()
+    println("thetas.sum " + thetas.sum)
     theta1.unPose()
     theta2.unPose()
     var lambda = 0d
@@ -54,19 +56,19 @@ class TestConjGrad {
     //val initial_Theta2 = MatrixD.randn(num_labels, hidden_layer_size).addBiasCol()
 
     val initial_Theta1 = MatrixD.sin(hidden_layer_size, input_layer_size).addBiasCol()
-    println("initial_Theta1 " + initial_Theta1)
+    //println("initial_Theta1 " + initial_Theta1)
     val initial_Theta2 = MatrixD.cos(num_labels, hidden_layer_size).addBiasCol()
-    println("initial_Theta2 " + initial_Theta2)
+    //println("initial_Theta2 " + initial_Theta2)
 
     // Unroll parameters
     val initial_nn_params = initial_Theta1.poseAsCol +/ initial_Theta2.poseAsCol
     initial_Theta1.unPose
     initial_Theta2.unPose
 
-    checkNnGradients()
+   // checkNnGradients()
 
     lambda = 3
-    checkNnGradients(lambda)
+  //  checkNnGradients(lambda)
 
     // def fmincg(f: (MatrixD) => (Double, MatrixD), xin: MatrixD, length: Int = 100, red: Int = 1) {
     var tupcg: (MatrixD, MatrixD, Int) = null

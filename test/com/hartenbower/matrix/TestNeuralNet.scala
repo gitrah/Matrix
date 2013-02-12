@@ -39,7 +39,7 @@ class TestNeuralNet {
     val jNoReg = costFunctionNoReg(a3, yb, m)
 
     var tup: Tuple2[Double, Array[com.hartenbower.matrix.MatrixD]] = null
-    val epsilon = .25
+    val epsilon =0.25
     val delta = 1e-11
     val alpha = 1.5
     tup = NeuralNet.forwardAndBack(x, y, descThetas, 1)

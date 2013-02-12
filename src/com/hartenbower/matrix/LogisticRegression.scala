@@ -4,7 +4,7 @@ import Util._
 
 object LogisticRegression {
   def sigmoid[@specialized(Double, Float, Int) N](z: N)(implicit numeric: Numeric[N]): N = {
-    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
+    val g: Double = 1.0/ (1.0+ math.exp(-numeric.toDouble(z)))
     numeric match {
       case i: Integral[N] =>
         (math.round(g)).asInstanceOf[N]
@@ -14,7 +14,7 @@ object LogisticRegression {
   }
 
   def sigmoidNs[N](z: N)(implicit numeric: Numeric[N]): N = {
-    val g: Double = 1. / (1. + math.exp(-numeric.toDouble(z)))
+    val g: Double = 1.0 / (1.0 + math.exp(-numeric.toDouble(z)))
     numeric match {
       case i: Integral[N] =>
         numeric.fromInt((math.round(g)).asInstanceOf[Int])
@@ -27,8 +27,8 @@ object LogisticRegression {
   }
   val Limit = 50000000
 
-  @inline def sigmoidF(z: Float) = 1.f / (1.f + math.exp(-z).asInstanceOf[Float])
-  @inline def sigmoidD(z: Double) = 1. / (1. + math.exp(-z))
+  @inline def sigmoidF(z: Float) = 1.0f / (1.0f + math.exp(-z).asInstanceOf[Float])
+  @inline def sigmoidD(z: Double) = 1.0 / (1.0 + math.exp(-z))
 
   def logF(z: Float) = math.log(z).asInstanceOf[Float]
 
@@ -122,7 +122,7 @@ object LogisticRegression {
       var i = 0
       while (i < thetas.length) {
         val thetaCopy = thetas(i).dropFirst()
-        val jdeldel = lambda / (2. * m) * Math.sum(thetaCopy.elementOp(math.pow(_, 2)).elements)
+        val jdeldel = lambda / (2.0 * m) * Math.sum(thetaCopy.elementOp(math.pow(_, 2)).elements)
         //println(i + " jdeldel: " + jdeldel)
         jDel += jdeldel
         i += 1
@@ -134,7 +134,7 @@ object LogisticRegression {
   }
 
   def costFunctionNoReg(hThetaT: MatrixD, yT: MatrixD, m: Int): Double = {
-    (-1. / m) * (yT ** hThetaT.elOp(math.log) + (1 - yT) ** ((1 - hThetaT).elOp(math.log))).sum()
+    (-1.0 / m) * (yT ** hThetaT.elOp(math.log) + (1 - yT) ** ((1 - hThetaT).elOp(math.log))).sum()
   }
   /*
    *  tThetaX = theta' * X';
@@ -166,8 +166,8 @@ object LogisticRegression {
     @desc("learning rate") alpha: Double,
     maxIters: Int,
     @desc("regularization factor") lambda: Double = 0,
-    @desc("randomization magnitude") epsilon: Double = .25,
-    @desc("max error") delta: Double = .25,
+    @desc("randomization magnitude") epsilon: Double = 0.25,
+    @desc("max error") delta: Double = 0.25,
     gradCheckCount: Int) = {
     var i = 0
     var deltaCost = -delta
