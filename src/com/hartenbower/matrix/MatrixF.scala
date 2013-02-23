@@ -985,7 +985,6 @@ import MatrixF.verbose
       c(l) = elements((row - 1) * nCols + l)
       l -= 1
     }
-    c
   }
 
   def copyOfCol(col: Int) = {

@@ -10,7 +10,7 @@ class TestMatrix {
     val a2 = v2.toArray
     var count = total
     var l = System.currentTimeMillis
-    var res = 0.
+    var res = 0.0
     while (count > 0) {
       res = Matrix.dotVectors(v1, v2)
       count -= 1

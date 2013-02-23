@@ -19,10 +19,10 @@ class TestAnomDet {
     val mus = x.featureAverages
     val sigma = AnomalyDetection.sigmaVector(x, mus)
     val sigmaTm = AnomalyDetection.sigmaTm(x, mus)
-    val p = multiVariateProbDensity(x, (mus, sigma))
-    val pval = multiVariateProbDensity(xval, (mus, sigma))
+    val p = AnomalyDetection.multiVariateProbDensity(x, (mus, sigma))
+    val pval = AnomalyDetection.multiVariateProbDensity(xval, (mus, sigma))
     println("pval " + pval)
-    val(epsilon, f1Score) = selectThreshold(yval, pval )
+    val(epsilon, f1Score) = AnomalyDetection.selectThreshold(yval, pval )
     assert(aboutEq(epsilon,8.99085E-5), "bad epsilon")
     assert(aboutEq(f1Score,.875), "bad f1")
     println("epsilon " +epsilon)

@@ -35,13 +35,13 @@ class TestLogisticRegression {
     var zf = 0f
     i = 0
     while (i < Limit) {
-      zf += sigmoid(i * 1.f)
+      zf += sigmoid(i * 1.0f)
       i += 1
     }
     var zd = 0d
     i = 0
     while (i < Limit) {
-      zd += sigmoid(i * 1.d)
+      zd += sigmoid(i * 1.0d)
       i += 1
     }
     println("sanity z " + z + "; zf " + zf + "; zd " + zd)
