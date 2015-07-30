@@ -2,6 +2,7 @@ package com.hartenbower.matrix
 import Util.Concurrent
 import Util.Math._
 import java.util.concurrent.Future
+import java.util.concurrent.CompletionService
 object Clustering {
   val rnd = new java.util.Random(System.currentTimeMillis())
 
@@ -111,7 +112,7 @@ def moveChunk(x: Array[Array[Double]],
       li += 1
     }
   }
-   def aggregateCentroidsD(cents: Array[Array[Double]], counts: Array[Int], efforts: Array[Future[( (Array[Array[Double]],Array[Int]), Double)]]) : Double = {
+   def aggregateCentroidsD(cents: Array[Array[Double]], counts: Array[Int], efforts: ( Array[Future[( (Array[Array[Double]],Array[Int]), Double)]], CompletionService[( (Array[Array[Double]],Array[Int]), Double)])) : Double = {
       var i = 0
       var j = 0
       val centroids = cents.length
@@ -120,8 +121,8 @@ def moveChunk(x: Array[Array[Double]],
       var currCents : Array[Array[Double]] = null
       var currCounts : Array[Int] = null
       
-      while (i < efforts.length) {
-        curr = efforts(i).get
+      while (i < efforts._1.length) {
+        curr = efforts._2.take.get
         currCents = curr._1._1
         currCounts = curr._1._2
         j = 0
@@ -290,10 +291,10 @@ def moveChunk(x: Array[Array[Double]],
     var dists = Array.fill(centroids)(0d)
     val futs = Concurrent.distribute(assignments.length, distortionChunk(centroids, assignments))
     var i = 0
-    val l = futs.length
+    val l = futs._1.length
     var f: Future[(Array[Int], Array[Double])] = null
     while (i < l) {
-      f = futs(i)
+      f = futs._2.take
       counts = counts + f.get._1
       dists = dists + f.get._2
       i += 1

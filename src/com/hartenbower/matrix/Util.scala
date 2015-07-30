@@ -4,17 +4,15 @@ import java.io._
 import scala.io._
 import java.util.concurrent._
 import com.hartenbower.util.TimingUtil
+import scala.reflect.runtime.universe._
+import scala.reflect.{ClassTag, classTag}
+import scala.math.ScalaNumericConversions
 
 object Util {
   val rnd = new java.util.Random(System.currentTimeMillis())
   var verbose = false
 
   object Concurrent {
-
-    object FutureStatus extends Enumeration {
-      type FutureStatus = Value
-      val Running, Cancelled, Evaluated = Value
-    }
 
     val defaultSpanThreshold = 1
     var threadCount = 2 * Runtime.getRuntime.availableProcessors
@@ -33,70 +31,58 @@ object Util {
       def call(): T = f()
     }
 
-    def effort[T](f: () => T): Future[T] = {
-      val ft = new FutureTask[T](new Exister(f))
+    def effort[T](f: () => T, cs : CompletionService[T]): Future[T] = {
+      val ex = new Exister(f)
+      val ft = new FutureTask[T](ex)
       if (verbose) println("making an effort")
-      pool.execute(ft)
+      cs.submit(ex);
       ft
     }
 
-    def distribute[T](indexSpace: Long, f: (Tuple2[Long, Long]) => () => T, oneBased: Boolean = false) = {
+    def distribute[T](elementCount: Long, f: (Tuple2[Long, Long]) => () => T, oneBased: Boolean = false) = {
       var i = 0
-      val spans = toSpans(indexSpace, threadCount, oneBased)
+      val spans = toSpans(elementCount, threadCount, oneBased)
       if (verbose) println("spans " + spans.mkString)
       val efforts = new Array[Future[T]](spans.length)
-      spans.length match {
-        case 1 =>
-          efforts(0) = new FutureIsNow[T](f(spans(0))())
-        case _ =>
-          while (i < spans.length) {
-            efforts(i) = effort(f(spans(i)))
-            i += 1
-          }
+      val cs = new ExecutorCompletionService[T](pool);
+      while (i < spans.length) {
+        efforts(i) = effort(f(spans(i)), cs)
+        i += 1
       }
-      efforts
+      (efforts,cs)
     }
 
-    def combine[T](efforts: Array[Future[T]]) {
+    def combine[T](efforts: (Array[Future[T]], CompletionService[T])) {
       var i = 0
-      while (i < efforts.length) {
-        efforts(i).get
+      while (i < efforts._1.length) {
+        efforts._2.take.get // blocks if none
         if (verbose) println("got " + i)
         i += 1
       }
     }
 
-    def aggregateD(efforts: Array[Future[Double]]): Double = {
+    def aggregate[T](efforts: (Array[Future[T]],CompletionService[T]))(implicit n : Numeric[T]): T = {
+      import n.mkNumericOps
       var i = 0
-      var s = 0d
-      while (i < efforts.length) {
-        s += efforts(i).get
+      var s = n.zero
+      while (i < efforts._1.length) {
+         s = s + efforts._2.take.get
         i += 1
       }
       s
     }
 
-    def aggregateF(efforts: Array[Future[Float]]): Float = {
-      var i = 0
-      var s = 0f
-      while (i < efforts.length) {
-        s += efforts(i).get
-        i += 1
-      }
-      s
-    }
-
-    def aggregateL[X](efforts: Array[Future[List[X]]]): List[X] = {
+    def aggregateL[X](efforts: (Array[Future[ List[X]]],CompletionService[ List[X]])): List[X] = {
       var i = 0
       var l = List[X]()
-      while (i < efforts.length) {
-        l = l ++ efforts(i).get
-        i += 1
+      while (i < efforts._1.length) {
+         l = l ++ efforts._2.take.get
+         i += 1
       }
       l
     }
 
-    def aggregateDA(n: Int, efforts: Array[Future[Array[Double]]]): Array[Double] = {
+    def aggregateDA(n: Int, efforts: (Array[Future[Array[Double]]], CompletionService[Array[Double]])): Array[Double] = {
 
       def arrayPlus(a: Array[Double], oa: Array[Double]): Array[Double] = {
         val l = a.length
@@ -116,17 +102,17 @@ object Util {
 
       // can't just say s = s + efforts(i).get because array math stuff hasn't been declared 
       // and can't move Concurrent stuff after it because of dependencies 
-      while (i < efforts.length) {
-        s = arrayPlus(s, efforts(i).get)
+      while (i < efforts._1.length) {
+        s = arrayPlus(s, efforts._2.take.get)
         i += 1
       }
       s
     }
 
-    def toSpans(l: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
-      val span = l / d
+    def toSpans(elementCount: Long, d: Int, oneBased: Boolean = false, threshold: Int = defaultSpanThreshold): Array[Tuple2[Long, Long]] = {
+      val span = elementCount / d
       if (span >= threshold) {
-        val size = math.min(l, d).asInstanceOf[Int]
+        val size = math.min(elementCount, d).asInstanceOf[Int]
         val ret = new Array[Tuple2[Long, Long]](size)
         var i = 0
         while (i < size - 1) {
@@ -138,13 +124,13 @@ object Util {
           i += 1
         }
         if (span > 0) {
-          ret(size - 1) = if (oneBased) ((d - 1) * span + 1, l) else ((d - 1) * span, l - 1)
+          ret(size - 1) = if (oneBased) ((d - 1) * span + 1, elementCount) else ((d - 1) * span, elementCount - 1)
         } else {
-          ret(size - 1) = if (oneBased) (l, l) else (l - 1, l - 1)
+          ret(size - 1) = if (oneBased) (elementCount, elementCount) else (elementCount - 1, elementCount - 1)
         }
         ret
       } else {
-        Array((if (oneBased) 1l else 0l, if (oneBased) l else l - 1))
+        Array((if (oneBased) 1l else 0l, if (oneBased) elementCount else elementCount - 1))
       }
     }
   }
@@ -170,210 +156,6 @@ object Util {
     }
   }
 
-  object Io {
-    private def lines(s: Array[Char]): Array[String] = {
-      println("loaded file")
-      var l = List[String]()
-      var line = ""
-      var c: Char = ' '
-      var idx = 0
-      val len = s.length
-      val sb = new StringBuffer
-      while (idx < len) {
-        c = s(idx)
-        if (c != '\n') {
-          sb.append(c)
-        } else {
-          line = sb.toString()
-          sb.setLength(0)
-          if (!line.trim().isEmpty())
-            l = l :+ line.trim
-          line = ""
-        }
-        idx += 1
-      }
-      l.toArray
-    }
-
-    def parseOctaveDataFile(path: String, asDouble: Boolean = true): Map[String, _] = {
-      var m = Map[String, Any]()
-      val la = Source.fromFile(path).getLines
-      //println("loaded " + path + " into line array of size " + la.length)
-      var elementType = ""
-      var idx = -1
-      var rows = -1
-      var cols = -1
-      var currRow = 0
-      var lastChunk = 0l
-      var name = ""
-      var elementDataD = if (asDouble) new Array[Double](0) else null
-      var elementDataF = if (!asDouble) new Array[Float](0) else null
-      var lastTime = 0l
-
-      def addObject {
-        if (asDouble) {
-          if (!elementDataD.isEmpty) {
-            println("loading " + name + " took " + (System.currentTimeMillis() - lastTime))
-            elementType match {
-              case "matrix" =>
-                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name, new MatrixD(elementDataD.clone(), cols, true))
-              case "scalar" =>
-                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name, elementDataD(0))
-            }
-          }
-        } else {
-          if (!elementDataF.isEmpty) {
-            println("loading " + name + " took " + (System.currentTimeMillis() - lastTime))
-            elementType match {
-              case "matrix" =>
-                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name, new MatrixF(elementDataF, cols, true))
-              case "scalar" =>
-                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
-                m = m + new Tuple2(name, elementDataF(0))
-            }
-          }
-
-        }
-      }
-
-      def parseDataLine(l: String, elementData: Array[_], startIdx: Int, cols: Int) {
-        val elDatD = if (asDouble) elementData.asInstanceOf[Array[Double]] else null
-        val elDatF = if (!asDouble) elementData.asInstanceOf[Array[Float]] else null
-        val spl = l.split(" ")
-        assert(spl.length == cols, spl.length + " != " + cols)
-        val len = spl.length
-        var idx = 0
-        while (idx < len) {
-          if (asDouble) {
-            elDatD(startIdx + idx) = java.lang.Double.parseDouble(spl(idx))
-          } else elDatF(startIdx + idx) = java.lang.Float.parseFloat(spl(idx))
-          idx += 1
-        }
-      }
-
-      for (l <- la) {
-        val line = l.trim
-        //println(line)
-        if (line.startsWith("#")) {
-          idx = line.indexOf("name:")
-          if (idx > -1) {
-            if (!name.isEmpty() && !elementType.isEmpty()) {
-              // add previous obj
-              addObject
-              currRow = 0
-            }
-            name = line.substring(idx + "name:".length).trim
-            println("found " + name)
-            lastTime = System.currentTimeMillis()
-            rows = -1
-            cols = -1
-            elementType = ""
-          } else {
-            idx = line.indexOf("type:")
-            if (idx > -1) {
-              elementType = line.substring(idx + "type:".length).trim
-            } else {
-              idx = line.indexOf("rows:")
-              if (idx > -1) {
-                rows = Integer.parseInt(line.substring(idx + "rows:".length).trim)
-              } else {
-                idx = line.indexOf("columns:")
-                if (idx > -1) {
-                  cols = Integer.parseInt(line.substring(idx + "columns:".length).trim)
-                }
-              }
-            }
-          }
-        } else if (!line.isEmpty()) {
-          elementType match {
-            case "matrix" =>
-              assert(!name.isEmpty() && !elementType.isEmpty() && rows > -1 && cols > -1)
-              if (asDouble) {
-                if (elementDataD.length != rows * cols) {
-                  elementDataD = new Array[Double](rows * cols)
-                }
-                // it's a data line (row)
-                parseDataLine(line, elementDataD, currRow * cols, cols)
-                currRow += 1
-                if (currRow % 100 == 0) {
-                  val now = System.currentTimeMillis()
-                  if (lastChunk != 0) {
-                    val delta = ((now - lastChunk) / 1000.0).asInstanceOf[Int]
-                    println("on " + currRow + "/" + rows + " at " + delta / 100.0f + " s/row")
-                  } else {
-                    println("on " + currRow + "/" + rows)
-                  }
-                  lastChunk = now
-                }
-              } else {
-                if (elementDataF.length != rows * cols) {
-                  elementDataF = new Array[Float](rows * cols)
-                }
-                // it's a data line (row)
-                parseDataLine(line, elementDataF, currRow * cols, cols)
-                currRow += 1
-                if (currRow % 100 == 0) {
-                  val now = System.currentTimeMillis()
-                  if (lastChunk != 0) {
-                    val delta = ((now - lastChunk) / 1000.0).asInstanceOf[Int]
-                    println("on " + currRow + "/" + rows + " at " + delta / 100.0f + " s/row")
-                  } else {
-                    println("on " + currRow + "/" + rows)
-                  }
-                  lastChunk = now
-                }
-              }
-            case "scalar" =>
-              if (asDouble) {
-                elementDataD = new Array[Double](1)
-                elementDataD(0) = java.lang.Double.parseDouble(line)
-              } else {
-                elementDataF = new Array[Float](1)
-                elementDataF(0) = java.lang.Float.parseFloat(line)
-              }
-
-            case _ =>
-              println("unknown type " + elementType)
-          }
-        }
-      }
-      // add last obj
-      if (!name.isEmpty() && !elementType.isEmpty()) {
-        addObject
-      }
-      m
-    }
-
-    class RichFile(file: File) {
-
-      def text = Source.fromFile(file).mkString
-      def obj = {
-        val ois = new ObjectInputStream(new FileInputStream(file))
-        try { ois.readObject }
-        finally { ois.close }
-      }
-      def text_=(s: String) {
-        val out = new PrintWriter(file)
-        try { out.print(s) }
-        finally { out.close }
-      }
-      def obj_=(o: Any) {
-        val oos = new ObjectOutputStream(new FileOutputStream(file))
-        try { oos.writeObject(o) }
-        finally { oos.close }
-      }
-    }
-
-    object RichFile {
-
-      implicit def enrichFile(file: File) = new RichFile(file)
-
-    }
-
-  }
 
   object Math {
     def nextPowerOf2(n: Int) = {
@@ -395,54 +177,58 @@ object Util {
         false
       }
     }
-    def sumChunk(a: Array[Double])(range: (Long, Long))(): Double = {
+  
+   trait NumberLike[T] {
+      def plus(x: T, y: T): T
+      def divide(x: T, y: T): T
+      def minus(x: T, y: T): T
+      def sqrt(x: T): T
+    }
+   
+    object NumberLike {
+      implicit object NumberLikeDouble extends NumberLike[Double] {
+        def plus(x: Double, y: Double): Double = x + y
+        def divide(x: Double, y: Double): Double = x / y
+        def minus(x: Double, y: Double): Double = x - y
+        def sqrt(x:Double) : Double = math.sqrt(x)
+      }
+      implicit object NumberLikeFloat extends NumberLike[Float] {
+        def plus(x: Float, y: Float): Float = x + y
+        def divide(x: Float, y: Float): Float = x / y
+        def minus(x: Float, y: Float): Float = x - y
+        def sqrt(x:Float) : Float = math.sqrt(x).toFloat
+      }
+      implicit object NumberLikeInt extends NumberLike[Int] {
+        def plus(x: Int, y: Int): Int = x + y
+        def divide(x: Int, y: Int): Int = x / y
+        def minus(x: Int, y: Int): Int = x - y
+        def sqrt(x:Int) : Int = math.sqrt(x).toInt
+      }
+    }
+    
+    def chunkOp[T](a : Array[T], chop : ( T, T ) => T)( range: (Long,Long))()(implicit n: Numeric[T]) = {
       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
-      var s = 0d
+      var s = n.zero
       while (i <= end) {
-        s += a(i)
+        s = chop( s,  a(i) ) 
         i += 1
       }
       s
     }
-
-    def sumFchunk(a: Array[Float])(range: (Long, Long))(): Float = {
-      var i = range._1.asInstanceOf[Int]
+    
+    def biChunkOp[T](a : Array[T], b : Array[T], chop : ( T, T ) => T)( range: (Long,Long))()(implicit n: Numeric[T]) = {
+      import n.mkNumericOps
+       var i = range._1.asInstanceOf[Int]
       val end = range._2.asInstanceOf[Int]
-      var s = 0f
+      var s = n.zero
       while (i <= end) {
-        s += a(i)
+        s =  s + chop( a(i), b(i)) 
         i += 1
       }
       s
     }
-
-    def sumSqrChunk(a: Array[Double])(range: (Long, Long))(): Double = {
-      var i = range._1.asInstanceOf[Int]
-      val end = range._2.asInstanceOf[Int]
-      var s = 0d
-      var t = 0d
-      while (i <= end) {
-        t = a(i)
-        s += t * t
-        i += 1
-      }
-      s
-    }
-
-    def sumSqrFchunk(a: Array[Float])(range: (Long, Long))(): Float = {
-      var i = range._1.asInstanceOf[Int]
-      val end = range._2.asInstanceOf[Int]
-      var s = 0f
-      var t = 0f
-      while (i <= end) {
-        t = a(i)
-        s += t * t
-        i += 1
-      }
-      s
-    }
-
+    
     def sum(a: Array[Double]): Double = {
       var i = a.length - 1
       var s = 0d
@@ -475,41 +261,43 @@ object Util {
     }
 
     import Concurrent._
-    def sumDc(a: Array[Double]): Double = {
-      aggregateD(distribute(a.length, sumChunk(a)))
+ 
+    def sumDc[T](a: Array[T])(implicit n : Numeric[T]): T = {
+      import n.mkNumericOps
+      aggregate(
+          distribute(
+              a.length, chunkOp(a, (a1:T,b:T) => a1 + b)
+          )
+      )
     }
-
-    def sumFdc(a: Array[Float]): Float = {
-      aggregateF(distribute(a.length, sumFchunk(a)))
-    }
-
-    def sumSqrDc(a: Array[Double]): Double = {
-      aggregateD(distribute(a.length, sumSqrChunk(a)))
-    }
-
-    def sumSqrFdc(a: Array[Float]): Float = {
-      aggregateF(distribute(a.length, sumSqrFchunk(a)))
-    }
-
-    def sumF(a: Array[Float]): Float = {
+    
+    def sumSqrDc[T](a: Array[T])(implicit n: Numeric[T]): T = {
+      import n.mkNumericOps
+      aggregate(distribute(a.length, chunkOp(a, (a1:T,b:T) => a1 + b*b)))
+    }  
+    
+    def sum[T : Numeric](a: Array[T]): T = {
+      val n = implicitly[Numeric[T]]
+      import n.mkNumericOps
       var i = a.length - 1
-      var s = 0f
+      var s = n.zero
       while (i > -1) {
         s += a(i)
         i -= 1
       }
       s
     }
-
-    def average(a: Array[Double]): Double = {
-      sum(a) / a.length
+  
+    def average[T ](a: Array[T])(implicit n: Numeric[T]): T = n match{
+        case num: Fractional[_] => import num._; sum(a)/ fromInt(a.length)
+        case num: Integral[_] => import num._; sum(a) / fromInt(a.length)
+        case _ => sys.error("Undivisable numeric!")
     }
 
-    def averageDc(a: Array[Double]): Double = {
-      sumDc(a) / a.length
-    }
-    def averageFdc(a: Array[Float]): Double = {
-      sumFdc(a) / a.length
+    def averageDc[T ](a: Array[T])(implicit n: Numeric[T]): T = n match{
+        case num: Fractional[_] => import num._; sumDc(a)/ fromInt(a.length)
+        case num: Integral[_] => import num._; sumDc(a) / fromInt(a.length)
+        case _ => sys.error("Undivisable numeric!")
     }
 
     def powF(f: Float, exp: Float) = {
@@ -520,6 +308,19 @@ object Util {
     }
 
     def accuracy(s: Array[_], t: Array[_]): Double = {
+      var res = 0d
+      var i = 0
+      while (i < s.length) {
+        res += (if (s(i) == t(i)) 1d else 0d)
+        i += 1
+      }
+      res / s.length
+    }
+
+    def accuracyDc[T](s: Array[T], t: Array[T])(implicit n: Numeric[T]): Double = {
+      require(s.length == t.length)
+      aggregate(distribute(s.length, biChunkOp(s,t, (a1:T,b:T) => if(a1 == b) n.one else n.zero)))
+        
       var res = 0d
       var i = 0
       while (i < s.length) {
@@ -568,9 +369,18 @@ object Util {
       sum
     }
 
-    def sumSquaredDiffsDc(s: Array[Double], t: Array[Double]) = {
+    def sumSquaredDiffsDc0(s: Array[Double], t: Array[Double]) = {
       val len = s.length
-      aggregateD(distribute(len, sumSqrDiffsChunk(s, t)))
+      aggregate(distribute(len, sumSqrDiffsChunk(s, t)))
+    }
+   
+    // (a : Array[T], b : Array[T], chop : ( T, T ) => T)
+    def sumSquaredDiffsDc[T](s: Array[T], t: Array[T])(implicit n : Numeric[T]) = {
+      import n.mkNumericOps
+      val len = s.length
+      aggregate(
+          distribute(len, biChunkOp(s, t, ( a: T, b : T) => { val delta = a - b; delta* delta})
+              ))
     }
 
     private def sumSqrFdiffsChunk(s: Array[Float], t: Array[Float])(range: (Long, Long))() = {
@@ -588,7 +398,7 @@ object Util {
 
     def sumSquaredFdiffsDc(s: Array[Float], t: Array[Float]) = {
       val len = s.length
-      aggregateF(distribute(len, sumSqrFdiffsChunk(s, t)))
+      aggregate(distribute(len, sumSqrFdiffsChunk(s, t)))
     }
 
     def meanSquaredError(s: Array[Double], t: Array[Double]) = sumSquaredDiffs(s, t) / s.length
@@ -1066,7 +876,7 @@ object Util {
       }
       d
     }
-    def lengthSquaredDc(v: Array[Double]): Double = aggregateD(distribute(v.length, lengthSquaredChunk(v)))
+    def lengthSquaredDc(v: Array[Double]): Double = aggregate(distribute(v.length, lengthSquaredChunk(v)))
 
     def lengthFsquaredChunk(v: Array[Float])(range: (Long, Long))(): Float = {
       var d = 0f
@@ -1080,7 +890,7 @@ object Util {
       }
       d
     }
-    def lengthFsquaredDc(v: Array[Float]): Float = aggregateF(distribute(v.length, lengthFsquaredChunk(v)))
+    def lengthFsquaredDc(v: Array[Float]): Float = aggregate(distribute(v.length, lengthFsquaredChunk(v)))
 
     def lengthSquared2(v: Array[Double]): Double = {
       var d = 0d
@@ -1156,7 +966,7 @@ object Util {
     }
 
     def minMaxRowDc(x: Array[Array[Double]]): Array[Array[Double]] = {
-      val futs = Concurrent.distribute(x.length, minMaxRowChunk(x))
+      val (futs,cs) = Concurrent.distribute(x.length, minMaxRowChunk(x))
       var i = 0
       var f: Future[Array[Array[Double]]] = null
       var m: Array[Array[Double]] = null
@@ -1170,7 +980,7 @@ object Util {
       var j = 0
       var futmmIdx = 0
       while (i < futs.length) {
-        f = futs(i)
+        f = cs.take()
         futmmIdx = 0
         m = f.get()
         while (futmmIdx < m.length) {
@@ -1351,20 +1161,34 @@ object Util {
       ov
     }
 
-    def stdDc(a: Array[Double]) = {
+    /*  def average[T ](a: Array[T])(implicit n: Numeric[T]): T = n match{
+        case num: Fractional[_] => import num._; sum(a)/ fromInt(a.length)
+        case num: Integral[_] => import num._; sum(a) / fromInt(a.length)
+        case _ => sys.error("Undivisable numeric!")
+    }
+*/
+
+    def stdDc[T](a: Array[T])(implicit n: Numeric[T], nl : NumberLike[T]) = {
       val l = a.length
       val sumSqr = sumSqrDc(a)
       val avg = averageDc(a)
-      math.sqrt(sumSqr / l - (avg * avg))
+      val res = 
+      n match {
+        case num: Fractional[_] => {
+          import num._
+          val em = NumberLike
+          sumSqr / fromInt(l) - (avg * avg)
+        }
+        case num: Integral[_] => {
+          import num._
+          sumSqr / fromInt(l) - (avg * avg)
+        }
+        case _ => sys.error("Undivisable numeric!")
+      }
+      nl.sqrt(res)
     }
 
-    def stdFDc(a: Array[Float]) = {
-      val l = a.length
-      val sumSqr = sumSqrFdc(a)
-      val avg = averageFdc(a)
-      math.sqrt(sumSqr / l - (avg * avg)).asInstanceOf[Float]
-    }
-
+    
     def toDouble(els: Array[Int]): Array[Double] = {
       val l = els.length
       val el = new Array[Double](l)
@@ -1409,4 +1233,212 @@ object Util {
       }
     }
   }
+  
+  
+  object Io {
+    private def lines(s: Array[Char]): Array[String] = {
+      println("loaded file")
+      var l = List[String]()
+      var line = ""
+      var c: Char = ' '
+      var idx = 0
+      val len = s.length
+      val sb = new StringBuffer
+      while (idx < len) {
+        c = s(idx)
+        if (c != '\n') {
+          sb.append(c)
+        } else {
+          line = sb.toString()
+          sb.setLength(0)
+          if (!line.trim().isEmpty())
+            l = l :+ line.trim
+          line = ""
+        }
+        idx += 1
+      }
+      l.toArray
+    }
+
+    def parseOctaveDataFile(path: String, asDouble: Boolean = true): Map[String, _] = {
+      var m = Map[String, Any]()
+      val la = Source.fromFile(path).getLines
+      //println("loaded " + path + " into line array of size " + la.length)
+      var elementType = ""
+      var idx = -1
+      var rows = -1
+      var cols = -1
+      var currRow = 0
+      var lastChunk = 0l
+      var name = ""
+      var elementDataD = if (asDouble) new Array[Double](0) else null
+      var elementDataF = if (!asDouble) new Array[Float](0) else null
+      var lastTime = 0l
+
+      def addObject {
+        if (asDouble) {
+          if (!elementDataD.isEmpty) {
+            println("loading " + name + " took " + (System.currentTimeMillis() - lastTime))
+            elementType match {
+              case "matrix" =>
+                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
+                m = m + new Tuple2(name, new MatrixD(elementDataD.clone(), cols, true))
+              case "scalar" =>
+                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
+                m = m + new Tuple2(name, elementDataD(0))
+            }
+          }
+        } else {
+          if (!elementDataF.isEmpty) {
+            println("loading " + name + " took " + (System.currentTimeMillis() - lastTime))
+            elementType match {
+              case "matrix" =>
+                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
+                m = m + new Tuple2(name, new MatrixF(elementDataF, cols, true))
+              case "scalar" =>
+                println("adding " + elementType + " '" + name + "' of dims " + rows + ", " + cols)
+                m = m + new Tuple2(name, elementDataF(0))
+            }
+          }
+
+        }
+      }
+
+      def parseDataLine(l: String, elementData: Array[_], startIdx: Int, cols: Int) {
+        val elDatD = if (asDouble) elementData.asInstanceOf[Array[Double]] else null
+        val elDatF = if (!asDouble) elementData.asInstanceOf[Array[Float]] else null
+        val spl = l.split(" ")
+        assert(spl.length == cols, spl.length + " != " + cols)
+        val len = spl.length
+        var idx = 0
+        while (idx < len) {
+          if (asDouble) {
+            elDatD(startIdx + idx) = java.lang.Double.parseDouble(spl(idx))
+          } else elDatF(startIdx + idx) = java.lang.Float.parseFloat(spl(idx))
+          idx += 1
+        }
+      }
+
+      for (l <- la) {
+        val line = l.trim
+        //println(line)
+        if (line.startsWith("#")) {
+          idx = line.indexOf("name:")
+          if (idx > -1) {
+            if (!name.isEmpty() && !elementType.isEmpty()) {
+              // add previous obj
+              addObject
+              currRow = 0
+            }
+            name = line.substring(idx + "name:".length).trim
+            println("found " + name)
+            lastTime = System.currentTimeMillis()
+            rows = -1
+            cols = -1
+            elementType = ""
+          } else {
+            idx = line.indexOf("type:")
+            if (idx > -1) {
+              elementType = line.substring(idx + "type:".length).trim
+            } else {
+              idx = line.indexOf("rows:")
+              if (idx > -1) {
+                rows = Integer.parseInt(line.substring(idx + "rows:".length).trim)
+              } else {
+                idx = line.indexOf("columns:")
+                if (idx > -1) {
+                  cols = Integer.parseInt(line.substring(idx + "columns:".length).trim)
+                }
+              }
+            }
+          }
+        } else if (!line.isEmpty()) {
+          elementType match {
+            case "matrix" =>
+              assert(!name.isEmpty() && !elementType.isEmpty() && rows > -1 && cols > -1)
+              if (asDouble) {
+                if (elementDataD.length != rows * cols) {
+                  elementDataD = new Array[Double](rows * cols)
+                }
+                // it's a data line (row)
+                parseDataLine(line, elementDataD, currRow * cols, cols)
+                currRow += 1
+                if (currRow % 100 == 0) {
+                  val now = System.currentTimeMillis()
+                  if (lastChunk != 0) {
+                    val delta = ((now - lastChunk) / 1000.0).asInstanceOf[Int]
+                    println("on " + currRow + "/" + rows + " at " + delta / 100.0f + " s/row")
+                  } else {
+                    println("on " + currRow + "/" + rows)
+                  }
+                  lastChunk = now
+                }
+              } else {
+                if (elementDataF.length != rows * cols) {
+                  elementDataF = new Array[Float](rows * cols)
+                }
+                // it's a data line (row)
+                parseDataLine(line, elementDataF, currRow * cols, cols)
+                currRow += 1
+                if (currRow % 100 == 0) {
+                  val now = System.currentTimeMillis()
+                  if (lastChunk != 0) {
+                    val delta = ((now - lastChunk) / 1000.0).asInstanceOf[Int]
+                    println("on " + currRow + "/" + rows + " at " + delta / 100.0f + " s/row")
+                  } else {
+                    println("on " + currRow + "/" + rows)
+                  }
+                  lastChunk = now
+                }
+              }
+            case "scalar" =>
+              if (asDouble) {
+                elementDataD = new Array[Double](1)
+                elementDataD(0) = java.lang.Double.parseDouble(line)
+              } else {
+                elementDataF = new Array[Float](1)
+                elementDataF(0) = java.lang.Float.parseFloat(line)
+              }
+
+            case _ =>
+              println("unknown type " + elementType)
+          }
+        }
+      }
+      // add last obj
+      if (!name.isEmpty() && !elementType.isEmpty()) {
+        addObject
+      }
+      m
+    }
+
+    class RichFile(file: File) {
+
+      def text = Source.fromFile(file).mkString
+      def obj = {
+        val ois = new ObjectInputStream(new FileInputStream(file))
+        try { ois.readObject }
+        finally { ois.close }
+      }
+      def text_=(s: String) {
+        val out = new PrintWriter(file)
+        try { out.print(s) }
+        finally { out.close }
+      }
+      def obj_=(o: Any) {
+        val oos = new ObjectOutputStream(new FileOutputStream(file))
+        try { oos.writeObject(o) }
+        finally { oos.close }
+      }
+    }
+
+    object RichFile {
+
+      implicit def enrichFile(file: File) = new RichFile(file)
+
+    }
+
+  }
+  
 }
+

@@ -121,7 +121,7 @@ object LogisticRegressionF {
       var i = 0
       while (i < thetas.length) {
         val thetaCopy = thetas(i).dropFirst()
-        val jdeldel = lambda / (2.0f * m) * Math.sumFdc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
+        val jdeldel = lambda / (2.0f * m) * Math.sumDc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
         //println(i + " jdeldel: " + jdeldel)
         jDel += jdeldel
         i += 1
@@ -156,7 +156,7 @@ object LogisticRegressionF {
     val thetaCopy = theta.clone()
     thetaCopy.elements(0) = 0
     val gradDel = lambda * thetaCopy.tN() / m
-    val jDel = lambda / (2f * m) * Math.sumFdc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
+    val jDel = lambda / (2f * m) * Math.sumDc(thetaCopy.elementOp(math.pow(_, 2).asInstanceOf[Float]).elements)
     (j + jDel, (grad + gradDel).transposeIp())
   }
 

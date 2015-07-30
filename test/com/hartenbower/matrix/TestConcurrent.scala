@@ -15,7 +15,7 @@ class TestConcurrent {
   def chunkDc() {
     val a = Array(1, 2d, 3, 4, 5, 6)
     val l = a.length
-    assert(21d == Concurrent.aggregateD(Concurrent.distribute(l, chunk(a))))
+    assert(21d == Concurrent.aggregate(Concurrent.distribute(l, chunk(a))))
   }
 
 }

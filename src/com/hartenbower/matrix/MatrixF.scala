@@ -405,8 +405,8 @@ import MatrixF.verbose
   if (nCols != 0) require(elements.length % nCols == 0, "length " + elements.length + " not integrally divisible by col spec " + nCols)
   var nRows: Int = if (elements.isEmpty) 0 else elements.length / nCols
 
-  @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM) else if (transpose) Concurrent.effort(transposeDc) else null
-  @transient lazy val inv = Concurrent.effort(_inverseDc)
+  @transient val txp = if (txpM != null) new Concurrent.FutureIsNow(txpM).get else if (transpose) transposeDc else null
+  @transient lazy val inv = _inverseDc
   var oldCols = -1
   var oldRows = -1
   def this(els: Array[Float], cols: Int, transpose: Boolean = true) {
@@ -457,7 +457,7 @@ import MatrixF.verbose
   }
 
   override def clone = {
-    new MatrixF(elements.clone(), nCols, if (txp != null) txp.get else null, true)
+    new MatrixF(elements.clone(), nCols, if (txp != null) txp else null, true)
   }
 
   //     Concurrent.combine(Concurrent.distribute(l, matrixOpChunk(f, elements, o.elements, l, c, nRows)))
@@ -602,7 +602,7 @@ import MatrixF.verbose
       e(i) -= mus(i % nCols)
       i += 1
     }
-    e = e / Math.stdFDc(e)
+    e = e / Math.stdDc(e)
     new MatrixF(e, nCols)
   }
 
@@ -634,7 +634,7 @@ import MatrixF.verbose
     val l = elements.length
     var e = elements.clone()
     Concurrent.combine(Concurrent.distribute(l, normalizeChunk(e, mus)))
-    val stdDev = Math.stdFDc(e)
+    val stdDev  = Math.stdDc(e)
     Concurrent.combine(Concurrent.distribute(l, Math.divFchunk(e, stdDev)))
     new MatrixF(e, nCols)
   }
@@ -661,17 +661,17 @@ import MatrixF.verbose
       elements(i) = -elements(i)
       i -= 1
     }
-    if (txp != null) txp.get.negateIp
+    if (txp != null) txp.negateIp
     this
   }
 
   @inline def negateNSlow = {
     val cl = elements.clone
-    var txcl = if (txp != null) txp.get.elements else null
+    var txcl = if (txp != null) txp.elements else null
     var i = elements.length - 1
     while (i >= 0) {
       cl(i) = -elements(i)
-      if (txcl != null) txcl(i) = -txp.get.elements(i)
+      if (txcl != null) txcl(i) = -txp.elements(i)
       i -= 1
     }
     new MatrixF(cl, nCols, new MatrixF(txcl, nRows, false), txcl == null)
@@ -680,17 +680,17 @@ import MatrixF.verbose
   def negateN = {
     val cl = elements.clone
     Concurrent.combine(Concurrent.distribute(cl.length, Math.negateFchunk(cl)))
-    var txcl = if (txp != null) txp.get.elements.clone else null
+    var txcl = if (txp != null) txp.elements.clone else null
     if (txcl != null) {
       Concurrent.combine(Concurrent.distribute(cl.length, Math.negateFchunk(txcl)))
     }
     new MatrixF(cl, nCols, if (txcl != null) new MatrixF(txcl, nRows, false) else null, txcl == null)
   }
 
-  @inline def sumDc() = Math.sumFdc(elements)
+  @inline def sumDc() = Math.sumDc(elements)
   @inline def sum() = { var s = 0f; var i = 0; while (i < elements.length) { s += elements(i); i += 1 }; s }
 
-  def lengthDc = math.sqrt(Concurrent.aggregateD(Concurrent.distribute(elements.length, Math.lengthFsquaredChunk(elements)))).asInstanceOf[Float]
+  def lengthDc = math.sqrt(Concurrent.aggregate(Concurrent.distribute(elements.length, Math.lengthFsquaredChunk(elements)))).asInstanceOf[Float]
 
   def length = {
     var s = 0f
@@ -722,7 +722,7 @@ import MatrixF.verbose
     new MatrixF(el, nCols, txp != null)
   }
 
-  def autoDot() = Concurrent.aggregateF(Concurrent.distribute(elements.length, Math.sumSqrFchunk(elements)))
+  def autoDot() = Math.sumSqrDc(elements)
 
   // returns a column matrix where each row contains the index of the largest column 
   def maxColIdxs(): MatrixF = {
@@ -881,8 +881,8 @@ import MatrixF.verbose
     val futs = Concurrent.distribute(elements.length, boolOpChunk(f, other.elements))
     var i = 0
     var greater = true
-    while (i < futs.length) {
-      greater &= futs(i).get()
+    while (i < futs._1.length) {
+      greater &= futs._2.take.get
       i += 1
     }
     greater
@@ -902,7 +902,7 @@ import MatrixF.verbose
   }
 
   
-  def countBoolOpDc(f: (Float) => Boolean) = Concurrent.aggregateD(Concurrent.distribute(elements.length, countBoolOpChunk(f)))
+  def countBoolOpDc(f: (Float) => Boolean) = Concurrent.aggregate(Concurrent.distribute(elements.length, countBoolOpChunk(f)))
   
 
   def rowsWhereChunk(f: (Array[Float] ) => Boolean)(range : (Long,Long))() = {
@@ -1344,7 +1344,7 @@ import MatrixF.verbose
     MatrixF.txpsUseCount += 1
     if (txp != null) {
       // println(dims + " cached !!! txps")
-      txp.get
+      txp
     } else {
       //  println(dims + " had no cached txps")
       transposeDc
@@ -1761,7 +1761,7 @@ import MatrixF.verbose
         elements(0) * elements(3) - elements(1) * elements(2)
       case _ =>
         // cofactor expansion along the first column
-        Concurrent.aggregateF(Concurrent.distribute(nRows, determinantChunk))
+        Concurrent.aggregate(Concurrent.distribute(nRows, determinantChunk))
     }
   }
 
@@ -1818,7 +1818,7 @@ import MatrixF.verbose
     new MatrixF(c, nCols)
   }
 
-  def inverse() = inv.get
+  def inverse() = inv
   def _inverse(): MatrixF = {
     val d = determinant
     require(d != 0, "not linearly independent")
